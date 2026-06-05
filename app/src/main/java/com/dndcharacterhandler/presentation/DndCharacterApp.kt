@@ -3,9 +3,12 @@ package com.dndcharacterhandler.presentation
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -28,8 +31,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -104,97 +109,111 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
     }
 
     CompositionLocalProvider(LocalStrings provides strings) {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                CharacterManagerDrawer(
-                    state = managerState,
-                    onSelectCharacter = appState.characterManagerViewModel::selectCharacter,
-                    onCreateCharacter = appState.characterManagerViewModel::createCharacter,
-                    onExportCharacter = {
-                        exportLauncher.launch(suggestCharacterArchiveName(selectedCharacterName))
-                    },
-                    onDeleteCharacter = appState.characterManagerViewModel::deleteCurrentCharacter,
-                    onImportCharacter = {
-                        importLauncher.launch(arrayOf("application/octet-stream", "application/zip", "*/*"))
-                    },
-                    onLanguageSelected = appState.characterManagerViewModel::setLanguage
-                )
-            }
-        ) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
+        Box(modifier = Modifier.fillMaxSize()) {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    CharacterManagerDrawer(
+                        state = managerState,
+                        onSelectCharacter = appState.characterManagerViewModel::selectCharacter,
+                        onCreateCharacter = appState.characterManagerViewModel::createCharacter,
+                        onExportCharacter = {
+                            exportLauncher.launch(suggestCharacterArchiveName(selectedCharacterName))
+                        },
+                        onDeleteCharacter = appState.characterManagerViewModel::deleteCurrentCharacter,
+                        onImportCharacter = {
+                            importLauncher.launch(arrayOf("application/octet-stream", "application/zip", "*/*"))
+                        },
+                        onLanguageSelected = appState.characterManagerViewModel::setLanguage
+                    )
+                }
+            ) {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
                 contentWindowInsets = WindowInsets.systemBars,
                 topBar = {
-                    TopAppBar(
-                        windowInsets = TopAppBarDefaults.windowInsets,
-                        title = { Text(text(currentScreen.titleKey)) },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Menu,
-                                    contentDescription = text("drawer_open_character_manager")
-                                )
-                            }
-                        }
-                    )
-                },
-                bottomBar = {
-                    BottomNavigationBar(
-                        currentRoute = currentRoute,
-                        screens = bottomNavigationScreens,
-                        onNavigate = { screen ->
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
+                    if (currentRoute != AppScreen.Overview.route) {
+                        TopAppBar(
+                            windowInsets = TopAppBarDefaults.windowInsets,
+                            title = { Text(text(currentScreen.titleKey)) },
+                            navigationIcon = {
+                                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Menu,
+                                        contentDescription = text("drawer_open_character_manager")
+                                    )
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 },
-                snackbarHost = {
-                    SnackbarHost(hostState = snackbarHostState)
-                }
-            ) { padding ->
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .background(Color.Transparent)
-                ) {
+                    bottomBar = {
+                        BottomNavigationBar(
+                            currentRoute = currentRoute,
+                            screens = bottomNavigationScreens,
+                            onNavigate = { screen ->
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                    }
+                ) { padding ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .background(Color.Transparent)
+                    ) {
                     NavHost(
                         navController = navController,
                         startDestination = AppScreen.Overview.route
                     ) {
                         composable(AppScreen.Overview.route) {
-                            OverviewScreen(appState.overviewViewModel)
+                            OverviewScreen(
+                                viewModel = appState.overviewViewModel,
+                                onOpenDrawer = { scope.launch { drawerState.open() } },
+                                onOpenSettings = {}
+                            )
                         }
-                        composable(AppScreen.Attributes.route) {
-                            AttributesScreen(appState.attributesViewModel)
-                        }
-                        composable(AppScreen.Combat.route) {
-                            CombatScreen(appState.combatViewModel)
-                        }
-                        composable(AppScreen.Inventory.route) {
-                            InventoryScreen(appState.inventoryViewModel)
-                        }
-                        composable(AppScreen.Spells.route) {
-                            SpellsScreen(appState.spellsViewModel)
-                        }
-                        composable(AppScreen.Features.route) {
-                            FeaturesScreen(appState.featuresViewModel)
-                        }
-                        composable(AppScreen.Biography.route) {
-                            BiographyScreen(appState.biographyViewModel)
-                        }
-                        composable(AppScreen.Notes.route) {
-                            NotesScreen(appState.notesViewModel)
+                            composable(AppScreen.Attributes.route) {
+                                AttributesScreen(appState.attributesViewModel)
+                            }
+                            composable(AppScreen.Combat.route) {
+                                CombatScreen(appState.combatViewModel)
+                            }
+                            composable(AppScreen.Inventory.route) {
+                                InventoryScreen(appState.inventoryViewModel)
+                            }
+                            composable(AppScreen.Spells.route) {
+                                SpellsScreen(appState.spellsViewModel)
+                            }
+                            composable(AppScreen.Features.route) {
+                                FeaturesScreen(appState.featuresViewModel)
+                            }
+                            composable(AppScreen.Biography.route) {
+                                BiographyScreen(appState.biographyViewModel)
+                            }
+                            composable(AppScreen.Notes.route) {
+                                NotesScreen(appState.notesViewModel)
+                            }
                         }
                     }
                 }
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            )
         }
     }
 }

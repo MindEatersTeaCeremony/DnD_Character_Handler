@@ -461,4 +461,138 @@
     "fr": "This placeholder will later become a fast note-taking and recall surface.",
     "es": "This placeholder will later become a fast note-taking and recall surface."
   }
+  ,"overview_name_placeholder": {
+    "en": "Unnamed Adventurer",
+    "ru": "\u0411\u0435\u0437\u044b\u043c\u044f\u043d\u043d\u044b\u0439 \u0433\u0435\u0440\u043e\u0439",
+    "de": "Unnamed Adventurer",
+    "fr": "Unnamed Adventurer",
+    "es": "Unnamed Adventurer"
+  },
+  "overview_subtitle_format": {
+    "en": "%1$s \u2022 %2$s \u2022 Level %3$s",
+    "ru": "%1$s \u2022 %2$s \u2022 \u0423\u0440\u043e\u0432\u0435\u043d\u044c %3$s",
+    "de": "%1$s \u2022 %2$s \u2022 Stufe %3$s",
+    "fr": "%1$s \u2022 %2$s \u2022 Niveau %3$s",
+    "es": "%1$s \u2022 %2$s \u2022 Nivel %3$s"
+  },
+  "overview_short_rest": {
+    "en": "Short Rest",
+    "ru": "\u041a\u043e\u0440\u043e\u0442\u043a\u0438\u0439 \u043e\u0442\u0434\u044b\u0445",
+    "de": "Short Rest",
+    "fr": "Short Rest",
+    "es": "Short Rest"
+  },
+  "overview_long_rest": {
+    "en": "Long Rest",
+    "ru": "\u0414\u043e\u043b\u0433\u0438\u0439 \u043e\u0442\u0434\u044b\u0445",
+    "de": "Long Rest",
+    "fr": "Long Rest",
+    "es": "Long Rest"
+  },
+  "overview_inspiration": {
+    "en": "Inspiration",
+    "ru": "\u0412\u0434\u043e\u0445\u043d\u043e\u0432\u0435\u043d\u0438\u0435",
+    "de": "Inspiration",
+    "fr": "Inspiration",
+    "es": "Inspiration"
+  },
+  "overview_xp": {
+    "en": "EXP",
+    "ru": "EXP",
+    "de": "EXP",
+    "fr": "EXP",
+    "es": "EXP"
+  },
+  "overview_hp": {
+    "en": "HP",
+    "ru": "HP",
+    "de": "HP",
+    "fr": "HP",
+    "es": "HP"
+  },
+  "overview_ac": {
+    "en": "AC",
+    "ru": "\u041a\u0411",
+    "de": "AC",
+    "fr": "AC",
+    "es": "AC"
+  },
+  "overview_initiative": {
+    "en": "Initiative",
+    "ru": "\u0418\u043d\u0438\u0446\u0438\u0430\u0442\u0438\u0432\u0430",
+    "de": "Initiative",
+    "fr": "Initiative",
+    "es": "Initiative"
+  },
+  "overview_speed": {
+    "en": "Speed",
+    "ru": "\u0421\u043a\u043e\u0440\u043e\u0441\u0442\u044c",
+    "de": "Speed",
+    "fr": "Speed",
+    "es": "Speed"
+  },
+  "overview_settings": {
+    "en": "Settings",
+    "ru": "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438",
+    "de": "Settings",
+    "fr": "Settings",
+    "es": "Settings"
+  },
+  "nav_overview_compact": {
+    "en": "Over.",
+    "ru": "\u041e\u0431\u0437.",
+    "de": "Uber.",
+    "fr": "Vue",
+    "es": "Res."
+  },
+  "nav_attributes_compact": {
+    "en": "Attr.",
+    "ru": "\u0425\u0430\u0440.",
+    "de": "Attr.",
+    "fr": "Stats",
+    "es": "Atrib."
+  },
+  "nav_combat_compact": {
+    "en": "Fight",
+    "ru": "\u0411\u043e\u0439",
+    "de": "Kampf",
+    "fr": "Combat",
+    "es": "Comb."
+  },
+  "nav_inventory_compact": {
+    "en": "Bag",
+    "ru": "\u0418\u043d\u0432.",
+    "de": "Bag",
+    "fr": "Sac",
+    "es": "Bolsa"
+  },
+  "nav_spells_compact": {
+    "en": "Spells",
+    "ru": "\u0427\u0430\u0440\u044b",
+    "de": "Zauber",
+    "fr": "Sorts",
+    "es": "Hech."
+  },
+  "nav_features_compact": {
+    "en": "Feats",
+    "ru": "\u0427\u0435\u0440\u0442\u044b",
+    "de": "Merk.",
+    "fr": "Traits",
+    "es": "Rasgos"
+  },
+  "nav_biography_compact": {
+    "en": "Bio",
+    "ru": "\u0411\u0438\u043e",
+    "de": "Bio",
+    "fr": "Bio",
+    "es": "Bio"
+  },
+  "nav_notes_compact": {
+    "en": "Notes",
+    "ru": "\u0417\u0430\u043c\u0435\u0442.",
+    "de": "Notiz",
+    "fr": "Notes",
+    "es": "Notas"
+  }
+
 }
