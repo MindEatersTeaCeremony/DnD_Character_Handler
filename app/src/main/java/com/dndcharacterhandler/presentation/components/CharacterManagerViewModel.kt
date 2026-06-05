@@ -9,8 +9,11 @@ import com.dndcharacterhandler.domain.model.defaultCharacterBundle
 import com.dndcharacterhandler.domain.repository.CharacterFileRepository
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -18,9 +21,7 @@ import kotlinx.coroutines.launch
 data class CharacterManagerUiState(
     val characters: List<CharacterBundle> = emptyList(),
     val selectedCharacterId: Long? = null,
-    val language: AppLanguage = AppLanguage.ENGLISH,
-    val exportStatusKey: String? = null,
-    val importStatusKey: String? = null
+    val language: AppLanguage = AppLanguage.ENGLISH
 )
 
 class CharacterManagerViewModel(
@@ -31,6 +32,10 @@ class CharacterManagerViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CharacterManagerUiState())
     val uiState: StateFlow<CharacterManagerUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<String>()
+    val events: SharedFlow<String> = _events.asSharedFlow()
+
     private var seededDefaultCharacter = false
 
     init {
@@ -73,21 +78,25 @@ class CharacterManagerViewModel(
         }
     }
 
-    fun exportCharacter() {
+    fun exportCharacter(destinationUri: String) {
         viewModelScope.launch {
             val selectedId = _uiState.value.selectedCharacterId ?: return@launch
-            val result = fileRepository.exportCharacter(selectedId)
-            _uiState.value = _uiState.value.copy(
-                exportStatusKey = if (result.isSuccess) "drawer_export_success" else "drawer_export_error"
-            )
+            val result = fileRepository.exportCharacter(selectedId, destinationUri)
+            _events.emit(if (result.isSuccess) "drawer_export_success" else "drawer_export_error")
         }
     }
 
-    fun importCharacter() {
+    fun importCharacter(sourceUri: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                importStatusKey = "drawer_import_pending"
-            )
+            val result = fileRepository.importCharacter(sourceUri)
+            if (result.isSuccess) {
+                val characterId = result.getOrThrow()
+                selectedCharacterHolder.setSelectedCharacterId(characterId)
+                _uiState.value = _uiState.value.copy(selectedCharacterId = characterId)
+                _events.emit("drawer_import_success")
+            } else {
+                _events.emit("drawer_import_error")
+            }
         }
     }
 

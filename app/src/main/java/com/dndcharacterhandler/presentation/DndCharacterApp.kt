@@ -1,8 +1,12 @@
 package com.dndcharacterhandler.presentation
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
@@ -11,13 +15,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -40,6 +48,7 @@ import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.notes.NotesScreen
 import com.dndcharacterhandler.presentation.overview.OverviewScreen
 import com.dndcharacterhandler.presentation.spells.SpellsScreen
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 data class DndCharacterAppState(
@@ -68,6 +77,31 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
     val strings = remember(managerState.language) {
         appState.localizationRepository.getStrings(managerState.language)
     }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val selectedCharacterName = managerState.characters
+        .firstOrNull { it.character.id == managerState.selectedCharacterId }
+        ?.character
+        ?.name
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        if (uri != null) {
+            appState.characterManagerViewModel.exportCharacter(uri.toString())
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            appState.characterManagerViewModel.importCharacter(uri.toString())
+        }
+    }
+
+    LaunchedEffect(appState.characterManagerViewModel, strings) {
+        appState.characterManagerViewModel.events.collect { messageKey ->
+            snackbarHostState.showSnackbar(strings[messageKey])
+        }
+    }
 
     CompositionLocalProvider(LocalStrings provides strings) {
         ModalNavigationDrawer(
@@ -77,17 +111,23 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                     state = managerState,
                     onSelectCharacter = appState.characterManagerViewModel::selectCharacter,
                     onCreateCharacter = appState.characterManagerViewModel::createCharacter,
-                    onExportCharacter = appState.characterManagerViewModel::exportCharacter,
+                    onExportCharacter = {
+                        exportLauncher.launch(suggestCharacterArchiveName(selectedCharacterName))
+                    },
                     onDeleteCharacter = appState.characterManagerViewModel::deleteCurrentCharacter,
-                    onImportCharacter = appState.characterManagerViewModel::importCharacter,
+                    onImportCharacter = {
+                        importLauncher.launch(arrayOf("application/octet-stream", "application/zip", "*/*"))
+                    },
                     onLanguageSelected = appState.characterManagerViewModel::setLanguage
                 )
             }
         ) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
+                contentWindowInsets = WindowInsets.systemBars,
                 topBar = {
                     TopAppBar(
+                        windowInsets = TopAppBarDefaults.windowInsets,
                         title = { Text(text(currentScreen.titleKey)) },
                         navigationIcon = {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -113,6 +153,9 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                             }
                         }
                     )
+                },
+                snackbarHost = {
+                    SnackbarHost(hostState = snackbarHostState)
                 }
             ) { padding ->
                 Surface(
@@ -154,4 +197,13 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
             }
         }
     }
+}
+
+private fun suggestCharacterArchiveName(characterName: String?): String {
+    val baseName = characterName
+        ?.trim()
+        ?.ifBlank { null }
+        ?.replace(Regex("[^A-Za-z0-9._-]+"), "_")
+        ?: "character"
+    return "$baseName.dndchar"
 }

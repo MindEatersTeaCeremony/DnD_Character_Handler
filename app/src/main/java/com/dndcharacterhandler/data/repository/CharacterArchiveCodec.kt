@@ -1,0 +1,298 @@
+package com.dndcharacterhandler.data.repository
+
+import androidx.core.net.toUri
+import com.dndcharacterhandler.domain.model.Attack
+import com.dndcharacterhandler.domain.model.Character
+import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.CombatResource
+import com.dndcharacterhandler.domain.model.Feature
+import com.dndcharacterhandler.domain.model.InventoryCategory
+import com.dndcharacterhandler.domain.model.InventoryItem
+import com.dndcharacterhandler.domain.model.Note
+import com.dndcharacterhandler.domain.model.Skill
+import com.dndcharacterhandler.domain.model.Spell
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+
+private const val SCHEMA_VERSION = 1
+
+data class ImportedArchive(
+    val characterBundle: CharacterBundle,
+    val characterName: String
+)
+
+fun CharacterBundle.toArchiveManifest(
+    exportedAt: Long,
+    mapAssetReference: (String?, String) -> String?
+): JSONObject {
+    val characterObject = JSONObject().apply {
+        put("id", character.id)
+        put("name", character.name)
+        put("race", character.race)
+        put("characterClass", character.characterClass)
+        put("subclass", character.subclass)
+        put("level", character.level)
+        put("portraitUri", mapAssetReference(character.portraitUri, "portrait"))
+        put("currentHp", character.currentHp)
+        put("maxHp", character.maxHp)
+        put("armorClass", character.armorClass)
+        put("speed", character.speed)
+        put("initiative", character.initiative)
+        put("experience", character.experience)
+        put("strength", character.strength)
+        put("dexterity", character.dexterity)
+        put("constitution", character.constitution)
+        put("intelligence", character.intelligence)
+        put("wisdom", character.wisdom)
+        put("charisma", character.charisma)
+        put("alignment", character.alignment)
+        put("background", character.background)
+        put("faith", character.faith)
+        put("homeland", character.homeland)
+        put("age", character.age)
+        put("gender", character.gender)
+        put("height", character.height)
+        put("weight", character.weight)
+        put("eyes", character.eyes)
+        put("hair", character.hair)
+        put("skin", character.skin)
+        put("personalityTraits", character.personalityTraits)
+        put("ideals", character.ideals)
+        put("bonds", character.bonds)
+        put("flaws", character.flaws)
+        put("biography", character.biography)
+        put("createdAt", character.createdAt)
+        put("updatedAt", character.updatedAt)
+    }
+
+    return JSONObject().apply {
+        put("schemaVersion", SCHEMA_VERSION)
+        put("exportedAt", exportedAt)
+        put("character", characterObject)
+        put("skills", JSONArray(skills.map { skill ->
+            JSONObject().apply {
+                put("name", skill.name)
+                put("isProficient", skill.isProficient)
+            }
+        }))
+        put("attacks", JSONArray(attacks.mapIndexed { index, attack ->
+            JSONObject().apply {
+                put("name", attack.name)
+                put("icon", mapAssetReference(attack.icon, "attack_${index}_${slugify(attack.name)}"))
+                put("range", attack.range)
+                put("attackBonusOrSaveDc", attack.attackBonusOrSaveDc)
+                put("damage", attack.damage)
+                put("damageType", attack.damageType)
+            }
+        }))
+        put("combatResources", JSONArray(combatResources.map { resource ->
+            JSONObject().apply {
+                put("name", resource.name)
+                put("currentUses", resource.currentUses)
+                put("maximumUses", resource.maximumUses)
+            }
+        }))
+        put("inventoryItems", JSONArray(inventoryItems.mapIndexed { index, item ->
+            JSONObject().apply {
+                put("name", item.name)
+                put("category", item.category.name)
+                put("weight", item.weight)
+                put("quantity", item.quantity)
+                put("isEquipped", item.isEquipped)
+                put("icon", mapAssetReference(item.icon, "inventory_${index}_${slugify(item.name)}"))
+            }
+        }))
+        put("spells", JSONArray(spells.map { spell ->
+            JSONObject().apply {
+                put("name", spell.name)
+                put("level", spell.level)
+                put("school", spell.school)
+                put("isPrepared", spell.isPrepared)
+                put("description", spell.description)
+            }
+        }))
+        put("features", JSONArray(features.map { feature ->
+            JSONObject().apply {
+                put("name", feature.name)
+                put("description", feature.description)
+                put("resourceTracking", feature.resourceTracking)
+            }
+        }))
+        put("notes", JSONArray(notes.map { note ->
+            JSONObject().apply {
+                put("title", note.title)
+                put("createdDate", note.createdDate)
+                put("updatedDate", note.updatedDate)
+                put("content", note.content)
+            }
+        }))
+    }
+}
+
+fun archiveManifestToCharacterBundle(
+    manifest: JSONObject,
+    resolveAssetReference: (String?) -> String?
+): ImportedArchive {
+    require(manifest.getInt("schemaVersion") == SCHEMA_VERSION) {
+        "Unsupported character archive schema version."
+    }
+
+    val characterJson = manifest.getJSONObject("character")
+    val character = Character(
+        id = 0,
+        name = characterJson.optString("name"),
+        race = characterJson.optString("race"),
+        characterClass = characterJson.optString("characterClass"),
+        subclass = characterJson.optString("subclass"),
+        level = characterJson.optInt("level"),
+        portraitUri = resolveAssetReference(characterJson.optNullableString("portraitUri")),
+        currentHp = characterJson.optInt("currentHp"),
+        maxHp = characterJson.optInt("maxHp"),
+        armorClass = characterJson.optInt("armorClass"),
+        speed = characterJson.optInt("speed"),
+        initiative = characterJson.optInt("initiative"),
+        experience = characterJson.optInt("experience"),
+        strength = characterJson.optInt("strength"),
+        dexterity = characterJson.optInt("dexterity"),
+        constitution = characterJson.optInt("constitution"),
+        intelligence = characterJson.optInt("intelligence"),
+        wisdom = characterJson.optInt("wisdom"),
+        charisma = characterJson.optInt("charisma"),
+        alignment = characterJson.optString("alignment"),
+        background = characterJson.optString("background"),
+        faith = characterJson.optString("faith"),
+        homeland = characterJson.optString("homeland"),
+        age = characterJson.optString("age"),
+        gender = characterJson.optString("gender"),
+        height = characterJson.optString("height"),
+        weight = characterJson.optString("weight"),
+        eyes = characterJson.optString("eyes"),
+        hair = characterJson.optString("hair"),
+        skin = characterJson.optString("skin"),
+        personalityTraits = characterJson.optString("personalityTraits"),
+        ideals = characterJson.optString("ideals"),
+        bonds = characterJson.optString("bonds"),
+        flaws = characterJson.optString("flaws"),
+        biography = characterJson.optString("biography"),
+        createdAt = characterJson.optLong("createdAt"),
+        updatedAt = characterJson.optLong("updatedAt")
+    )
+
+    return ImportedArchive(
+        characterName = character.name,
+        characterBundle = CharacterBundle(
+            character = character,
+            skills = manifest.getJSONArray("skills").toSkillList(),
+            attacks = manifest.getJSONArray("attacks").toAttackList(resolveAssetReference),
+            combatResources = manifest.getJSONArray("combatResources").toCombatResourceList(),
+            inventoryItems = manifest.getJSONArray("inventoryItems").toInventoryItemList(resolveAssetReference),
+            spells = manifest.getJSONArray("spells").toSpellList(),
+            features = manifest.getJSONArray("features").toFeatureList(),
+            notes = manifest.getJSONArray("notes").toNoteList()
+        )
+    )
+}
+
+private fun JSONArray.toSkillList(): List<Skill> =
+    (0 until length()).map { index ->
+        getJSONObject(index).let { json ->
+            Skill(name = json.optString("name"), isProficient = json.optBoolean("isProficient"))
+        }
+    }
+
+private fun JSONArray.toAttackList(resolveAssetReference: (String?) -> String?): List<Attack> =
+    (0 until length()).map { index ->
+        getJSONObject(index).let { json ->
+            Attack(
+                name = json.optString("name"),
+                icon = resolveAssetReference(json.optNullableString("icon")).orEmpty(),
+                range = json.optString("range"),
+                attackBonusOrSaveDc = json.optString("attackBonusOrSaveDc"),
+                damage = json.optString("damage"),
+                damageType = json.optString("damageType")
+            )
+        }
+    }
+
+private fun JSONArray.toCombatResourceList(): List<CombatResource> =
+    (0 until length()).map { index ->
+        getJSONObject(index).let { json ->
+            CombatResource(
+                name = json.optString("name"),
+                currentUses = json.optInt("currentUses"),
+                maximumUses = json.optInt("maximumUses")
+            )
+        }
+    }
+
+private fun JSONArray.toInventoryItemList(resolveAssetReference: (String?) -> String?): List<InventoryItem> =
+    (0 until length()).map { index ->
+        getJSONObject(index).let { json ->
+            InventoryItem(
+                name = json.optString("name"),
+                category = InventoryCategory.valueOf(json.optString("category")),
+                weight = json.optDouble("weight"),
+                quantity = json.optInt("quantity"),
+                isEquipped = json.optBoolean("isEquipped"),
+                icon = resolveAssetReference(json.optNullableString("icon")).orEmpty()
+            )
+        }
+    }
+
+private fun JSONArray.toSpellList(): List<Spell> =
+    (0 until length()).map { index ->
+        getJSONObject(index).let { json ->
+            Spell(
+                name = json.optString("name"),
+                level = json.optInt("level"),
+                school = json.optString("school"),
+                isPrepared = json.optBoolean("isPrepared"),
+                description = json.optString("description")
+            )
+        }
+    }
+
+private fun JSONArray.toFeatureList(): List<Feature> =
+    (0 until length()).map { index ->
+        getJSONObject(index).let { json ->
+            Feature(
+                name = json.optString("name"),
+                description = json.optString("description"),
+                resourceTracking = json.optNullableString("resourceTracking")
+            )
+        }
+    }
+
+private fun JSONArray.toNoteList(): List<Note> =
+    (0 until length()).map { index ->
+        getJSONObject(index).let { json ->
+            Note(
+                title = json.optString("title"),
+                createdDate = json.optLong("createdDate"),
+                updatedDate = json.optLong("updatedDate"),
+                content = json.optString("content")
+            )
+        }
+    }
+
+private fun JSONObject.optNullableString(key: String): String? {
+    return if (isNull(key)) null else optString(key).ifBlank { null }
+}
+
+fun resolveImportedAssetReference(rawValue: String?, extractedAssets: Map<String, File>): String? {
+    if (rawValue.isNullOrBlank()) return null
+    return if (rawValue.startsWith("assets/")) {
+        extractedAssets[rawValue]?.toUri()?.toString()
+    } else {
+        rawValue
+    }
+}
+
+fun slugify(input: String): String {
+    val slug = input
+        .lowercase()
+        .replace(Regex("[^a-z0-9]+"), "_")
+        .trim('_')
+    return if (slug.isBlank()) "asset" else slug
+}

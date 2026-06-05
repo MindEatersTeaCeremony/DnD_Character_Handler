@@ -28,7 +28,11 @@ class MainActivity : ComponentActivity() {
 
         val database = AppDatabase.getInstance(applicationContext)
         val characterRepository = CharacterRepositoryImpl(database.characterDao())
-        val fileRepository = CharacterFileRepositoryImpl(applicationContext, database.characterDao())
+        val fileRepository = CharacterFileRepositoryImpl(
+            context = applicationContext,
+            characterDao = database.characterDao(),
+            characterRepository = characterRepository
+        )
         val languagePreferencesRepository = LanguagePreferencesRepository(applicationContext)
         val localizationRepository = LocalizationRepository(applicationContext)
         val getCharacterBundleUseCase = GetCharacterBundleUseCase(characterRepository)

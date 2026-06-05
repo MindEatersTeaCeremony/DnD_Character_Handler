@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenu
@@ -54,6 +55,7 @@ fun CharacterManagerDrawer(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(0.86f)
+                .statusBarsPadding()
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -104,14 +106,6 @@ fun CharacterManagerDrawer(
                 DrawerAction(text("drawer_export_character"), onExportCharacter)
                 DrawerAction(text("drawer_delete_character"), onDeleteCharacter)
                 DrawerAction(text("drawer_import_character"), onImportCharacter)
-                state.exportStatusKey?.let {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text(it), style = MaterialTheme.typography.bodySmall)
-                }
-                state.importStatusKey?.let {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text(it), style = MaterialTheme.typography.bodySmall)
-                }
             }
 
             Column {

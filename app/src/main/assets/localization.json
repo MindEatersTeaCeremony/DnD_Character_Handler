@@ -133,11 +133,11 @@
     "es": "%1$s | %2$s/%3$s"
   },
   "drawer_export_success": {
-    "en": "Character export is prepared for wiring.",
-    "ru": "Экспорт персонажа подготовлен на уровне каркаса.",
-    "de": "Character export is prepared for wiring.",
-    "fr": "Character export is prepared for wiring.",
-    "es": "Character export is prepared for wiring."
+    "en": "Character exported successfully.",
+    "ru": "Персонаж успешно экспортирован.",
+    "de": "Character exported successfully.",
+    "fr": "Character exported successfully.",
+    "es": "Character exported successfully."
   },
   "drawer_export_error": {
     "en": "Unable to export the selected character.",
@@ -146,12 +146,19 @@
     "fr": "Unable to export the selected character.",
     "es": "Unable to export the selected character."
   },
-  "drawer_import_pending": {
-    "en": "Character import parser is not implemented yet.",
-    "ru": "Парсер импорта персонажа пока не реализован.",
-    "de": "Character import parser is not implemented yet.",
-    "fr": "Character import parser is not implemented yet.",
-    "es": "Character import parser is not implemented yet."
+  "drawer_import_success": {
+    "en": "Character imported successfully.",
+    "ru": "Персонаж успешно импортирован.",
+    "de": "Character imported successfully.",
+    "fr": "Character imported successfully.",
+    "es": "Character imported successfully."
+  },
+  "drawer_import_error": {
+    "en": "Unable to import the selected character file.",
+    "ru": "Не удалось импортировать выбранный файл персонажа.",
+    "de": "Unable to import the selected character file.",
+    "fr": "Unable to import the selected character file.",
+    "es": "Unable to import the selected character file."
   },
   "placeholder_loading_character": {
     "en": "Loading Character",
