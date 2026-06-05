@@ -11,13 +11,22 @@ class LocalizationRepository(context: Context) {
     init {
         val json = context.assets.open("localization.json").bufferedReader().use { it.readText() }
         val root = JSONObject(json)
+        val fallbackLanguageCode = AppLanguage.ENGLISH.code
+
         localizedValuesByLanguage = AppLanguage.entries.associateWith { language ->
-            val languageJson = root.getJSONObject(language.code)
             buildMap {
-                val keys = languageJson.keys()
+                val keys = root.keys()
                 while (keys.hasNext()) {
                     val key = keys.next()
-                    put(key, languageJson.getString(key))
+                    val translations = root.getJSONObject(key)
+                    val value = when {
+                        translations.has(language.code) -> translations.getString(language.code)
+                        translations.has(fallbackLanguageCode) -> translations.getString(fallbackLanguageCode)
+                        else -> null
+                    }
+                    if (value != null) {
+                        put(key, value)
+                    }
                 }
             }
         }
@@ -41,4 +50,3 @@ data class LocalizedStrings(
         return String.format(Locale.ROOT, this[key], *args)
     }
 }
-
