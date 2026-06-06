@@ -39,6 +39,8 @@ import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -85,10 +87,13 @@ import com.dndcharacterhandler.presentation.components.AppImage
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.DnDTheme
+import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
 import java.io.File
 import java.io.FileOutputStream
 import java.text.NumberFormat
 import kotlinx.coroutines.launch
+
+private val hitDieSidesOptions = listOf(6, 8, 10, 12)
 
 class OverviewViewModel(
     private val characterRepository: CharacterRepository,
@@ -125,6 +130,7 @@ class OverviewViewModel(
                         race = newRace,
                         characterClass = newClass,
                         level = newLevel,
+                        spentHitDice = current.spentHitDice.coerceAtMost(newLevel),
                         updatedAt = System.currentTimeMillis()
                     )
                 )
@@ -259,6 +265,72 @@ class OverviewViewModel(
         }
     }
 
+    fun updateHitDieSides(characterBundle: CharacterBundle, hitDieSides: Int) {
+        val sanitized = hitDieSides.takeIf { it in hitDieSidesOptions } ?: 8
+        val current = characterBundle.character
+        if (sanitized == current.hitDieSides) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        hitDieSides = sanitized,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun spendHitDice(characterBundle: CharacterBundle, amount: Int) {
+        val current = characterBundle.character
+        val level = current.level.coerceAtLeast(1)
+        val available = (level - current.spentHitDice).coerceAtLeast(0)
+        val spent = amount.coerceAtLeast(0).coerceAtMost(available)
+        if (spent == 0) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        spentHitDice = (current.spentHitDice + spent).coerceAtMost(level),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun toggleInspiration(characterBundle: CharacterBundle) {
+        val current = characterBundle.character
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        hasInspiration = !current.hasInspiration,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun longRest(characterBundle: CharacterBundle) {
+        val current = characterBundle.character
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        currentHp = current.maxHp,
+                        temporaryHp = 0,
+                        spentHitDice = 0,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
     private fun updateHitPoints(
         characterBundle: CharacterBundle,
         currentHp: Int,
@@ -337,7 +409,11 @@ fun OverviewScreen(
         onUpdateMaxHitPoints = viewModel::updateMaxHitPoints,
         onUpdateArmorClass = viewModel::updateArmorClass,
         onUpdateInitiative = viewModel::updateInitiative,
-        onUpdateSpeed = viewModel::updateSpeed
+        onUpdateSpeed = viewModel::updateSpeed,
+        onUpdateHitDieSides = viewModel::updateHitDieSides,
+        onSpendHitDice = viewModel::spendHitDice,
+        onToggleInspiration = viewModel::toggleInspiration,
+        onLongRest = viewModel::longRest
     )
 }
 
@@ -355,11 +431,16 @@ private fun OverviewContent(
     onUpdateMaxHitPoints: (CharacterBundle, Int) -> Unit,
     onUpdateArmorClass: (CharacterBundle, Int) -> Unit,
     onUpdateInitiative: (CharacterBundle, Int) -> Unit,
-    onUpdateSpeed: (CharacterBundle, Int) -> Unit
+    onUpdateSpeed: (CharacterBundle, Int) -> Unit,
+    onUpdateHitDieSides: (CharacterBundle, Int) -> Unit,
+    onSpendHitDice: (CharacterBundle, Int) -> Unit,
+    onToggleInspiration: (CharacterBundle) -> Unit,
+    onLongRest: (CharacterBundle) -> Unit
 ) {
     val character = characterBundle?.character
     val context = LocalContext.current
     val strings = LocalStrings.current
+    val typographyTokens = LocalDesignTokens.current.typography
     val portraitPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -391,6 +472,9 @@ private fun OverviewContent(
     var miniStatDraft by remember(character?.id, character?.armorClass, character?.initiative, character?.speed) {
         mutableStateOf("")
     }
+    var isShortRestDialogOpen by remember { mutableStateOf(false) }
+    var isLongRestDialogOpen by remember { mutableStateOf(false) }
+    var hitDiceSpendCount by remember(character?.id, character?.spentHitDice, character?.level) { mutableStateOf(0) }
     var draftText by remember(character?.id, character?.name, character?.race, character?.characterClass) {
         mutableStateOf("")
     }
@@ -473,8 +557,8 @@ private fun OverviewContent(
                                 activeField = OverviewEditableField.NAME
                             },
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = 32.sp,
-                            lineHeight = 35.sp
+                            fontSize = typographyTokens.characterName.fontSizeSp.sp,
+                            lineHeight = (typographyTokens.characterName.lineHeightSp ?: typographyTokens.characterName.fontSizeSp).sp
                         ),
                         color = Color(0xFFF7F2EA),
                         textAlign = TextAlign.Center,
@@ -513,7 +597,24 @@ private fun OverviewContent(
                         OverviewActionButton(
                             modifier = Modifier.weight(1f),
                             label = text(action.labelKey),
-                            icon = action.icon
+                            icon = action.icon,
+                            selected = action.labelKey == "overview_inspiration" && (character?.hasInspiration ?: false),
+                            onClick = {
+                                when (action.labelKey) {
+                                    "overview_short_rest" -> {
+                                        hitDiceSpendCount = 0
+                                        isShortRestDialogOpen = true
+                                    }
+                                    "overview_long_rest" -> {
+                                        isLongRestDialogOpen = true
+                                    }
+                                    "overview_inspiration" -> {
+                                        if (characterBundle != null) {
+                                            onToggleInspiration(characterBundle)
+                                        }
+                                    }
+                                }
+                            }
                         )
                     }
                 }
@@ -947,6 +1048,158 @@ private fun OverviewContent(
             }
         )
     }
+
+    if (isShortRestDialogOpen && characterBundle != null) {
+        val current = characterBundle.character
+        val totalHitDice = current.level.coerceAtLeast(1)
+        val spentHitDice = current.spentHitDice.coerceIn(0, totalHitDice)
+        val availableHitDice = totalHitDice - spentHitDice
+        val spendCount = hitDiceSpendCount.coerceIn(0, availableHitDice)
+        var isHitDieMenuOpen by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { isShortRestDialogOpen = false },
+            title = { Text(text("overview_short_rest")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = text("overview_hit_dice_remaining_hint"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFD2CAC2)
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "$availableHitDice/$totalHitDice",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = typographyTokens.shortRestDiceCount.fontSizeSp.sp
+                            ),
+                            color = Color(0xFFF7F2EA)
+                        )
+                        Box(modifier = Modifier.padding(start = 12.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(0xFF1A171D),
+                                border = BorderStroke(1.dp, Color(0x50FFFFFF)),
+                                onClick = { isHitDieMenuOpen = true }
+                            ) {
+                                Text(
+                                    text = "d${current.hitDieSides}",
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontSize = typographyTokens.shortRestDieToken.fontSizeSp.sp
+                                    ),
+                                    color = Color(0xFFF7F2EA)
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = isHitDieMenuOpen,
+                                onDismissRequest = { isHitDieMenuOpen = false }
+                            ) {
+                                hitDieSidesOptions.forEach { sides ->
+                                    DropdownMenuItem(
+                                        text = { Text("d$sides") },
+                                        onClick = {
+                                            onUpdateHitDieSides(characterBundle, sides)
+                                            isHitDieMenuOpen = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Text(
+                        text = text("overview_hit_dice_spend_hint"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFD2CAC2)
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = { hitDiceSpendCount = (spendCount - 1).coerceAtLeast(0) },
+                            enabled = spendCount > 0
+                        ) {
+                            Text(
+                                text = "-",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = typographyTokens.shortRestCounterButton.fontSizeSp.sp
+                                )
+                            )
+                        }
+                        Text(
+                            text = spendCount.toString(),
+                            modifier = Modifier.padding(horizontal = 28.dp),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = typographyTokens.shortRestCounterValue.fontSizeSp.sp
+                            ),
+                            color = Color(0xFFF7F2EA),
+                            textAlign = TextAlign.Center
+                        )
+                        TextButton(
+                            onClick = { hitDiceSpendCount = (spendCount + 1).coerceAtMost(availableHitDice) },
+                            enabled = spendCount < availableHitDice
+                        ) {
+                            Text(
+                                text = "+",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = typographyTokens.shortRestCounterButton.fontSizeSp.sp
+                                )
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onSpendHitDice(characterBundle, spendCount)
+                        hitDiceSpendCount = 0
+                    },
+                    enabled = spendCount > 0
+                ) {
+                    Text(text("overview_hit_dice_spend"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isShortRestDialogOpen = false }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
+
+    if (isLongRestDialogOpen && characterBundle != null) {
+        AlertDialog(
+            onDismissRequest = { isLongRestDialogOpen = false },
+            title = { Text(text("overview_long_rest")) },
+            text = {
+                Text(
+                    text = text("overview_long_rest_confirm"),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFD2CAC2)
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onLongRest(characterBundle)
+                        isLongRestDialogOpen = false
+                    }
+                ) {
+                    Text(text("overview_long_rest_confirm_button"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isLongRestDialogOpen = false }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -1001,10 +1254,11 @@ private fun SubtitleToken(
     text: String,
     onClick: () -> Unit
 ) {
+    val token = LocalDesignTokens.current.typography.subtitleToken
     Text(
         text = text,
         modifier = Modifier.clickable(onClick = onClick),
-        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+        style = MaterialTheme.typography.bodyLarge.copy(fontSize = token.fontSizeSp.sp),
         color = Color(0xFFAAA29A),
         textAlign = TextAlign.Center
     )
@@ -1012,9 +1266,10 @@ private fun SubtitleToken(
 
 @Composable
 private fun SubtitleDivider() {
+    val token = LocalDesignTokens.current.typography.subtitleToken
     Text(
         text = " • ",
-        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+        style = MaterialTheme.typography.bodyLarge.copy(fontSize = token.fontSizeSp.sp),
         color = Color(0xFFAAA29A)
     )
 }
@@ -1159,6 +1414,7 @@ private fun PortraitFrame(
 
 @Composable
 private fun PortraitFallback(characterName: String) {
+    val token = LocalDesignTokens.current.typography.portraitInitial
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1171,7 +1427,7 @@ private fun PortraitFallback(characterName: String) {
     ) {
         Text(
             text = characterName.take(1).ifBlank { "?" },
-            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 40.sp),
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize = token.fontSizeSp.sp),
             color = Color(0xFFF7F2EA)
         )
     }
@@ -1181,13 +1437,18 @@ private fun PortraitFallback(characterName: String) {
 private fun OverviewActionButton(
         modifier: Modifier = Modifier,
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean = false,
+    onClick: () -> Unit
 ) {
+    val token = LocalDesignTokens.current.typography.actionButtonLabel
+    val contentColor = if (selected) Color(0xFFFFD86B) else Color(0xFFF1ECE5)
     Surface(
         modifier = modifier.height(66.dp),
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Color(0x50FFFFFF)),
-        color = Color(0xFF1A171D)
+        border = BorderStroke(1.dp, if (selected) Color(0x99FFD86B) else Color(0x50FFFFFF)),
+        color = if (selected) Color(0xFF2A2419) else Color(0xFF1A171D),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
@@ -1199,17 +1460,17 @@ private fun OverviewActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color(0xFFF1ECE5),
+                tint = contentColor,
                 modifier = Modifier.size(19.dp)
             )
             Text(
                 text = label,
                 modifier = Modifier.padding(start = 7.dp),
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 11.5.sp,
-                    lineHeight = 13.sp
+                    fontSize = token.fontSizeSp.sp,
+                    lineHeight = (token.lineHeightSp ?: token.fontSizeSp).sp
                 ),
-                color = Color(0xFFF1ECE5),
+                color = contentColor,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1224,6 +1485,7 @@ private fun OverviewXpBlock(
     onClick: () -> Unit
 ) {
     val formatter = remember { NumberFormat.getIntegerInstance() }
+    val token = LocalDesignTokens.current.typography.xpLabel
     val progressColor = if (xpInfo.hasReachedLevelCap) Color(0xFFE0B84E) else Color(0xFFD7D1CC)
 
     Column(
@@ -1236,7 +1498,7 @@ private fun OverviewXpBlock(
             } else {
                 "${text("overview_xp")} ${formatter.format(xpInfo.currentXp)} / ${formatter.format(xpInfo.nextLevelXp)}"
             },
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = token.fontSizeSp.sp),
             color = Color(0xFFECE4DB)
         )
         Canvas(
@@ -1272,6 +1534,7 @@ private fun OverviewHpCard(
     onClick: () -> Unit,
     onMaxHpClick: () -> Unit
 ) {
+    val tokens = LocalDesignTokens.current.typography
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -1317,8 +1580,8 @@ private fun OverviewHpCard(
                     Text(
                         text = currentHp.toString(),
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = 64.sp,
-                            lineHeight = 68.sp
+                            fontSize = tokens.hpCurrent.fontSizeSp.sp,
+                            lineHeight = (tokens.hpCurrent.lineHeightSp ?: tokens.hpCurrent.fontSizeSp).sp
                         ),
                         color = if (currentHp == 0) Color(0xFFE85C5C) else Color(0xFFF7F2EA),
                         textAlign = TextAlign.Center
@@ -1327,8 +1590,8 @@ private fun OverviewHpCard(
                         Text(
                             text = "+$temporaryHp",
                             style = MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = 40.sp,
-                                lineHeight = 44.sp
+                                fontSize = tokens.hpTemporary.fontSizeSp.sp,
+                                lineHeight = (tokens.hpTemporary.lineHeightSp ?: tokens.hpTemporary.fontSizeSp).sp
                             ),
                             color = Color(0xFF69B7FF),
                             textAlign = TextAlign.Center
@@ -1338,17 +1601,17 @@ private fun OverviewHpCard(
                         text = " / $maxHp",
                         modifier = Modifier.clickable(onClick = onMaxHpClick),
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = 40.sp,
-                            lineHeight = 44.sp
+                            fontSize = tokens.hpMaximum.fontSizeSp.sp,
+                            lineHeight = (tokens.hpMaximum.lineHeightSp ?: tokens.hpMaximum.fontSizeSp).sp
                         ),
-                        color = Color(0xFFF7F2EA).copy(alpha = 0.62f),
+                        color = Color(0xFFF7F2EA).copy(alpha = tokens.hpMaximum.alpha ?: 0.62f),
                         textAlign = TextAlign.Center
                     )
                 }
                 Text(
                     text = hpLabel,
                     modifier = Modifier.padding(top = 6.dp),
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = tokens.hpLabel.fontSizeSp.sp),
                     color = Color(0xFFC2BBB3)
                 )
             }
@@ -1364,6 +1627,7 @@ private fun OverviewMiniStatCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
+    val tokens = LocalDesignTokens.current.typography
     Card(
         modifier = modifier
             .aspectRatio(0.92f)
@@ -1415,8 +1679,8 @@ private fun OverviewMiniStatCard(
                 Text(
                     text = value,
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = 28.sp,
-                        lineHeight = 30.sp
+                        fontSize = tokens.miniStatValue.fontSizeSp.sp,
+                        lineHeight = (tokens.miniStatValue.lineHeightSp ?: tokens.miniStatValue.fontSizeSp).sp
                     ),
                     color = Color(0xFFF7F2EA),
                     textAlign = TextAlign.Center
@@ -1424,7 +1688,7 @@ private fun OverviewMiniStatCard(
                 Spacer(modifier = Modifier.height(1.dp))
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = tokens.miniStatLabel.fontSizeSp.sp),
                     color = Color(0xFFBEB6AE),
                     textAlign = TextAlign.Center,
                     maxLines = 1
@@ -1665,6 +1929,8 @@ private fun OverviewScreenPreview() {
             "overview_level_format" to "Level %1\$s",
             "overview_short_rest" to "Short Rest",
             "overview_long_rest" to "Long Rest",
+            "overview_long_rest_confirm" to "Confirm that this character takes a long rest of up to 8 hours?",
+            "overview_long_rest_confirm_button" to "Rest",
             "overview_inspiration" to "Inspiration",
             "overview_xp" to "EXP",
             "overview_hp" to "HP",
@@ -1689,6 +1955,9 @@ private fun OverviewScreenPreview() {
             "overview_hp_result" to "Result: %1\$s",
             "overview_hp_max_dialog_title" to "Edit Max HP",
             "overview_hp_max" to "Max HP",
+            "overview_hit_dice_remaining_hint" to "You currently have",
+            "overview_hit_dice_spend_hint" to "Confirm how many hit dice you want to spend during the rest",
+            "overview_hit_dice_spend" to "Spend",
             "overview_ac_full" to "Armor Class",
             "overview_edit_ac_title" to "Edit Armor Class",
             "overview_edit_initiative_title" to "Edit Initiative",
@@ -1709,6 +1978,9 @@ private fun OverviewScreenPreview() {
         currentHp = 38,
         maxHp = 42,
         temporaryHp = 10,
+        hitDieSides = 8,
+        spentHitDice = 0,
+        hasInspiration = true,
         armorClass = 15,
         speed = 30,
         initiative = 3,
@@ -1763,7 +2035,11 @@ private fun OverviewScreenPreview() {
                 onUpdateMaxHitPoints = { _, _ -> },
                 onUpdateArmorClass = { _, _ -> },
                 onUpdateInitiative = { _, _ -> },
-                onUpdateSpeed = { _, _ -> }
+                onUpdateSpeed = { _, _ -> },
+                onUpdateHitDieSides = { _, _ -> },
+                onSpendHitDice = { _, _ -> },
+                onToggleInspiration = {},
+                onLongRest = {}
             )
         }
     }

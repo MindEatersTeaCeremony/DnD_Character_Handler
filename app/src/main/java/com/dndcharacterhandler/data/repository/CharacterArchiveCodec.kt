@@ -37,6 +37,9 @@ fun CharacterBundle.toArchiveManifest(
         put("currentHp", character.currentHp)
         put("maxHp", character.maxHp)
         put("temporaryHp", character.temporaryHp)
+        put("hitDieSides", character.hitDieSides)
+        put("spentHitDice", character.spentHitDice)
+        put("hasInspiration", character.hasInspiration)
         put("armorClass", character.armorClass)
         put("speed", character.speed)
         put("initiative", character.initiative)
@@ -151,6 +154,9 @@ fun archiveManifestToCharacterBundle(
         currentHp = characterJson.optInt("currentHp"),
         maxHp = characterJson.optInt("maxHp"),
         temporaryHp = characterJson.optInt("temporaryHp").coerceAtLeast(0),
+        hitDieSides = characterJson.optInt("hitDieSides", 8).coerceInHitDieSides(),
+        spentHitDice = characterJson.optInt("spentHitDice").coerceAtLeast(0),
+        hasInspiration = characterJson.optBoolean("hasInspiration"),
         armorClass = characterJson.optInt("armorClass"),
         speed = characterJson.optInt("speed"),
         initiative = characterJson.optInt("initiative"),
@@ -280,6 +286,10 @@ private fun JSONArray.toNoteList(): List<Note> =
 
 private fun JSONObject.optNullableString(key: String): String? {
     return if (isNull(key)) null else optString(key).ifBlank { null }
+}
+
+private fun Int.coerceInHitDieSides(): Int {
+    return if (this in listOf(6, 8, 10, 12)) this else 8
 }
 
 fun resolveImportedAssetReference(rawValue: String?, extractedAssets: Map<String, File>): String? {

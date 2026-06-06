@@ -8,14 +8,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// Keep app/src/main/assets/design_tokens.json in sync when theme fonts, sizes, or colors change.
 data class DnDSpacing(
     val xs: androidx.compose.ui.unit.Dp = 4.dp,
     val sm: androidx.compose.ui.unit.Dp = 8.dp,
@@ -51,50 +54,58 @@ private val DnDColors = darkColorScheme(
     outlineVariant = Color(0xFF423830)
 )
 
-private val DnDTypography = Typography(
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 32.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontSize = 16.sp,
-        lineHeight = 22.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontSize = 14.sp,
-        lineHeight = 20.sp
-    ),
-    labelMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp
-    )
-)
-
 private val DnDShapes = Shapes()
 
 @Composable
 fun DnDTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalDnDSpacing provides DnDSpacing()) {
+    val context = LocalContext.current
+    val designTokens = remember(context) { loadDesignTokens(context) }
+
+    CompositionLocalProvider(
+        LocalDnDSpacing provides DnDSpacing(),
+        LocalDesignTokens provides designTokens
+    ) {
         MaterialTheme(
             colorScheme = DnDColors,
-            typography = DnDTypography,
+            typography = buildDnDTypography(designTokens.typography),
             shapes = DnDShapes,
             content = content
         )
     }
+}
+
+private fun buildDnDTypography(tokens: DesignTypographyTokens): Typography {
+    return Typography(
+        headlineMedium = TextStyle(
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            fontSize = tokens.headlineMedium.fontSizeSp.sp,
+            lineHeight = (tokens.headlineMedium.lineHeightSp ?: tokens.headlineMedium.fontSizeSp).sp
+        ),
+        titleLarge = TextStyle(
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = tokens.titleLarge.fontSizeSp.sp
+        ),
+        titleMedium = TextStyle(
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = tokens.titleMedium.fontSizeSp.sp
+        ),
+        bodyLarge = TextStyle(
+            fontFamily = FontFamily.SansSerif,
+            fontSize = tokens.bodyLarge.fontSizeSp.sp,
+            lineHeight = (tokens.bodyLarge.lineHeightSp ?: tokens.bodyLarge.fontSizeSp).sp
+        ),
+        bodyMedium = TextStyle(
+            fontFamily = FontFamily.SansSerif,
+            fontSize = tokens.bodyMedium.fontSizeSp.sp,
+            lineHeight = (tokens.bodyMedium.lineHeightSp ?: tokens.bodyMedium.fontSizeSp).sp
+        ),
+        labelMedium = TextStyle(
+            fontFamily = FontFamily.SansSerif,
+            fontWeight = FontWeight.Medium,
+            fontSize = tokens.labelMedium.fontSizeSp.sp
+        )
+    )
 }

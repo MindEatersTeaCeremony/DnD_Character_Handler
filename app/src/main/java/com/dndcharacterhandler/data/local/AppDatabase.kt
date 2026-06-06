@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -45,13 +45,26 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "dnd_character_handler.db"
-                ).addMigrations(MIGRATION_1_2).fallbackToDestructiveMigration().build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE characters ADD COLUMN temporaryHp INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN hitDieSides INTEGER NOT NULL DEFAULT 8")
+                db.execSQL("ALTER TABLE characters ADD COLUMN spentHitDice INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasInspiration INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

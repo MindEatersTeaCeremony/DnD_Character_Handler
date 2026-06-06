@@ -1,0 +1,204 @@
+{
+  "usage": {
+    "purpose": "Shared visual tokens for DnD Character Handler screens.",
+    "rule": "When creating new screens, reuse these fonts, font sizes, line heights, and colors whenever they fit. If a new font, size, or color seems necessary, ask the project owner before adding it."
+  },
+  "fonts": {
+    "display": {
+      "family": "FontFamily.Serif",
+      "weights": {
+        "headline": "Bold",
+        "title": "SemiBold"
+      }
+    },
+    "body": {
+      "family": "FontFamily.SansSerif",
+      "weights": {
+        "regular": "Normal",
+        "emphasis": "Medium"
+      }
+    }
+  },
+  "typography": {
+    "materialTheme": {
+      "headlineMedium": {
+        "fontFamily": "display",
+        "fontWeight": "Bold",
+        "fontSizeSp": 28,
+        "lineHeightSp": 32
+      },
+      "titleLarge": {
+        "fontFamily": "display",
+        "fontWeight": "SemiBold",
+        "fontSizeSp": 22
+      },
+      "titleMedium": {
+        "fontFamily": "display",
+        "fontWeight": "SemiBold",
+        "fontSizeSp": 18
+      },
+      "bodyLarge": {
+        "fontFamily": "body",
+        "fontSizeSp": 16,
+        "lineHeightSp": 22
+      },
+      "bodyMedium": {
+        "fontFamily": "body",
+        "fontSizeSp": 14,
+        "lineHeightSp": 20
+      },
+      "labelMedium": {
+        "fontFamily": "body",
+        "fontWeight": "Medium",
+        "fontSizeSp": 12
+      }
+    },
+    "overviewOverrides": {
+      "characterName": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 32,
+        "lineHeightSp": 35
+      },
+      "portraitInitial": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 40
+      },
+      "actionButtonLabel": {
+        "baseStyle": "bodyLarge",
+        "fontWeight": "Medium",
+        "fontSizeSp": 12,
+        "lineHeightSp": 13
+      },
+      "xpLabel": {
+        "baseStyle": "bodyLarge",
+        "fontSizeSp": 16
+      },
+      "hpCurrent": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 64,
+        "lineHeightSp": 68
+      },
+      "hpTemporary": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 40,
+        "lineHeightSp": 44
+      },
+      "hpMaximum": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 40,
+        "lineHeightSp": 44,
+        "alpha": 0.62
+      },
+      "hpLabel": {
+        "baseStyle": "titleMedium",
+        "fontSizeSp": 16
+      },
+      "miniStatValue": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 28,
+        "lineHeightSp": 30
+      },
+      "miniStatLabel": {
+        "baseStyle": "bodyLarge",
+        "fontSizeSp": 12
+      },
+      "subtitleToken": {
+        "baseStyle": "bodyLarge",
+        "fontSizeSp": 16
+      },
+      "shortRestDiceCount": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 32
+      },
+      "shortRestDieToken": {
+        "baseStyle": "bodyLarge",
+        "fontSizeSp": 18
+      },
+      "shortRestCounterButton": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 28
+      },
+      "shortRestCounterValue": {
+        "baseStyle": "headlineMedium",
+        "fontSizeSp": 40
+      }
+    }
+  },
+  "colors": {
+    "materialTheme": {
+      "primary": "#C6A36C",
+      "onPrimary": "#22170C",
+      "primaryContainer": "#49321A",
+      "onPrimaryContainer": "#F3DDB8",
+      "secondary": "#9E7B5A",
+      "onSecondary": "#21150C",
+      "background": "#120E18",
+      "onBackground": "#F0E7DA",
+      "surface": "#1A1521",
+      "onSurface": "#F0E7DA",
+      "surfaceVariant": "#2A2231",
+      "onSurfaceVariant": "#CABFB3",
+      "outline": "#706359",
+      "outlineVariant": "#423830"
+    },
+    "overview": {
+      "backgroundRadialStart": "#1A161D",
+      "backgroundRadialMiddle": "#0E0B11",
+      "backgroundRadialEnd": "#09070D",
+      "textPrimary": "#F7F2EA",
+      "textWarmPrimary": "#FFF6EA",
+      "textAction": "#F1ECE5",
+      "textMuted": "#D2CAC2",
+      "textSubtle": "#AAA29A",
+      "textLabel": "#C2BBB3",
+      "textMiniLabel": "#BEB6AE",
+      "headerIcon": "#F3EEE6",
+      "surfaceCard": "#17141B",
+      "surfaceButton": "#1A171D",
+      "surfaceSelected": "#3A3244",
+      "surfaceInspiration": "#2A2419",
+      "portraitSurface": "#141118",
+      "portraitFallbackStart": "#3B3840",
+      "portraitFallbackMiddle": "#18151C",
+      "portraitFallbackEnd": "#0F0C12",
+      "accentInspiration": "#FFD86B",
+      "accentXpCapped": "#E0B84E",
+      "accentHpTemporary": "#69B7FF",
+      "dangerHpZero": "#E85C5C",
+      "xpProgress": "#D7D1CC",
+      "xpTrack": "#30FFFFFF",
+      "borderDefault": "#50FFFFFF",
+      "borderPanel": "#44FFFFFF",
+      "borderMiniCard": "#42FFFFFF",
+      "borderSelected": "#66FFF6EA",
+      "borderMuted": "#30FFFFFF",
+      "ornamentOuter": "#20FFFFFF",
+      "ornamentMiddle": "#80C7C1BB",
+      "ornamentInnerGlow": "#42FFFFFF",
+      "ornamentInner": "#E9E2D9",
+      "ornamentShadow": "#14000000",
+      "ornamentStroke": "#55A19892",
+      "ornamentDot": "#2D2730"
+    }
+  },
+  "spacingDp": {
+    "xs": 4,
+    "sm": 8,
+    "md": 16,
+    "lg": 24,
+    "xl": 32
+  },
+  "strokesDp": {
+    "hairline": 1,
+    "portraitOuter": 3,
+    "portraitInner": 2,
+    "xpBar": 11
+  },
+  "radiiDp": {
+    "token": 12,
+    "dieToken": 14,
+    "actionButton": 20,
+    "miniCard": 24,
+    "hpCard": 30
+  }
+}
