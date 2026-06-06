@@ -44,6 +44,7 @@ fun CharacterEntity.toDomain(): Character =
         portraitUri = portraitUri,
         currentHp = currentHp,
         maxHp = maxHp,
+        temporaryHp = temporaryHp,
         armorClass = armorClass,
         speed = speed,
         initiative = initiative,
@@ -85,6 +86,7 @@ fun Character.toEntity(): CharacterEntity =
         portraitUri = portraitUri,
         currentHp = currentHp,
         maxHp = maxHp,
+        temporaryHp = temporaryHp,
         armorClass = armorClass,
         speed = speed,
         initiative = initiative,
@@ -135,4 +137,3 @@ fun Feature.toEntity(characterId: Long): FeatureEntity =
 
 fun Note.toEntity(characterId: Long): NoteEntity =
     NoteEntity(id = id, characterOwnerId = characterId, title = title, createdDate = createdDate, updatedDate = updatedDate, content = content)
-

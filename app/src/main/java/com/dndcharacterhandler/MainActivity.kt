@@ -42,7 +42,11 @@ class MainActivity : ComponentActivity() {
             DnDTheme {
                 DndCharacterApp(
                     appState = DndCharacterAppState(
-                        overviewViewModel = OverviewViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
+                        overviewViewModel = OverviewViewModel(
+                            characterRepository = characterRepository,
+                            getCharacterBundleUseCase = getCharacterBundleUseCase,
+                            selectedCharacterHolder = selectedCharacterHolder
+                        ),
                         attributesViewModel = AttributesViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
                         combatViewModel = CombatViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
                         inventoryViewModel = InventoryViewModel(getCharacterBundleUseCase, selectedCharacterHolder),

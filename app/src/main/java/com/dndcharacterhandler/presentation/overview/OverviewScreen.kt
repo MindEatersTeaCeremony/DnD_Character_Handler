@@ -1,4 +1,6 @@
 package com.dndcharacterhandler.presentation.overview
+import android.content.Context
+import android.media.MediaPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,14 +33,19 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,16 +56,26 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.data.localization.LocalizedStrings
+import com.dndcharacterhandler.domain.model.AssetReferences
 import com.dndcharacterhandler.domain.model.Character
+import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.AppLanguage
+import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
@@ -66,11 +84,113 @@ import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.DnDTheme
 import java.text.NumberFormat
+import kotlinx.coroutines.launch
 
 class OverviewViewModel(
+    private val characterRepository: CharacterRepository,
     getCharacterBundleUseCase: GetCharacterBundleUseCase,
     selectedCharacterHolder: SelectedCharacterHolder
-) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder)
+) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
+    fun updateIdentity(
+        characterBundle: CharacterBundle,
+        name: String? = null,
+        race: String? = null,
+        characterClass: String? = null,
+        level: Int? = null
+    ) {
+        viewModelScope.launch {
+            val current = characterBundle.character
+            val newName = name?.trim() ?: current.name
+            val newRace = race?.trim() ?: current.race
+            val newClass = characterClass?.trim() ?: current.characterClass
+            val newLevel = level ?: current.level
+
+            if (
+                newName == current.name &&
+                newRace == current.race &&
+                newClass == current.characterClass &&
+                newLevel == current.level
+            ) {
+                return@launch
+            }
+
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        name = newName,
+                        race = newRace,
+                        characterClass = newClass,
+                        level = newLevel,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun updateExperience(characterBundle: CharacterBundle, experience: Int) {
+        val sanitized = experience.coerceAtLeast(0)
+        if (sanitized == characterBundle.character.experience) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = characterBundle.character.copy(
+                        experience = sanitized,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun damageHitPoints(characterBundle: CharacterBundle, amount: Int) {
+        val damage = amount.coerceAtLeast(0)
+        val current = characterBundle.character
+        val temporaryDamage = damage.coerceAtMost(current.temporaryHp)
+        val remainingDamage = damage - temporaryDamage
+        val newTemporaryHp = current.temporaryHp - temporaryDamage
+        val newCurrentHp = (current.currentHp - remainingDamage).coerceAtLeast(0)
+
+        updateHitPoints(characterBundle, newCurrentHp, newTemporaryHp)
+    }
+
+    fun healHitPoints(characterBundle: CharacterBundle, amount: Int) {
+        val healing = amount.coerceAtLeast(0)
+        val current = characterBundle.character
+        val newCurrentHp = (current.currentHp + healing).coerceAtMost(current.maxHp)
+
+        updateHitPoints(characterBundle, newCurrentHp, current.temporaryHp)
+    }
+
+    fun addTemporaryHitPoints(characterBundle: CharacterBundle, amount: Int) {
+        val temporaryHp = amount.coerceAtLeast(0)
+        val current = characterBundle.character
+
+        updateHitPoints(characterBundle, current.currentHp, current.temporaryHp + temporaryHp)
+    }
+
+    private fun updateHitPoints(
+        characterBundle: CharacterBundle,
+        currentHp: Int,
+        temporaryHp: Int
+    ) {
+        val current = characterBundle.character
+        if (currentHp == current.currentHp && temporaryHp == current.temporaryHp) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        currentHp = currentHp,
+                        temporaryHp = temporaryHp,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+}
 
 private data class OverviewAction(
     val labelKey: String,
@@ -83,6 +203,24 @@ private data class OverviewStat(
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
+private enum class OverviewEditableField {
+    NAME,
+    RACE,
+    CLASS,
+    LEVEL
+}
+
+private enum class OverviewExperienceEditMode {
+    ADD,
+    SET
+}
+
+private enum class OverviewHpEditMode {
+    DAMAGE,
+    HEAL,
+    TEMPORARY
+}
+
 @Composable
 fun OverviewScreen(
     viewModel: OverviewViewModel,
@@ -91,23 +229,46 @@ fun OverviewScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     OverviewContent(
-        character = state.character?.character,
+        characterBundle = state.character,
         onOpenDrawer = onOpenDrawer,
-        onOpenSettings = onOpenSettings
+        onOpenSettings = onOpenSettings,
+        onUpdateIdentity = viewModel::updateIdentity,
+        onUpdateExperience = viewModel::updateExperience,
+        onDamageHitPoints = viewModel::damageHitPoints,
+        onHealHitPoints = viewModel::healHitPoints,
+        onAddTemporaryHitPoints = viewModel::addTemporaryHitPoints
     )
 }
 
 @Composable
 private fun OverviewContent(
-    character: Character?,
+    characterBundle: CharacterBundle?,
     onOpenDrawer: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onUpdateIdentity: (CharacterBundle, String?, String?, String?, Int?) -> Unit,
+    onUpdateExperience: (CharacterBundle, Int) -> Unit,
+    onDamageHitPoints: (CharacterBundle, Int) -> Unit,
+    onHealHitPoints: (CharacterBundle, Int) -> Unit,
+    onAddTemporaryHitPoints: (CharacterBundle, Int) -> Unit
 ) {
+    val character = characterBundle?.character
+    val context = LocalContext.current
     val strings = LocalStrings.current
+    var activeField by remember { mutableStateOf<OverviewEditableField?>(null) }
+    var isExperienceDialogOpen by remember { mutableStateOf(false) }
+    var experienceEditMode by remember { mutableStateOf(OverviewExperienceEditMode.ADD) }
+    var experienceDraft by remember(character?.id, character?.experience) { mutableStateOf("") }
+    var isHpDialogOpen by remember { mutableStateOf(false) }
+    var hpEditMode by remember { mutableStateOf(OverviewHpEditMode.DAMAGE) }
+    var hpDraft by remember(character?.id, character?.currentHp, character?.temporaryHp) { mutableStateOf("") }
+    var draftText by remember(character?.id, character?.name, character?.race, character?.characterClass) {
+        mutableStateOf("")
+    }
     val displayName = character?.name?.ifBlank { text("overview_name_placeholder") }
         ?: text("overview_name_placeholder")
-    val subtitle = remember(character, strings) { buildOverviewSubtitle(character, strings) }
-    val hpValue = "${character?.currentHp ?: 0} / ${character?.maxHp ?: 0}"
+    val raceLabel = character?.race?.ifBlank { text("placeholder_race") } ?: text("placeholder_race")
+    val classLabel = remember(character, strings) { buildOverviewClassLabel(character, strings) }
+    val levelLabel = strings.format("overview_level_format", character?.level ?: 1)
     val xpInfo = remember(character) { buildXpInfo(character) }
 
     val actions = listOf(
@@ -155,7 +316,12 @@ private fun OverviewContent(
                     )
                     Text(
                         text = displayName,
-                        modifier = Modifier.offset(y = (-36).dp),
+                        modifier = Modifier
+                            .offset(y = (-36).dp)
+                            .clickable {
+                                draftText = character?.name.orEmpty()
+                                activeField = OverviewEditableField.NAME
+                            },
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontSize = 32.sp,
                             lineHeight = 35.sp
@@ -164,14 +330,24 @@ private fun OverviewContent(
                         textAlign = TextAlign.Center,
                         maxLines = 2
                     )
-                    Text(
-                        text = subtitle,
+                    OverviewSubtitleRow(
+                        raceLabel = raceLabel,
+                        classLabel = classLabel,
+                        levelLabel = levelLabel,
                         modifier = Modifier
                             .offset(y = (-34).dp)
                             .padding(top = 2.dp),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                        color = Color(0xFFAAA29A),
-                        textAlign = TextAlign.Center
+                        onEditRace = {
+                            draftText = character?.race.orEmpty()
+                            activeField = OverviewEditableField.RACE
+                        },
+                        onEditClass = {
+                            draftText = character?.characterClass.orEmpty()
+                            activeField = OverviewEditableField.CLASS
+                        },
+                        onEditLevel = {
+                            activeField = OverviewEditableField.LEVEL
+                        }
                     )
                 }
             }
@@ -195,15 +371,29 @@ private fun OverviewContent(
 
             item {
                 Box(modifier = Modifier.offset(y = (-28).dp)) {
-                    OverviewXpBlock(xpInfo = xpInfo)
+                    OverviewXpBlock(
+                        xpInfo = xpInfo,
+                        onClick = {
+                            experienceEditMode = OverviewExperienceEditMode.ADD
+                            experienceDraft = ""
+                            isExperienceDialogOpen = true
+                        }
+                    )
                 }
             }
 
             item {
                 Box(modifier = Modifier.offset(y = (-30).dp)) {
                     OverviewHpCard(
-                        hpValue = hpValue,
-                        hpLabel = text("overview_hp")
+                        currentHp = character?.currentHp ?: 0,
+                        maxHp = character?.maxHp ?: 0,
+                        temporaryHp = character?.temporaryHp ?: 0,
+                        hpLabel = text("overview_hp"),
+                        onClick = {
+                            hpEditMode = OverviewHpEditMode.DAMAGE
+                            hpDraft = ""
+                            isHpDialogOpen = true
+                        }
                     )
                 }
             }
@@ -227,6 +417,340 @@ private fun OverviewContent(
             }
         }
     }
+
+    if (activeField != null && characterBundle != null) {
+        val field = activeField!!
+        if (field == OverviewEditableField.LEVEL) {
+            AlertDialog(
+                onDismissRequest = { activeField = null },
+                title = { Text(text("overview_level_picker_title")) },
+                text = {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 320.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(20) { index ->
+                            val level = index + 1
+                            val isSelected = level == characterBundle.character.level
+                            Text(
+                                text = strings.format("overview_level_format", level),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) Color(0xFF3A3244) else Color.Transparent)
+                                    .clickable {
+                                        onUpdateIdentity(characterBundle, null, null, null, level)
+                                        activeField = null
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isSelected) Color(0xFFFFF6EA) else Color(0xFFD2CAC2)
+                            )
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { activeField = null }) {
+                        Text(text("common_cancel"))
+                    }
+                }
+            )
+        } else {
+        AlertDialog(
+            onDismissRequest = { activeField = null },
+            title = {
+                Text(
+                    when (field) {
+                        OverviewEditableField.NAME -> text("overview_rename_title")
+                        OverviewEditableField.RACE -> text("overview_edit_race_title")
+                        OverviewEditableField.CLASS -> text("overview_edit_class_title")
+                        OverviewEditableField.LEVEL -> text("overview_level_picker_title")
+                    }
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = draftText,
+                    onValueChange = { draftText = it },
+                    singleLine = true,
+                    label = {
+                        Text(
+                            when (field) {
+                                OverviewEditableField.NAME -> text("overview_name_placeholder")
+                                OverviewEditableField.RACE -> text("placeholder_race")
+                                OverviewEditableField.CLASS -> text("placeholder_class")
+                                OverviewEditableField.LEVEL -> text("overview_level_picker_title")
+                            }
+                        )
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        when (field) {
+                            OverviewEditableField.NAME -> onUpdateIdentity(characterBundle, draftText, null, null, null)
+                            OverviewEditableField.RACE -> onUpdateIdentity(characterBundle, null, draftText, null, null)
+                            OverviewEditableField.CLASS -> onUpdateIdentity(characterBundle, null, null, draftText, null)
+                            OverviewEditableField.LEVEL -> Unit
+                        }
+                        activeField = null
+                    }
+                ) {
+                    Text(text("common_save"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { activeField = null }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+        }
+    }
+
+    if (isExperienceDialogOpen && characterBundle != null) {
+        val formatter = remember { NumberFormat.getIntegerInstance() }
+        val currentExperience = characterBundle.character.experience
+        val draftValue = experienceDraft.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val resultExperience = when (experienceEditMode) {
+            OverviewExperienceEditMode.ADD -> currentExperience + draftValue
+            OverviewExperienceEditMode.SET -> draftValue
+        }
+
+        AlertDialog(
+            onDismissRequest = { isExperienceDialogOpen = false },
+            title = { Text(text("overview_exp_dialog_title")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = strings.format("overview_exp_current", formatter.format(currentExperience)),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFD2CAC2)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ExperienceModeButton(
+                            modifier = Modifier.weight(1f),
+                            label = text("overview_exp_add"),
+                            selected = experienceEditMode == OverviewExperienceEditMode.ADD,
+                            onClick = { experienceEditMode = OverviewExperienceEditMode.ADD }
+                        )
+                        ExperienceModeButton(
+                            modifier = Modifier.weight(1f),
+                            label = text("overview_exp_set"),
+                            selected = experienceEditMode == OverviewExperienceEditMode.SET,
+                            onClick = { experienceEditMode = OverviewExperienceEditMode.SET }
+                        )
+                    }
+                    OutlinedTextField(
+                        value = experienceDraft,
+                        onValueChange = { value ->
+                            experienceDraft = value.filter(Char::isDigit)
+                        },
+                        singleLine = true,
+                        label = {
+                            Text(
+                                if (experienceEditMode == OverviewExperienceEditMode.ADD) {
+                                    text("overview_exp_add")
+                                } else {
+                                    text("overview_exp_set")
+                                }
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    Text(
+                        text = strings.format("overview_exp_result", formatter.format(resultExperience)),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onUpdateExperience(characterBundle, resultExperience)
+                        isExperienceDialogOpen = false
+                    }
+                ) {
+                    Text(text("common_save"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isExperienceDialogOpen = false }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
+
+    if (isHpDialogOpen && characterBundle != null) {
+        val current = characterBundle.character
+        val draftValue = hpDraft.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val result = remember(current.currentHp, current.maxHp, current.temporaryHp, draftValue, hpEditMode) {
+            calculateHpPreview(current.currentHp, current.maxHp, current.temporaryHp, draftValue, hpEditMode)
+        }
+
+        AlertDialog(
+            onDismissRequest = { isHpDialogOpen = false },
+            title = { Text(text("overview_hp_dialog_title")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = strings.format(
+                            "overview_hp_current",
+                            formatHpPlain(current.currentHp, current.maxHp, current.temporaryHp)
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFD2CAC2)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ExperienceModeButton(
+                            modifier = Modifier.weight(1f),
+                            label = text("overview_hp_damage"),
+                            selected = hpEditMode == OverviewHpEditMode.DAMAGE,
+                            onClick = { hpEditMode = OverviewHpEditMode.DAMAGE }
+                        )
+                        ExperienceModeButton(
+                            modifier = Modifier.weight(1f),
+                            label = text("overview_hp_heal"),
+                            selected = hpEditMode == OverviewHpEditMode.HEAL,
+                            onClick = { hpEditMode = OverviewHpEditMode.HEAL }
+                        )
+                    }
+                    ExperienceModeButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        label = text("overview_hp_temporary"),
+                        selected = hpEditMode == OverviewHpEditMode.TEMPORARY,
+                        onClick = { hpEditMode = OverviewHpEditMode.TEMPORARY }
+                    )
+                    OutlinedTextField(
+                        value = hpDraft,
+                        onValueChange = { value ->
+                            hpDraft = value.filter(Char::isDigit)
+                        },
+                        singleLine = true,
+                        label = {
+                            Text(
+                                when (hpEditMode) {
+                                    OverviewHpEditMode.DAMAGE -> text("overview_hp_damage")
+                                    OverviewHpEditMode.HEAL -> text("overview_hp_heal")
+                                    OverviewHpEditMode.TEMPORARY -> text("overview_hp_temporary")
+                                }
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    Text(
+                        text = strings.format(
+                            "overview_hp_result",
+                            formatHpPlain(result.currentHp, result.maxHp, result.temporaryHp)
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (
+                            hpEditMode == OverviewHpEditMode.DAMAGE &&
+                            draftValue > 0 &&
+                            current.currentHp > 0 &&
+                            result.currentHp == 0
+                        ) {
+                            playAssetSound(context, "sounds/wilhelm_scream.mp3")
+                        }
+                        when (hpEditMode) {
+                            OverviewHpEditMode.DAMAGE -> onDamageHitPoints(characterBundle, draftValue)
+                            OverviewHpEditMode.HEAL -> onHealHitPoints(characterBundle, draftValue)
+                            OverviewHpEditMode.TEMPORARY -> onAddTemporaryHitPoints(characterBundle, draftValue)
+                        }
+                        isHpDialogOpen = false
+                    }
+                ) {
+                    Text(text("common_save"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isHpDialogOpen = false }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ExperienceModeButton(
+    modifier: Modifier = Modifier,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) Color(0xFF3A3244) else Color(0xFF1A171D),
+        border = BorderStroke(1.dp, if (selected) Color(0x66FFF6EA) else Color(0x30FFFFFF)),
+        onClick = onClick
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) Color(0xFFFFF6EA) else Color(0xFFD2CAC2),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun OverviewSubtitleRow(
+    raceLabel: String,
+    classLabel: String,
+    levelLabel: String,
+    modifier: Modifier = Modifier,
+    onEditRace: () -> Unit,
+    onEditClass: () -> Unit,
+    onEditLevel: () -> Unit
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SubtitleToken(text = raceLabel, onClick = onEditRace)
+        SubtitleDivider()
+        SubtitleToken(text = classLabel, onClick = onEditClass)
+        SubtitleDivider()
+        SubtitleToken(text = levelLabel, onClick = onEditLevel)
+    }
+}
+
+@Composable
+private fun SubtitleToken(
+    text: String,
+    onClick: () -> Unit
+) {
+    Text(
+        text = text,
+        modifier = Modifier.clickable(onClick = onClick),
+        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+        color = Color(0xFFAAA29A),
+        textAlign = TextAlign.Center
+    )
+}
+
+@Composable
+private fun SubtitleDivider() {
+    Text(
+        text = " • ",
+        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+        color = Color(0xFFAAA29A)
+    )
 }
 
 @Composable
@@ -279,6 +803,8 @@ private fun PortraitFrame(
     portraitUri: String?,
     characterName: String
 ) {
+    val portraitReference = portraitUri ?: AssetReferences.portraitPlaceholderPath("portrait_placeholder.png")
+
     Box(
         modifier = Modifier
             .offset(y = (-47).dp)
@@ -350,7 +876,7 @@ private fun PortraitFrame(
             color = Color(0xFF141118)
         ) {
             AppImage(
-                imageRef = portraitUri,
+                imageRef = portraitReference,
                 contentDescription = characterName,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
@@ -424,12 +950,23 @@ private fun OverviewActionButton(
 }
 
 @Composable
-private fun OverviewXpBlock(xpInfo: XpProgressInfo) {
+private fun OverviewXpBlock(
+    xpInfo: XpProgressInfo,
+    onClick: () -> Unit
+) {
     val formatter = remember { NumberFormat.getIntegerInstance() }
+    val progressColor = if (xpInfo.hasReachedLevelCap) Color(0xFFE0B84E) else Color(0xFFD7D1CC)
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         Text(
-            text = "${text("overview_xp")} ${formatter.format(xpInfo.currentXp)} / ${formatter.format(xpInfo.nextLevelXp)}",
+            text = if (xpInfo.isMaxLevel) {
+                "${text("overview_xp")} ${formatter.format(xpInfo.currentXp)}"
+            } else {
+                "${text("overview_xp")} ${formatter.format(xpInfo.currentXp)} / ${formatter.format(xpInfo.nextLevelXp)}"
+            },
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
             color = Color(0xFFECE4DB)
         )
@@ -447,7 +984,7 @@ private fun OverviewXpBlock(xpInfo: XpProgressInfo) {
                 cap = StrokeCap.Round
             )
             drawLine(
-                color = Color(0xFFD7D1CC),
+                color = progressColor,
                 start = Offset(stroke / 2, center.y),
                 end = Offset((size.width - stroke) * xpInfo.progress + stroke / 2, center.y),
                 strokeWidth = stroke,
@@ -459,11 +996,44 @@ private fun OverviewXpBlock(xpInfo: XpProgressInfo) {
 
 @Composable
 private fun OverviewHpCard(
-    hpValue: String,
-    hpLabel: String
+    currentHp: Int,
+    maxHp: Int,
+    temporaryHp: Int,
+    hpLabel: String,
+    onClick: () -> Unit
 ) {
+    val hpValue = remember(currentHp, maxHp, temporaryHp) {
+        buildAnnotatedString {
+            withStyle(
+                SpanStyle(color = if (currentHp == 0) Color(0xFFE85C5C) else Color(0xFFF7F2EA))
+            ) {
+                append(currentHp.toString())
+            }
+            if (temporaryHp > 0) {
+                withStyle(
+                    SpanStyle(
+                        fontSize = 40.sp,
+                        color = Color(0xFF69B7FF)
+                    )
+                ) {
+                    append("+$temporaryHp")
+                }
+            }
+            withStyle(
+                SpanStyle(
+                    fontSize = 40.sp,
+                    color = Color(0xFFF7F2EA).copy(alpha = 0.62f)
+                )
+            ) {
+                append(" / $maxHp")
+            }
+        }
+    }
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(30.dp),
         color = Color(0xFF17141B),
         border = BorderStroke(1.dp, Color(0x44FFFFFF))
@@ -625,18 +1195,107 @@ private fun FrameCorner(
 private data class XpProgressInfo(
     val currentXp: Int,
     val nextLevelXp: Int,
-    val progress: Float
+    val progress: Float,
+    val isMaxLevel: Boolean,
+    val hasReachedLevelCap: Boolean
 )
 
-private fun buildOverviewSubtitle(
+private data class HpPreview(
+    val currentHp: Int,
+    val maxHp: Int,
+    val temporaryHp: Int
+)
+
+private fun calculateHpPreview(
+    currentHp: Int,
+    maxHp: Int,
+    temporaryHp: Int,
+    amount: Int,
+    mode: OverviewHpEditMode
+): HpPreview {
+    val sanitizedAmount = amount.coerceAtLeast(0)
+    return when (mode) {
+        OverviewHpEditMode.DAMAGE -> {
+            val temporaryDamage = sanitizedAmount.coerceAtMost(temporaryHp)
+            val remainingDamage = sanitizedAmount - temporaryDamage
+            HpPreview(
+                currentHp = (currentHp - remainingDamage).coerceAtLeast(0),
+                maxHp = maxHp,
+                temporaryHp = temporaryHp - temporaryDamage
+            )
+        }
+        OverviewHpEditMode.HEAL -> HpPreview(
+            currentHp = (currentHp + sanitizedAmount).coerceAtMost(maxHp),
+            maxHp = maxHp,
+            temporaryHp = temporaryHp
+        )
+        OverviewHpEditMode.TEMPORARY -> HpPreview(
+            currentHp = currentHp,
+            maxHp = maxHp,
+            temporaryHp = temporaryHp + sanitizedAmount
+        )
+    }
+}
+
+private fun formatHpPlain(
+    currentHp: Int,
+    maxHp: Int,
+    temporaryHp: Int
+): String {
+    val temporaryPart = if (temporaryHp > 0) "+$temporaryHp" else ""
+    return "$currentHp$temporaryPart / $maxHp"
+}
+
+private fun playAssetSound(
+    context: Context,
+    assetPath: String
+) {
+    val descriptor = context.assets.openFd(assetPath)
+    val player = MediaPlayer()
+    player.setOnCompletionListener { completedPlayer ->
+        completedPlayer.release()
+        descriptor.close()
+    }
+    player.setOnErrorListener { erroredPlayer, _, _ ->
+        erroredPlayer.release()
+        descriptor.close()
+        true
+    }
+    player.setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
+    player.prepare()
+    player.start()
+}
+
+private val levelThresholds = listOf(
+    0,
+    300,
+    900,
+    2700,
+    6500,
+    14000,
+    23000,
+    34000,
+    48000,
+    64000,
+    85000,
+    100000,
+    120000,
+    140000,
+    165000,
+    195000,
+    225000,
+    265000,
+    305000,
+    355000
+)
+
+private fun buildOverviewClassLabel(
     character: Character?,
     strings: LocalizedStrings
 ): String {
-    val race = character?.race?.ifBlank { strings["placeholder_race"] } ?: strings["placeholder_race"]
     val classLabel = character?.characterClass?.ifBlank { strings["placeholder_class"] } ?: strings["placeholder_class"]
     val subclass = character?.subclass?.ifBlank { null }
-    val classLine = if (subclass != null) "$subclass $classLabel" else classLabel
-    return strings.format("overview_subtitle_format", race, classLine, character?.level ?: 1)
+    return if (subclass != null) "$subclass $classLabel" else classLabel
 }
 
 private fun buildXpInfo(character: Character?): XpProgressInfo {
@@ -645,7 +1304,9 @@ private fun buildXpInfo(character: Character?): XpProgressInfo {
     val currentThreshold = levelThreshold(level)
     val nextThreshold = nextLevelThreshold(level)
     val range = (nextThreshold - currentThreshold).coerceAtLeast(1)
-    val progress = if (level >= 20) {
+    val isMaxLevel = level >= 20
+    val hasReachedLevelCap = !isMaxLevel && currentXp >= nextThreshold
+    val progress = if (isMaxLevel) {
         1f
     } else {
         ((currentXp - currentThreshold).coerceAtLeast(0).toFloat() / range.toFloat()).coerceIn(0f, 1f)
@@ -654,34 +1315,14 @@ private fun buildXpInfo(character: Character?): XpProgressInfo {
     return XpProgressInfo(
         currentXp = currentXp,
         nextLevelXp = nextThreshold,
-        progress = progress
+        progress = progress,
+        isMaxLevel = isMaxLevel,
+        hasReachedLevelCap = hasReachedLevelCap
     )
 }
 
 private fun levelThreshold(level: Int): Int {
-    val thresholds = mapOf(
-        1 to 0,
-        2 to 300,
-        3 to 900,
-        4 to 2700,
-        5 to 6500,
-        6 to 14000,
-        7 to 23000,
-        8 to 34000,
-        9 to 48000,
-        10 to 64000,
-        11 to 85000,
-        12 to 100000,
-        13 to 120000,
-        14 to 140000,
-        15 to 165000,
-        16 to 195000,
-        17 to 225000,
-        18 to 265000,
-        19 to 305000,
-        20 to 355000
-    )
-    return thresholds[level.coerceIn(1, 20)] ?: 0
+    return levelThresholds[level.coerceIn(1, 20) - 1]
 }
 
 private fun nextLevelThreshold(level: Int): Int {
@@ -699,10 +1340,11 @@ private fun OverviewScreenPreview() {
     val previewStrings = LocalizedStrings(
         language = AppLanguage.ENGLISH,
         values = mapOf(
-            "overview_name_placeholder" to "Unnamed Adventurer",
+            "overview_name_placeholder" to "Character Name",
             "placeholder_race" to "Human",
             "placeholder_class" to "Wizard",
             "overview_subtitle_format" to "%1\$s • %2\$s • Level %3\$s",
+            "overview_level_format" to "Level %1\$s",
             "overview_short_rest" to "Short Rest",
             "overview_long_rest" to "Long Rest",
             "overview_inspiration" to "Inspiration",
@@ -712,6 +1354,23 @@ private fun OverviewScreenPreview() {
             "overview_initiative" to "Initiative",
             "overview_speed" to "Speed",
             "overview_settings" to "Settings",
+            "overview_rename_title" to "Rename Character",
+            "overview_edit_race_title" to "Edit Race",
+            "overview_edit_class_title" to "Edit Class",
+            "overview_level_picker_title" to "Select Level",
+            "overview_exp_dialog_title" to "Edit Experience",
+            "overview_exp_add" to "Add",
+            "overview_exp_set" to "Set",
+            "overview_exp_current" to "Current EXP: %1\$s",
+            "overview_exp_result" to "Result: %1\$s EXP",
+            "overview_hp_dialog_title" to "Edit HP",
+            "overview_hp_damage" to "Damage",
+            "overview_hp_heal" to "Heal",
+            "overview_hp_temporary" to "Temp HP",
+            "overview_hp_current" to "Current HP: %1\$s",
+            "overview_hp_result" to "Result: %1\$s",
+            "common_save" to "Save",
+            "common_cancel" to "Cancel",
             "drawer_open_character_manager" to "Open character manager"
         )
     )
@@ -725,6 +1384,7 @@ private fun OverviewScreenPreview() {
         portraitUri = null,
         currentHp = 38,
         maxHp = 42,
+        temporaryHp = 10,
         armorClass = 15,
         speed = 30,
         initiative = 3,
@@ -758,9 +1418,23 @@ private fun OverviewScreenPreview() {
     CompositionLocalProvider(LocalStrings provides previewStrings) {
         DnDTheme {
             OverviewContent(
-                character = previewCharacter,
+                characterBundle = CharacterBundle(
+                    character = previewCharacter,
+                    skills = emptyList(),
+                    attacks = emptyList(),
+                    combatResources = emptyList(),
+                    inventoryItems = emptyList(),
+                    spells = emptyList(),
+                    features = emptyList(),
+                    notes = emptyList()
+                ),
                 onOpenDrawer = {},
-                onOpenSettings = {}
+                onOpenSettings = {},
+                onUpdateIdentity = { _, _, _, _, _ -> },
+                onUpdateExperience = { _, _ -> },
+                onDamageHitPoints = { _, _ -> },
+                onHealHitPoints = { _, _ -> },
+                onAddTemporaryHitPoints = { _, _ -> }
             )
         }
     }

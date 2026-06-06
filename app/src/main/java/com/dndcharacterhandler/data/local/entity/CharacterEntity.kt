@@ -19,6 +19,7 @@ data class CharacterEntity(
     val portraitUri: String?,
     val currentHp: Int,
     val maxHp: Int,
+    val temporaryHp: Int,
     val armorClass: Int,
     val speed: Int,
     val initiative: Int,
@@ -214,4 +215,3 @@ data class CharacterWithDetails(
     @Relation(parentColumn = "id", entityColumn = "characterOwnerId")
     val notes: List<NoteEntity>
 )
-

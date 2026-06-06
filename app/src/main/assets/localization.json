@@ -462,11 +462,11 @@
     "es": "This placeholder will later become a fast note-taking and recall surface."
   }
   ,"overview_name_placeholder": {
-    "en": "Unnamed Adventurer",
-    "ru": "\u0411\u0435\u0437\u044b\u043c\u044f\u043d\u043d\u044b\u0439 \u0433\u0435\u0440\u043e\u0439",
-    "de": "Unnamed Adventurer",
-    "fr": "Unnamed Adventurer",
-    "es": "Unnamed Adventurer"
+    "en": "Character Name",
+    "ru": "\u0418\u043c\u044f \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u0436\u0430",
+    "de": "Character Name",
+    "fr": "Character Name",
+    "es": "Character Name"
   },
   "overview_subtitle_format": {
     "en": "%1$s \u2022 %2$s \u2022 Level %3$s",
@@ -474,6 +474,13 @@
     "de": "%1$s \u2022 %2$s \u2022 Stufe %3$s",
     "fr": "%1$s \u2022 %2$s \u2022 Niveau %3$s",
     "es": "%1$s \u2022 %2$s \u2022 Nivel %3$s"
+  },
+  "overview_level_format": {
+    "en": "Level %1$s",
+    "ru": "\u0423\u0440\u043e\u0432\u0435\u043d\u044c %1$s",
+    "de": "Stufe %1$s",
+    "fr": "Niveau %1$s",
+    "es": "Nivel %1$s"
   },
   "overview_short_rest": {
     "en": "Short Rest",
@@ -537,6 +544,125 @@
     "de": "Settings",
     "fr": "Settings",
     "es": "Settings"
+  },
+  "overview_rename_title": {
+    "en": "Rename Character",
+    "ru": "\u0418\u043c\u044f \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u0436\u0430",
+    "de": "Rename Character",
+    "fr": "Rename Character",
+    "es": "Rename Character"
+  },
+  "overview_edit_race_title": {
+    "en": "Edit Race",
+    "ru": "\u0420\u0430\u0441\u0430",
+    "de": "Edit Race",
+    "fr": "Edit Race",
+    "es": "Edit Race"
+  },
+  "overview_edit_class_title": {
+    "en": "Edit Class",
+    "ru": "\u041a\u043b\u0430\u0441\u0441",
+    "de": "Edit Class",
+    "fr": "Edit Class",
+    "es": "Edit Class"
+  },
+  "overview_level_picker_title": {
+    "en": "Select Level",
+    "ru": "\u0412\u044b\u0431\u043e\u0440 \u0443\u0440\u043e\u0432\u043d\u044f",
+    "de": "Select Level",
+    "fr": "Select Level",
+    "es": "Select Level"
+  },
+  "overview_exp_dialog_title": {
+    "en": "Edit Experience",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c EXP",
+    "de": "Edit Experience",
+    "fr": "Edit Experience",
+    "es": "Edit Experience"
+  },
+  "overview_exp_add": {
+    "en": "Add",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c",
+    "de": "Add",
+    "fr": "Add",
+    "es": "Add"
+  },
+  "overview_exp_set": {
+    "en": "Set",
+    "ru": "\u0417\u0430\u0434\u0430\u0442\u044c",
+    "de": "Set",
+    "fr": "Set",
+    "es": "Set"
+  },
+  "overview_exp_current": {
+    "en": "Current EXP: %1$s",
+    "ru": "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 EXP: %1$s",
+    "de": "Current EXP: %1$s",
+    "fr": "Current EXP: %1$s",
+    "es": "Current EXP: %1$s"
+  },
+  "overview_exp_result": {
+    "en": "Result: %1$s EXP",
+    "ru": "\u0418\u0442\u043e\u0433: %1$s EXP",
+    "de": "Result: %1$s EXP",
+    "fr": "Result: %1$s EXP",
+    "es": "Result: %1$s EXP"
+  },
+  "overview_hp_dialog_title": {
+    "en": "Edit HP",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c HP",
+    "de": "Edit HP",
+    "fr": "Edit HP",
+    "es": "Edit HP"
+  },
+  "overview_hp_damage": {
+    "en": "Damage",
+    "ru": "\u0423\u0440\u043e\u043d",
+    "de": "Damage",
+    "fr": "Damage",
+    "es": "Damage"
+  },
+  "overview_hp_heal": {
+    "en": "Heal",
+    "ru": "\u0425\u0438\u043b",
+    "de": "Heal",
+    "fr": "Heal",
+    "es": "Heal"
+  },
+  "overview_hp_temporary": {
+    "en": "Temp HP",
+    "ru": "\u0412\u0440\u0435\u043c. HP",
+    "de": "Temp HP",
+    "fr": "Temp HP",
+    "es": "Temp HP"
+  },
+  "overview_hp_current": {
+    "en": "Current HP: %1$s",
+    "ru": "\u0422\u0435\u043a\u0443\u0449\u0438\u0435 HP: %1$s",
+    "de": "Current HP: %1$s",
+    "fr": "Current HP: %1$s",
+    "es": "Current HP: %1$s"
+  },
+  "overview_hp_result": {
+    "en": "Result: %1$s",
+    "ru": "\u0418\u0442\u043e\u0433: %1$s",
+    "de": "Result: %1$s",
+    "fr": "Result: %1$s",
+    "es": "Result: %1$s"
+  },
+  "common_save": {
+    "en": "Save",
+    "ru": "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c",
+    "de": "Save",
+    "fr": "Save",
+    "es": "Save"
+  },
+  "common_cancel": {
+    "en": "Cancel",
+    "ru": "\u041e\u0442\u043c\u0435\u043d\u0430",
+    "de": "Cancel",
+    "fr": "Cancel",
+    "es": "Cancel"
   },
   "nav_overview_compact": {
     "en": "Over.",

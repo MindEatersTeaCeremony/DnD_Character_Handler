@@ -36,6 +36,7 @@ fun CharacterBundle.toArchiveManifest(
         put("portraitUri", mapAssetReference(character.portraitUri, "portrait"))
         put("currentHp", character.currentHp)
         put("maxHp", character.maxHp)
+        put("temporaryHp", character.temporaryHp)
         put("armorClass", character.armorClass)
         put("speed", character.speed)
         put("initiative", character.initiative)
@@ -149,6 +150,7 @@ fun archiveManifestToCharacterBundle(
         portraitUri = resolveAssetReference(characterJson.optNullableString("portraitUri")),
         currentHp = characterJson.optInt("currentHp"),
         maxHp = characterJson.optInt("maxHp"),
+        temporaryHp = characterJson.optInt("temporaryHp").coerceAtLeast(0),
         armorClass = characterJson.optInt("armorClass"),
         speed = characterJson.optInt("speed"),
         initiative = characterJson.optInt("initiative"),
