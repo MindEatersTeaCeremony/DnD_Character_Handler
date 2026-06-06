@@ -1,6 +1,11 @@
 package com.dndcharacterhandler.presentation.overview
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
+import android.net.Uri
+import android.webkit.MimeTypeMap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -83,6 +88,8 @@ import com.dndcharacterhandler.presentation.components.AppImage
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.DnDTheme
+import java.io.File
+import java.io.FileOutputStream
 import java.text.NumberFormat
 import kotlinx.coroutines.launch
 
@@ -137,6 +144,23 @@ class OverviewViewModel(
                 characterBundle.copy(
                     character = characterBundle.character.copy(
                         experience = sanitized,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun updatePortrait(characterBundle: CharacterBundle, portraitUri: String?) {
+        val sanitized = portraitUri?.trim()?.ifBlank { null }
+        val current = characterBundle.character
+        if (sanitized == current.portraitUri) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        portraitUri = sanitized,
                         updatedAt = System.currentTimeMillis()
                     )
                 )
@@ -234,6 +258,7 @@ fun OverviewScreen(
         onOpenSettings = onOpenSettings,
         onUpdateIdentity = viewModel::updateIdentity,
         onUpdateExperience = viewModel::updateExperience,
+        onUpdatePortrait = viewModel::updatePortrait,
         onDamageHitPoints = viewModel::damageHitPoints,
         onHealHitPoints = viewModel::healHitPoints,
         onAddTemporaryHitPoints = viewModel::addTemporaryHitPoints
@@ -247,6 +272,7 @@ private fun OverviewContent(
     onOpenSettings: () -> Unit,
     onUpdateIdentity: (CharacterBundle, String?, String?, String?, Int?) -> Unit,
     onUpdateExperience: (CharacterBundle, Int) -> Unit,
+    onUpdatePortrait: (CharacterBundle, String?) -> Unit,
     onDamageHitPoints: (CharacterBundle, Int) -> Unit,
     onHealHitPoints: (CharacterBundle, Int) -> Unit,
     onAddTemporaryHitPoints: (CharacterBundle, Int) -> Unit
@@ -254,6 +280,24 @@ private fun OverviewContent(
     val character = characterBundle?.character
     val context = LocalContext.current
     val strings = LocalStrings.current
+    val portraitPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null && characterBundle != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            val storedPortrait = copyPortraitToCharacterFiles(
+                context = context,
+                characterId = characterBundle.character.id,
+                sourceUri = uri
+            ) ?: uri.toString()
+            onUpdatePortrait(characterBundle, storedPortrait)
+        }
+    }
     var activeField by remember { mutableStateOf<OverviewEditableField?>(null) }
     var isExperienceDialogOpen by remember { mutableStateOf(false) }
     var experienceEditMode by remember { mutableStateOf(OverviewExperienceEditMode.ADD) }
@@ -312,7 +356,12 @@ private fun OverviewContent(
                 ) {
                     PortraitFrame(
                         portraitUri = character?.portraitUri,
-                        characterName = displayName
+                        characterName = displayName,
+                        onClick = {
+                            if (characterBundle != null) {
+                                portraitPickerLauncher.launch(arrayOf("image/*"))
+                            }
+                        }
                     )
                     Text(
                         text = displayName,
@@ -801,7 +850,8 @@ private fun HeaderIconButton(
 @Composable
 private fun PortraitFrame(
     portraitUri: String?,
-    characterName: String
+    characterName: String,
+    onClick: () -> Unit
 ) {
     val portraitReference = portraitUri ?: AssetReferences.portraitPlaceholderPath("portrait_placeholder.png")
 
@@ -809,7 +859,9 @@ private fun PortraitFrame(
         modifier = Modifier
             .offset(y = (-47).dp)
             .padding(bottom = 0.dp)
-            .size(238.dp),
+            .size(238.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1266,6 +1318,47 @@ private fun playAssetSound(
     player.start()
 }
 
+private fun copyPortraitToCharacterFiles(
+    context: Context,
+    characterId: Long,
+    sourceUri: Uri
+): String? {
+    return runCatching {
+        val extension = guessImageExtension(context, sourceUri)
+        val directory = File(context.filesDir, "character_portraits/$characterId").apply {
+            mkdirs()
+        }
+        directory.listFiles()
+            ?.filter { it.name.startsWith("portrait.") }
+            ?.forEach { it.delete() }
+
+        val target = File(directory, "portrait.$extension")
+        context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            FileOutputStream(target).use { output ->
+                input.copyTo(output)
+            }
+        } ?: return@runCatching null
+        target.absolutePath
+    }.getOrNull()
+}
+
+private fun guessImageExtension(
+    context: Context,
+    uri: Uri
+): String {
+    val mimeType = context.contentResolver.getType(uri)
+    val mimeExtension = mimeType
+        ?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+        ?.lowercase()
+    if (!mimeExtension.isNullOrBlank()) return mimeExtension
+
+    val pathExtension = uri.lastPathSegment
+        ?.substringAfterLast('.', missingDelimiterValue = "")
+        ?.lowercase()
+        ?.takeIf { it.matches(Regex("[a-z0-9]{1,5}")) }
+    return pathExtension ?: "jpg"
+}
+
 private val levelThresholds = listOf(
     0,
     300,
@@ -1432,6 +1525,7 @@ private fun OverviewScreenPreview() {
                 onOpenSettings = {},
                 onUpdateIdentity = { _, _, _, _, _ -> },
                 onUpdateExperience = { _, _ -> },
+                onUpdatePortrait = { _, _ -> },
                 onDamageHitPoints = { _, _ -> },
                 onHealHitPoints = { _, _ -> },
                 onAddTemporaryHitPoints = { _, _ -> }
