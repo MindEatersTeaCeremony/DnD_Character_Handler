@@ -524,6 +524,13 @@
     "fr": "AC",
     "es": "AC"
   },
+  "overview_ac_full": {
+    "en": "Armor Class",
+    "ru": "\u041a\u043b\u0430\u0441\u0441 \u0431\u0440\u043e\u043d\u0438",
+    "de": "Armor Class",
+    "fr": "Armor Class",
+    "es": "Armor Class"
+  },
   "overview_initiative": {
     "en": "Initiative",
     "ru": "\u0418\u043d\u0438\u0446\u0438\u0430\u0442\u0438\u0432\u0430",
@@ -649,6 +656,41 @@
     "de": "Result: %1$s",
     "fr": "Result: %1$s",
     "es": "Result: %1$s"
+  },
+  "overview_hp_max_dialog_title": {
+    "en": "Edit Max HP",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043c\u0430\u043a\u0441. HP",
+    "de": "Edit Max HP",
+    "fr": "Edit Max HP",
+    "es": "Edit Max HP"
+  },
+  "overview_hp_max": {
+    "en": "Max HP",
+    "ru": "\u041c\u0430\u043a\u0441. HP",
+    "de": "Max HP",
+    "fr": "Max HP",
+    "es": "Max HP"
+  },
+  "overview_edit_ac_title": {
+    "en": "Edit Armor Class",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043a\u043b\u0430\u0441\u0441 \u0431\u0440\u043e\u043d\u0438",
+    "de": "Edit Armor Class",
+    "fr": "Edit Armor Class",
+    "es": "Edit Armor Class"
+  },
+  "overview_edit_initiative_title": {
+    "en": "Edit Initiative",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0438\u043d\u0438\u0446\u0438\u0430\u0442\u0438\u0432\u0443",
+    "de": "Edit Initiative",
+    "fr": "Edit Initiative",
+    "es": "Edit Initiative"
+  },
+  "overview_edit_speed_title": {
+    "en": "Edit Speed",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c",
+    "de": "Edit Speed",
+    "fr": "Edit Speed",
+    "es": "Edit Speed"
   },
   "common_save": {
     "en": "Save",

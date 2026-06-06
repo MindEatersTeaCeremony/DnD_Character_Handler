@@ -63,13 +63,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
@@ -194,6 +191,74 @@ class OverviewViewModel(
         updateHitPoints(characterBundle, current.currentHp, current.temporaryHp + temporaryHp)
     }
 
+    fun updateMaxHitPoints(characterBundle: CharacterBundle, maxHp: Int) {
+        val sanitized = maxHp.coerceAtLeast(1)
+        val current = characterBundle.character
+        if (sanitized == current.maxHp) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        currentHp = current.currentHp.coerceAtMost(sanitized),
+                        maxHp = sanitized,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun updateArmorClass(characterBundle: CharacterBundle, armorClass: Int) {
+        val sanitized = armorClass.coerceAtLeast(1)
+        val current = characterBundle.character
+        if (sanitized == current.armorClass) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        armorClass = sanitized,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun updateInitiative(characterBundle: CharacterBundle, initiative: Int) {
+        val current = characterBundle.character
+        if (initiative == current.initiative) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        initiative = initiative,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun updateSpeed(characterBundle: CharacterBundle, speed: Int) {
+        val sanitized = speed.coerceAtLeast(1)
+        val current = characterBundle.character
+        if (sanitized == current.speed) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        speed = sanitized,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
     private fun updateHitPoints(
         characterBundle: CharacterBundle,
         currentHp: Int,
@@ -224,7 +289,8 @@ private data class OverviewAction(
 private data class OverviewStat(
     val labelKey: String,
     val value: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val field: OverviewMiniStatField
 )
 
 private enum class OverviewEditableField {
@@ -245,6 +311,12 @@ private enum class OverviewHpEditMode {
     TEMPORARY
 }
 
+private enum class OverviewMiniStatField {
+    ARMOR_CLASS,
+    INITIATIVE,
+    SPEED
+}
+
 @Composable
 fun OverviewScreen(
     viewModel: OverviewViewModel,
@@ -261,7 +333,11 @@ fun OverviewScreen(
         onUpdatePortrait = viewModel::updatePortrait,
         onDamageHitPoints = viewModel::damageHitPoints,
         onHealHitPoints = viewModel::healHitPoints,
-        onAddTemporaryHitPoints = viewModel::addTemporaryHitPoints
+        onAddTemporaryHitPoints = viewModel::addTemporaryHitPoints,
+        onUpdateMaxHitPoints = viewModel::updateMaxHitPoints,
+        onUpdateArmorClass = viewModel::updateArmorClass,
+        onUpdateInitiative = viewModel::updateInitiative,
+        onUpdateSpeed = viewModel::updateSpeed
     )
 }
 
@@ -275,7 +351,11 @@ private fun OverviewContent(
     onUpdatePortrait: (CharacterBundle, String?) -> Unit,
     onDamageHitPoints: (CharacterBundle, Int) -> Unit,
     onHealHitPoints: (CharacterBundle, Int) -> Unit,
-    onAddTemporaryHitPoints: (CharacterBundle, Int) -> Unit
+    onAddTemporaryHitPoints: (CharacterBundle, Int) -> Unit,
+    onUpdateMaxHitPoints: (CharacterBundle, Int) -> Unit,
+    onUpdateArmorClass: (CharacterBundle, Int) -> Unit,
+    onUpdateInitiative: (CharacterBundle, Int) -> Unit,
+    onUpdateSpeed: (CharacterBundle, Int) -> Unit
 ) {
     val character = characterBundle?.character
     val context = LocalContext.current
@@ -305,6 +385,12 @@ private fun OverviewContent(
     var isHpDialogOpen by remember { mutableStateOf(false) }
     var hpEditMode by remember { mutableStateOf(OverviewHpEditMode.DAMAGE) }
     var hpDraft by remember(character?.id, character?.currentHp, character?.temporaryHp) { mutableStateOf("") }
+    var isMaxHpDialogOpen by remember { mutableStateOf(false) }
+    var maxHpDraft by remember(character?.id, character?.maxHp) { mutableStateOf("") }
+    var activeMiniStatField by remember { mutableStateOf<OverviewMiniStatField?>(null) }
+    var miniStatDraft by remember(character?.id, character?.armorClass, character?.initiative, character?.speed) {
+        mutableStateOf("")
+    }
     var draftText by remember(character?.id, character?.name, character?.race, character?.characterClass) {
         mutableStateOf("")
     }
@@ -322,9 +408,24 @@ private fun OverviewContent(
     )
 
     val miniStats = listOf(
-        OverviewStat("overview_ac", (character?.armorClass ?: 0).toString(), Icons.Outlined.Shield),
-        OverviewStat("overview_initiative", signed(character?.initiative), Icons.Outlined.FlashOn),
-        OverviewStat("overview_speed", "${character?.speed ?: 0} ft", Icons.Outlined.DirectionsRun)
+        OverviewStat(
+            labelKey = "overview_ac",
+            value = (character?.armorClass ?: 10).toString(),
+            icon = Icons.Outlined.Shield,
+            field = OverviewMiniStatField.ARMOR_CLASS
+        ),
+        OverviewStat(
+            labelKey = "overview_initiative",
+            value = signed(character?.initiative ?: 0),
+            icon = Icons.Outlined.FlashOn,
+            field = OverviewMiniStatField.INITIATIVE
+        ),
+        OverviewStat(
+            labelKey = "overview_speed",
+            value = "${character?.speed ?: 30} ft",
+            icon = Icons.Outlined.DirectionsRun,
+            field = OverviewMiniStatField.SPEED
+        )
     )
 
     Box(
@@ -442,6 +543,10 @@ private fun OverviewContent(
                             hpEditMode = OverviewHpEditMode.DAMAGE
                             hpDraft = ""
                             isHpDialogOpen = true
+                        },
+                        onMaxHpClick = {
+                            maxHpDraft = (character?.maxHp ?: 0).toString()
+                            isMaxHpDialogOpen = true
                         }
                     )
                 }
@@ -459,7 +564,15 @@ private fun OverviewContent(
                             modifier = Modifier.weight(1f),
                             value = stat.value,
                             label = text(stat.labelKey),
-                            icon = stat.icon
+                            icon = stat.icon,
+                            onClick = {
+                                activeMiniStatField = stat.field
+                                miniStatDraft = when (stat.field) {
+                                    OverviewMiniStatField.ARMOR_CLASS -> (character?.armorClass ?: 10).toString()
+                                    OverviewMiniStatField.INITIATIVE -> (character?.initiative ?: 0).toString()
+                                    OverviewMiniStatField.SPEED -> (character?.speed ?: 30).toString()
+                                }
+                            }
                         )
                     }
                 }
@@ -725,6 +838,110 @@ private fun OverviewContent(
             },
             dismissButton = {
                 TextButton(onClick = { isHpDialogOpen = false }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
+
+    if (isMaxHpDialogOpen && characterBundle != null) {
+        val draftValue = maxHpDraft.toIntOrNull()?.coerceAtLeast(1) ?: 1
+
+        AlertDialog(
+            onDismissRequest = { isMaxHpDialogOpen = false },
+            title = { Text(text("overview_hp_max_dialog_title")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = maxHpDraft,
+                        onValueChange = { value ->
+                            maxHpDraft = value.filter(Char::isDigit)
+                        },
+                        singleLine = true,
+                        label = { Text(text("overview_hp_max")) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onUpdateMaxHitPoints(characterBundle, draftValue)
+                        isMaxHpDialogOpen = false
+                    }
+                ) {
+                    Text(text("common_save"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isMaxHpDialogOpen = false }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
+
+    if (activeMiniStatField != null && characterBundle != null) {
+        val field = activeMiniStatField!!
+        val isSigned = field == OverviewMiniStatField.INITIATIVE
+        val parsedValue = if (isSigned) {
+            miniStatDraft.toIntOrNull() ?: 0
+        } else {
+            miniStatDraft.toIntOrNull()?.coerceAtLeast(1) ?: 1
+        }
+
+        AlertDialog(
+            onDismissRequest = { activeMiniStatField = null },
+            title = {
+                Text(
+                    when (field) {
+                        OverviewMiniStatField.ARMOR_CLASS -> text("overview_edit_ac_title")
+                        OverviewMiniStatField.INITIATIVE -> text("overview_edit_initiative_title")
+                        OverviewMiniStatField.SPEED -> text("overview_edit_speed_title")
+                    }
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = miniStatDraft,
+                    onValueChange = { value ->
+                        miniStatDraft = if (isSigned) {
+                            sanitizeSignedIntegerInput(value)
+                        } else {
+                            value.filter(Char::isDigit)
+                        }
+                    },
+                    singleLine = true,
+                    label = {
+                        Text(
+                            when (field) {
+                                OverviewMiniStatField.ARMOR_CLASS -> text("overview_ac_full")
+                                OverviewMiniStatField.INITIATIVE -> text("overview_initiative")
+                                OverviewMiniStatField.SPEED -> text("overview_speed")
+                            }
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (isSigned) KeyboardType.Text else KeyboardType.Number
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        when (field) {
+                            OverviewMiniStatField.ARMOR_CLASS -> onUpdateArmorClass(characterBundle, parsedValue)
+                            OverviewMiniStatField.INITIATIVE -> onUpdateInitiative(characterBundle, parsedValue)
+                            OverviewMiniStatField.SPEED -> onUpdateSpeed(characterBundle, parsedValue)
+                        }
+                        activeMiniStatField = null
+                    }
+                ) {
+                    Text(text("common_save"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { activeMiniStatField = null }) {
                     Text(text("common_cancel"))
                 }
             }
@@ -1052,36 +1269,9 @@ private fun OverviewHpCard(
     maxHp: Int,
     temporaryHp: Int,
     hpLabel: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onMaxHpClick: () -> Unit
 ) {
-    val hpValue = remember(currentHp, maxHp, temporaryHp) {
-        buildAnnotatedString {
-            withStyle(
-                SpanStyle(color = if (currentHp == 0) Color(0xFFE85C5C) else Color(0xFFF7F2EA))
-            ) {
-                append(currentHp.toString())
-            }
-            if (temporaryHp > 0) {
-                withStyle(
-                    SpanStyle(
-                        fontSize = 40.sp,
-                        color = Color(0xFF69B7FF)
-                    )
-                ) {
-                    append("+$temporaryHp")
-                }
-            }
-            withStyle(
-                SpanStyle(
-                    fontSize = 40.sp,
-                    color = Color(0xFFF7F2EA).copy(alpha = 0.62f)
-                )
-            ) {
-                append(" / $maxHp")
-            }
-        }
-    }
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -1120,15 +1310,41 @@ private fun OverviewHpCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = hpValue,
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = 64.sp,
-                        lineHeight = 68.sp
-                    ),
-                    color = Color(0xFFF7F2EA),
-                    textAlign = TextAlign.Center
-                )
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = currentHp.toString(),
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 64.sp,
+                            lineHeight = 68.sp
+                        ),
+                        color = if (currentHp == 0) Color(0xFFE85C5C) else Color(0xFFF7F2EA),
+                        textAlign = TextAlign.Center
+                    )
+                    if (temporaryHp > 0) {
+                        Text(
+                            text = "+$temporaryHp",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 40.sp,
+                                lineHeight = 44.sp
+                            ),
+                            color = Color(0xFF69B7FF),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Text(
+                        text = " / $maxHp",
+                        modifier = Modifier.clickable(onClick = onMaxHpClick),
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 40.sp,
+                            lineHeight = 44.sp
+                        ),
+                        color = Color(0xFFF7F2EA).copy(alpha = 0.62f),
+                        textAlign = TextAlign.Center
+                    )
+                }
                 Text(
                     text = hpLabel,
                     modifier = Modifier.padding(top = 6.dp),
@@ -1145,10 +1361,13 @@ private fun OverviewMiniStatCard(
     modifier: Modifier = Modifier,
     value: String,
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.aspectRatio(0.92f),
+        modifier = modifier
+            .aspectRatio(0.92f)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, Color(0x42FFFFFF)),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF17141B))
@@ -1427,6 +1646,12 @@ private fun signed(value: Int?): String {
     return if (value >= 0) "+$value" else value.toString()
 }
 
+private fun sanitizeSignedIntegerInput(value: String): String {
+    val sign = value.firstOrNull()?.takeIf { it == '-' || it == '+' }?.toString().orEmpty()
+    val digits = value.drop(if (sign.isEmpty()) 0 else 1).filter(Char::isDigit)
+    return sign + digits
+}
+
 @Preview(showBackground = true, showSystemUi = true, device = "spec:width=412dp,height=915dp")
 @Composable
 private fun OverviewScreenPreview() {
@@ -1462,6 +1687,12 @@ private fun OverviewScreenPreview() {
             "overview_hp_temporary" to "Temp HP",
             "overview_hp_current" to "Current HP: %1\$s",
             "overview_hp_result" to "Result: %1\$s",
+            "overview_hp_max_dialog_title" to "Edit Max HP",
+            "overview_hp_max" to "Max HP",
+            "overview_ac_full" to "Armor Class",
+            "overview_edit_ac_title" to "Edit Armor Class",
+            "overview_edit_initiative_title" to "Edit Initiative",
+            "overview_edit_speed_title" to "Edit Speed",
             "common_save" to "Save",
             "common_cancel" to "Cancel",
             "drawer_open_character_manager" to "Open character manager"
@@ -1528,7 +1759,11 @@ private fun OverviewScreenPreview() {
                 onUpdatePortrait = { _, _ -> },
                 onDamageHitPoints = { _, _ -> },
                 onHealHitPoints = { _, _ -> },
-                onAddTemporaryHitPoints = { _, _ -> }
+                onAddTemporaryHitPoints = { _, _ -> },
+                onUpdateMaxHitPoints = { _, _ -> },
+                onUpdateArmorClass = { _, _ -> },
+                onUpdateInitiative = { _, _ -> },
+                onUpdateSpeed = { _, _ -> }
             )
         }
     }
