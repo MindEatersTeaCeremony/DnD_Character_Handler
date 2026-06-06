@@ -1,0 +1,72 @@
+# Asset structure
+
+This project uses two different storage strategies for visual resources.
+
+## 1. `res/drawable`
+
+Use `res/drawable` for static application resources that ship with the app UI.
+
+Android does not support nested folders inside `res/drawable`, so grouping is done by filename prefix:
+
+- `ic_ui_*` - UI icons
+- `decor_*` - decorative frames, corners, dividers, overlays
+- `ic_game_*` - built-in game icons that are still shipped as app resources
+
+Examples:
+
+- `ic_ui_menu.xml`
+- `ic_ui_settings.xml`
+- `decor_card_corner.xml`
+- `ic_game_inventory_weapon.xml`
+
+## 2. `assets/icons`
+
+Use `assets/icons` for content-style icon libraries that are better addressed by path as data.
+
+Folders:
+
+- `assets/icons/items/`
+- `assets/icons/spells/`
+- `assets/icons/attacks/`
+- `assets/icons/features/`
+- `assets/icons/categories/`
+
+These paths are suitable for model fields such as `InventoryItem.icon` or `Attack.icon`.
+
+Examples:
+
+- `icons/items/longsword.png`
+- `icons/spells/fireball.png`
+- `icons/attacks/unarmed_strike.png`
+
+Reference these from models as plain asset paths, for example:
+
+- `icons/items/longsword.png`
+- `icons/spells/fireball.png`
+
+## 3. `assets/portraits/placeholders`
+
+Use this folder for built-in portrait placeholders that ship with the app.
+
+Examples:
+
+- `portraits/placeholders/default_mage.png`
+- `portraits/placeholders/default_rogue.png`
+
+## 4. User-provided media
+
+User portraits and imported custom icons should remain in app-local file storage and continue to be exported through `.dndchar` archives.
+
+They should not be copied into `res/` or committed into the built-in `assets/icons` catalog.
+
+## Reference formats
+
+The shared image renderer accepts these formats:
+
+- `drawable:ic_ui_menu`
+- `res:drawable/ic_ui_menu`
+- `icons/items/longsword.png`
+- `portraits/placeholders/default_mage.png`
+- `content://...`
+- `file://...`
+- absolute local file paths

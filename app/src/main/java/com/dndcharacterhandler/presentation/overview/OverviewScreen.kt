@@ -1,10 +1,6 @@
 package com.dndcharacterhandler.presentation.overview
-
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +38,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,10 +46,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,11 +61,10 @@ import com.dndcharacterhandler.domain.model.AppLanguage
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
+import com.dndcharacterhandler.presentation.components.AppImage
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.DnDTheme
-import java.io.File
-import java.io.FileInputStream
 import java.text.NumberFormat
 
 class OverviewViewModel(
@@ -287,30 +279,6 @@ private fun PortraitFrame(
     portraitUri: String?,
     characterName: String
 ) {
-    val isPreview = LocalInspectionMode.current
-    val context = LocalContext.current
-    val bitmap = remember(portraitUri, isPreview) {
-        if (isPreview) {
-            null
-        } else {
-        portraitUri?.let { rawUri ->
-            runCatching {
-                when {
-                    rawUri.startsWith("content://") || rawUri.startsWith("file://") -> {
-                        context.contentResolver.openInputStream(Uri.parse(rawUri)).use(BitmapFactory::decodeStream)
-                    }
-
-                    File(rawUri).exists() -> {
-                        FileInputStream(rawUri).use(BitmapFactory::decodeStream)
-                    }
-
-                    else -> null
-                }
-            }.getOrNull()
-        }
-        }
-    }
-
     Box(
         modifier = Modifier
             .offset(y = (-47).dp)
@@ -381,32 +349,36 @@ private fun PortraitFrame(
             shape = CircleShape,
             color = Color(0xFF141118)
         ) {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = characterName,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(Color(0xFF3B3840), Color(0xFF18151C), Color(0xFF0F0C12))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = characterName.take(1).ifBlank { "?" },
-                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 40.sp),
-                        color = Color(0xFFF7F2EA)
-                    )
+            AppImage(
+                imageRef = portraitUri,
+                contentDescription = characterName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                fallback = {
+                    PortraitFallback(characterName)
                 }
-            }
+            )
         }
+    }
+}
+
+@Composable
+private fun PortraitFallback(characterName: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFF3B3840), Color(0xFF18151C), Color(0xFF0F0C12))
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = characterName.take(1).ifBlank { "?" },
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 40.sp),
+            color = Color(0xFFF7F2EA)
+        )
     }
 }
 
