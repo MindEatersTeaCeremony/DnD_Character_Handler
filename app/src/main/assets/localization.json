@@ -293,6 +293,132 @@
     "fr": "All D&D 5e skills and proficiency state are scaffolded in the data layer.",
     "es": "All D&D 5e skills and proficiency state are scaffolded in the data layer."
   },
+  "skill_acrobatics": {
+    "en": "Acrobatics",
+    "ru": "Акробатика",
+    "de": "Acrobatics",
+    "fr": "Acrobatics",
+    "es": "Acrobatics"
+  },
+  "skill_animal_handling": {
+    "en": "Animal Handling",
+    "ru": "Уход за животными",
+    "de": "Animal Handling",
+    "fr": "Animal Handling",
+    "es": "Animal Handling"
+  },
+  "skill_arcana": {
+    "en": "Arcana",
+    "ru": "Магия",
+    "de": "Arcana",
+    "fr": "Arcana",
+    "es": "Arcana"
+  },
+  "skill_athletics": {
+    "en": "Athletics",
+    "ru": "Атлетика",
+    "de": "Athletics",
+    "fr": "Athletics",
+    "es": "Athletics"
+  },
+  "skill_deception": {
+    "en": "Deception",
+    "ru": "Обман",
+    "de": "Deception",
+    "fr": "Deception",
+    "es": "Deception"
+  },
+  "skill_history": {
+    "en": "History",
+    "ru": "История",
+    "de": "History",
+    "fr": "History",
+    "es": "History"
+  },
+  "skill_insight": {
+    "en": "Insight",
+    "ru": "Проницательность",
+    "de": "Insight",
+    "fr": "Insight",
+    "es": "Insight"
+  },
+  "skill_intimidation": {
+    "en": "Intimidation",
+    "ru": "Запугивание",
+    "de": "Intimidation",
+    "fr": "Intimidation",
+    "es": "Intimidation"
+  },
+  "skill_investigation": {
+    "en": "Investigation",
+    "ru": "Расследование",
+    "de": "Investigation",
+    "fr": "Investigation",
+    "es": "Investigation"
+  },
+  "skill_medicine": {
+    "en": "Medicine",
+    "ru": "Медицина",
+    "de": "Medicine",
+    "fr": "Medicine",
+    "es": "Medicine"
+  },
+  "skill_nature": {
+    "en": "Nature",
+    "ru": "Природа",
+    "de": "Nature",
+    "fr": "Nature",
+    "es": "Nature"
+  },
+  "skill_perception": {
+    "en": "Perception",
+    "ru": "Внимательность",
+    "de": "Perception",
+    "fr": "Perception",
+    "es": "Perception"
+  },
+  "skill_performance": {
+    "en": "Performance",
+    "ru": "Выступление",
+    "de": "Performance",
+    "fr": "Performance",
+    "es": "Performance"
+  },
+  "skill_persuasion": {
+    "en": "Persuasion",
+    "ru": "Убеждение",
+    "de": "Persuasion",
+    "fr": "Persuasion",
+    "es": "Persuasion"
+  },
+  "skill_religion": {
+    "en": "Religion",
+    "ru": "Религия",
+    "de": "Religion",
+    "fr": "Religion",
+    "es": "Religion"
+  },
+  "skill_sleight_of_hand": {
+    "en": "Sleight of Hand",
+    "ru": "Ловкость рук",
+    "de": "Sleight of Hand",
+    "fr": "Sleight of Hand",
+    "es": "Sleight of Hand"
+  },
+  "skill_stealth": {
+    "en": "Stealth",
+    "ru": "Скрытность",
+    "de": "Stealth",
+    "fr": "Stealth",
+    "es": "Stealth"
+  },
+  "skill_survival": {
+    "en": "Survival",
+    "ru": "Выживание",
+    "de": "Survival",
+    "fr": "Survival",
+    "es": "Survival"
+  },
   "combat_section_attacks_title": {
     "en": "Attacks",
     "ru": "Атаки",

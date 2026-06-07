@@ -1,25 +1,1579 @@
 package com.dndcharacterhandler.presentation.attributes
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.SportsFencing
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.dndcharacterhandler.domain.model.AssetReferences
+import com.dndcharacterhandler.domain.model.Character
+import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.Skill
+import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
-import com.dndcharacterhandler.presentation.components.PlaceholderScreen
+import com.dndcharacterhandler.presentation.components.AppImage
+import com.dndcharacterhandler.presentation.localization.LocalStrings
+import com.dndcharacterhandler.presentation.localization.text
+import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
+import kotlinx.coroutines.launch
 
 class AttributesViewModel(
+    private val characterRepository: CharacterRepository,
     getCharacterBundleUseCase: GetCharacterBundleUseCase,
     selectedCharacterHolder: SelectedCharacterHolder
-) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder)
+) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
+    fun updateAbilityScore(
+        characterBundle: CharacterBundle,
+        ability: AbilityType,
+        value: Int,
+        saveProficient: Boolean
+    ) {
+        val current = characterBundle.character
+        val sanitizedValue = value.coerceAtLeast(1)
+        val updated = when (ability) {
+            AbilityType.STRENGTH -> current.copy(strength = sanitizedValue, strengthSaveProficient = saveProficient)
+            AbilityType.DEXTERITY -> current.copy(dexterity = sanitizedValue, dexteritySaveProficient = saveProficient)
+            AbilityType.CONSTITUTION -> current.copy(constitution = sanitizedValue, constitutionSaveProficient = saveProficient)
+            AbilityType.INTELLIGENCE -> current.copy(intelligence = sanitizedValue, intelligenceSaveProficient = saveProficient)
+            AbilityType.WISDOM -> current.copy(wisdom = sanitizedValue, wisdomSaveProficient = saveProficient)
+            AbilityType.CHARISMA -> current.copy(charisma = sanitizedValue, charismaSaveProficient = saveProficient)
+        }
+
+        if (updated == current) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = updated.copy(updatedAt = System.currentTimeMillis())
+                )
+            )
+        }
+    }
+
+    fun updatePassivePerceptionBonus(characterBundle: CharacterBundle, bonus: Int) {
+        val current = characterBundle.character
+        if (bonus == current.passivePerceptionBonus) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        passivePerceptionBonus = bonus,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun updateArmorProficiencies(characterBundle: CharacterBundle, selectedIds: Set<String>) {
+        updateCharacterProficiencyString(
+            characterBundle = characterBundle,
+            currentValue = characterBundle.character.armorProficiencies,
+            nextValue = encodeProficiencyIds(selectedIds),
+            applyValue = { it.copy(armorProficiencies = encodeProficiencyIds(selectedIds)) }
+        )
+    }
+
+    fun updateWeaponProficiencies(characterBundle: CharacterBundle, selectedIds: Set<String>) {
+        updateCharacterProficiencyString(
+            characterBundle = characterBundle,
+            currentValue = characterBundle.character.weaponProficiencies,
+            nextValue = encodeProficiencyIds(selectedIds),
+            applyValue = { it.copy(weaponProficiencies = encodeProficiencyIds(selectedIds)) }
+        )
+    }
+
+    fun updateToolProficiencies(characterBundle: CharacterBundle, selectedIds: Set<String>) {
+        updateCharacterProficiencyString(
+            characterBundle = characterBundle,
+            currentValue = characterBundle.character.toolProficiencies,
+            nextValue = encodeProficiencyIds(selectedIds),
+            applyValue = { it.copy(toolProficiencies = encodeProficiencyIds(selectedIds)) }
+        )
+    }
+
+    fun updateSkillTraining(
+        characterBundle: CharacterBundle,
+        skillName: String,
+        isProficient: Boolean,
+        isExpertise: Boolean,
+        hasJackOfAllTrades: Boolean
+    ) {
+        val hasSkill = characterBundle.skills.any { it.name == skillName }
+        val sanitizedExpertise = isProficient && isExpertise
+        val sanitizedJack = !isProficient && hasJackOfAllTrades
+        val updatedSkills = characterBundle.skills.map { skill ->
+            if (skill.name != skillName) {
+                skill
+            } else {
+                skill.copy(
+                    isProficient = isProficient,
+                    isExpertise = sanitizedExpertise,
+                    hasJackOfAllTrades = sanitizedJack
+                )
+            }
+        }.let { skills ->
+            if (hasSkill) {
+                skills
+            } else {
+                skills + Skill(
+                    name = skillName,
+                    isProficient = isProficient,
+                    isExpertise = sanitizedExpertise,
+                    hasJackOfAllTrades = sanitizedJack
+                )
+            }
+        }
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    skills = updatedSkills,
+                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis())
+                )
+            )
+        }
+    }
+
+    private fun updateCharacterProficiencyString(
+        characterBundle: CharacterBundle,
+        currentValue: String,
+        nextValue: String,
+        applyValue: (Character) -> Character
+    ) {
+        if (nextValue == currentValue) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = applyValue(characterBundle.character).copy(updatedAt = System.currentTimeMillis())
+                )
+            )
+        }
+    }
+}
 
 @Composable
-fun AttributesScreen(viewModel: AttributesViewModel) {
-    val state = viewModel.uiState.collectAsStateWithLifecycle()
-    PlaceholderScreen(
-        state = state.value,
-        sections = listOf(
-            "attributes_section_scores_title" to "attributes_section_scores_body",
-            "attributes_section_skills_title" to "attributes_section_skills_body"
-        )
+fun AttributesScreen(
+    viewModel: AttributesViewModel,
+    onOpenDrawer: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    AttributesContent(
+        characterBundle = state.character,
+        onUpdatePassivePerceptionBonus = viewModel::updatePassivePerceptionBonus,
+        onUpdateAbilityScore = viewModel::updateAbilityScore,
+        onUpdateSkillTraining = viewModel::updateSkillTraining,
+        onUpdateArmorProficiencies = viewModel::updateArmorProficiencies,
+        onUpdateWeaponProficiencies = viewModel::updateWeaponProficiencies,
+        onUpdateToolProficiencies = viewModel::updateToolProficiencies,
+        onOpenDrawer = onOpenDrawer,
+        onOpenSettings = onOpenSettings
     )
 }
+
+@Composable
+fun AttributesContent(
+    characterBundle: CharacterBundle?,
+    onUpdatePassivePerceptionBonus: (CharacterBundle, Int) -> Unit,
+    onUpdateAbilityScore: (CharacterBundle, AbilityType, Int, Boolean) -> Unit = { _, _, _, _ -> },
+    onUpdateSkillTraining: (CharacterBundle, String, Boolean, Boolean, Boolean) -> Unit = { _, _, _, _, _ -> },
+    onUpdateArmorProficiencies: (CharacterBundle, Set<String>) -> Unit = { _, _ -> },
+    onUpdateWeaponProficiencies: (CharacterBundle, Set<String>) -> Unit = { _, _ -> },
+    onUpdateToolProficiencies: (CharacterBundle, Set<String>) -> Unit = { _, _ -> },
+    onOpenDrawer: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
+) {
+    val character = characterBundle?.character ?: previewFallbackCharacter()
+    val abilityScores = remember(character) { buildAbilityScores(character) }
+    val proficiencyBonus = proficiencyBonusForLevel(character.level)
+    val perceptionSkill = characterBundle?.skills?.firstOrNull { it.name == "skill_perception" }
+    val passivePerception = passivePerceptionValue(character, proficiencyBonus, perceptionSkill)
+    var isPassiveDialogOpen by remember { mutableStateOf(false) }
+    var isArmorDialogOpen by remember { mutableStateOf(false) }
+    var isWeaponDialogOpen by remember { mutableStateOf(false) }
+    var isToolsDialogOpen by remember { mutableStateOf(false) }
+    var editingAbility by remember { mutableStateOf<AbilityScore?>(null) }
+    var editingSkill by remember { mutableStateOf<SkillRow?>(null) }
+    var abilityDraft by remember { mutableStateOf("") }
+    var saveProficientDraft by remember { mutableStateOf(false) }
+    var skillProficientDraft by remember { mutableStateOf(false) }
+    var skillExpertiseDraft by remember { mutableStateOf(false) }
+    var skillJackDraft by remember { mutableStateOf(false) }
+    var armorDraft by remember { mutableStateOf(emptySet<String>()) }
+    var weaponDraft by remember { mutableStateOf(emptySet<String>()) }
+    var toolDraft by remember { mutableStateOf(emptySet<String>()) }
+    var customToolDrafts by remember { mutableStateOf(emptyList<String>()) }
+    var simpleWeaponsExpanded by remember { mutableStateOf(false) }
+    var martialWeaponsExpanded by remember { mutableStateOf(false) }
+    var expandedToolCategories by remember { mutableStateOf(emptySet<String>()) }
+    var passiveDraft by remember(character.passivePerceptionBonus) {
+        mutableStateOf(character.passivePerceptionBonus.toString())
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFF1A161D), Color(0xFF0E0B11), Color(0xFF09070D)),
+                    radius = 1700f
+                )
+            )
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 110.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                AttributesHeader(
+                    character = character,
+                    onOpenDrawer = onOpenDrawer,
+                    onOpenSettings = onOpenSettings
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    AttributeSummaryButton(
+                        label = "Proficiency Bonus",
+                        value = signed(proficiencyBonus),
+                        icon = Icons.Outlined.AutoAwesome,
+                        modifier = Modifier.weight(1f)
+                    )
+                    AttributeSummaryButton(
+                        label = "Passive Perception",
+                        value = passivePerception.toString(),
+                        icon = Icons.Outlined.Visibility,
+                        modifier = Modifier.weight(1f),
+                        onClick = { if (characterBundle != null) isPassiveDialogOpen = true }
+                    )
+                }
+            }
+
+            item {
+                AttributesSectionTitle(title = "Ability Scores")
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    abilityScores.chunked(3).forEach { rowScores ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            rowScores.forEach { score ->
+                                AbilityScoreCard(
+                                    score = score,
+                                    proficiencyBonus = proficiencyBonus,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        if (characterBundle != null) {
+                                            editingAbility = score
+                                            abilityDraft = score.value.toString()
+                                            saveProficientDraft = score.saveProficient
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                AttributesSectionTitle(title = "Skills")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    SkillColumn(
+                        skills = buildSkillRows(characterBundle?.skills.orEmpty(), abilityScores, proficiencyBonus).take(9),
+                        modifier = Modifier.weight(1f),
+                        onSkillClick = { skillName ->
+                            if (characterBundle != null) {
+                                val skill = buildSkillRows(characterBundle.skills, abilityScores, proficiencyBonus).first { it.nameKey == skillName }
+                                editingSkill = skill
+                                skillProficientDraft = skill.proficient
+                                skillExpertiseDraft = skill.expertise
+                                skillJackDraft = skill.jackOfAllTrades
+                            }
+                        }
+                    )
+                    SkillColumn(
+                        skills = buildSkillRows(characterBundle?.skills.orEmpty(), abilityScores, proficiencyBonus).drop(9),
+                        modifier = Modifier.weight(1f),
+                        onSkillClick = { skillName ->
+                            if (characterBundle != null) {
+                                val skill = buildSkillRows(characterBundle.skills, abilityScores, proficiencyBonus).first { it.nameKey == skillName }
+                                editingSkill = skill
+                                skillProficientDraft = skill.proficient
+                                skillExpertiseDraft = skill.expertise
+                                skillJackDraft = skill.jackOfAllTrades
+                            }
+                        }
+                    )
+                }
+            }
+
+            item {
+                AttributesSectionTitle(title = "Proficiencies")
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        ProficiencyInfoCard(
+                            icon = Icons.Outlined.Shield,
+                            label = "Armor",
+                            value = formatSelectedProficiencies(
+                                selectedIds = decodeProficiencyIds(character.armorProficiencies),
+                                options = armorProficiencyOptions
+                            ),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                if (characterBundle != null) {
+                                    armorDraft = decodeProficiencyIds(character.armorProficiencies)
+                                    isArmorDialogOpen = true
+                                }
+                            }
+                        )
+                        ProficiencyInfoCard(
+                            icon = Icons.Outlined.SportsFencing,
+                            label = "Weapons",
+                            value = formatWeaponProficiencies(decodeProficiencyIds(character.weaponProficiencies)),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                if (characterBundle != null) {
+                                    weaponDraft = decodeProficiencyIds(character.weaponProficiencies)
+                                    isWeaponDialogOpen = true
+                                }
+                            }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        ProficiencyInfoCard(
+                            icon = Icons.Outlined.Build,
+                            label = "Tools",
+                            value = formatToolProficiencies(decodeProficiencyIds(character.toolProficiencies)),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                if (characterBundle != null) {
+                                    val selectedTools = decodeProficiencyIds(character.toolProficiencies)
+                                    toolDraft = selectedTools.filterNot { it.startsWith(CustomToolPrefix) }.toSet()
+                                    customToolDrafts = selectedTools
+                                        .filter { it.startsWith(CustomToolPrefix) }
+                                        .map { it.removePrefix(CustomToolPrefix) }
+                                    isToolsDialogOpen = true
+                                }
+                            }
+                        )
+                        ProficiencyInfoCard(
+                            icon = Icons.AutoMirrored.Outlined.Chat,
+                            label = "Languages",
+                            value = "Common, Elvish, Draconic",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (isPassiveDialogOpen && characterBundle != null) {
+        AlertDialog(
+            onDismissRequest = { isPassiveDialogOpen = false },
+            title = { Text("Passive Perception Bonus") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Base value: $passivePerception")
+                    OutlinedTextField(
+                        value = passiveDraft,
+                        onValueChange = { passiveDraft = it },
+                        label = { Text("Additional bonus") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdatePassivePerceptionBonus(characterBundle, passiveDraft.toIntOrNull() ?: 0)
+                        isPassiveDialogOpen = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isPassiveDialogOpen = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    val currentEditingAbility = editingAbility
+    if (currentEditingAbility != null && characterBundle != null) {
+        AlertDialog(
+            onDismissRequest = { editingAbility = null },
+            title = { Text("Edit ${currentEditingAbility.displayName}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Set ${currentEditingAbility.displayName} score, not the modifier.")
+                    OutlinedTextField(
+                        value = abilityDraft,
+                        onValueChange = { abilityDraft = it },
+                        label = { Text("${currentEditingAbility.shortName} score") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = saveProficientDraft,
+                            onCheckedChange = { saveProficientDraft = it }
+                        )
+                        Text(
+                            text = "Proficient in ${currentEditingAbility.displayName} saving throw",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdateAbilityScore(
+                            characterBundle,
+                            currentEditingAbility.type,
+                            abilityDraft.toIntOrNull() ?: currentEditingAbility.value,
+                            saveProficientDraft
+                        )
+                        editingAbility = null
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingAbility = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    val currentEditingSkill = editingSkill
+    if (currentEditingSkill != null && characterBundle != null) {
+        val strings = LocalStrings.current
+        AlertDialog(
+            onDismissRequest = { editingSkill = null },
+            title = { Text(strings[currentEditingSkill.nameKey]) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = skillProficientDraft,
+                            onCheckedChange = {
+                                skillProficientDraft = it
+                                if (!it) skillExpertiseDraft = false
+                                if (it) skillJackDraft = false
+                            }
+                        )
+                        Text("Has proficiency", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = skillExpertiseDraft,
+                            enabled = skillProficientDraft,
+                            onCheckedChange = { skillExpertiseDraft = it }
+                        )
+                        Text("Has expertise", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = skillJackDraft,
+                            enabled = !skillProficientDraft,
+                            onCheckedChange = { skillJackDraft = it }
+                        )
+                        Text("Jack of All Trades", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdateSkillTraining(
+                            characterBundle,
+                            currentEditingSkill.nameKey,
+                            skillProficientDraft,
+                            skillExpertiseDraft,
+                            skillJackDraft
+                        )
+                        editingSkill = null
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingSkill = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (isArmorDialogOpen && characterBundle != null) {
+        AlertDialog(
+            onDismissRequest = { isArmorDialogOpen = false },
+            title = { Text("Armor Proficiencies") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    armorProficiencyOptions.forEach { option ->
+                        ProficiencyCheckboxRow(
+                            label = option.label,
+                            checked = option.id in armorDraft,
+                            onCheckedChange = { checked ->
+                                armorDraft = armorDraft.toggled(option.id, checked)
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdateArmorProficiencies(characterBundle, armorDraft)
+                        isArmorDialogOpen = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isArmorDialogOpen = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (isWeaponDialogOpen && characterBundle != null) {
+        AlertDialog(
+            onDismissRequest = { isWeaponDialogOpen = false },
+            title = { Text("Weapon Proficiencies") },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.height(420.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    item {
+                        ProficiencyCheckboxRow(
+                            label = "Simple Weapons",
+                            checked = WeaponGroupSimpleId in weaponDraft,
+                            onCheckedChange = { checked ->
+                                weaponDraft = if (checked) {
+                                    (weaponDraft - simpleWeaponOptions.map { it.id }.toSet()) + WeaponGroupSimpleId
+                                } else {
+                                    weaponDraft - WeaponGroupSimpleId
+                                }
+                            }
+                        )
+                        TextButton(onClick = { simpleWeaponsExpanded = !simpleWeaponsExpanded }) {
+                            Text(if (simpleWeaponsExpanded) "Hide Simple list" else "Show Simple list")
+                        }
+                    }
+                    if (simpleWeaponsExpanded) {
+                        simpleWeaponOptions.forEach { option ->
+                            item {
+                            val groupChecked = WeaponGroupSimpleId in weaponDraft
+                            ProficiencyCheckboxRow(
+                                label = option.label,
+                                checked = groupChecked || option.id in weaponDraft,
+                                enabled = !groupChecked,
+                                onCheckedChange = { checked ->
+                                    weaponDraft = weaponDraft.toggled(option.id, checked)
+                                }
+                            )
+                            }
+                        }
+                    }
+                    item {
+                        ProficiencyCheckboxRow(
+                            label = "Martial Weapons",
+                            checked = WeaponGroupMartialId in weaponDraft,
+                            onCheckedChange = { checked ->
+                                weaponDraft = if (checked) {
+                                    (weaponDraft - martialWeaponOptions.map { it.id }.toSet()) + WeaponGroupMartialId
+                                } else {
+                                    weaponDraft - WeaponGroupMartialId
+                                }
+                            }
+                        )
+                        TextButton(onClick = { martialWeaponsExpanded = !martialWeaponsExpanded }) {
+                            Text(if (martialWeaponsExpanded) "Hide Martial list" else "Show Martial list")
+                        }
+                    }
+                    if (martialWeaponsExpanded) {
+                        martialWeaponOptions.forEach { option ->
+                            item {
+                            val groupChecked = WeaponGroupMartialId in weaponDraft
+                            ProficiencyCheckboxRow(
+                                label = option.label,
+                                checked = groupChecked || option.id in weaponDraft,
+                                enabled = !groupChecked,
+                                onCheckedChange = { checked ->
+                                    weaponDraft = weaponDraft.toggled(option.id, checked)
+                                }
+                            )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdateWeaponProficiencies(characterBundle, weaponDraft)
+                        isWeaponDialogOpen = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isWeaponDialogOpen = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (isToolsDialogOpen && characterBundle != null) {
+        AlertDialog(
+            onDismissRequest = { isToolsDialogOpen = false },
+            title = { Text("Tool Proficiencies") },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.height(420.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    toolProficiencyCategories.forEach { category ->
+                        item {
+                            TextButton(
+                                onClick = {
+                                    expandedToolCategories = expandedToolCategories.toggled(category.id, category.id !in expandedToolCategories)
+                                }
+                            ) {
+                                Text(if (category.id in expandedToolCategories) "Hide ${category.label}" else category.label)
+                            }
+                        }
+                        if (category.id in expandedToolCategories) {
+                            category.options.forEach { option ->
+                                item {
+                                    ProficiencyCheckboxRow(
+                                        label = option.label,
+                                        checked = option.id in toolDraft,
+                                        onCheckedChange = { checked ->
+                                            toolDraft = toolDraft.toggled(option.id, checked)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        TextButton(
+                            onClick = { customToolDrafts = customToolDrafts + "" }
+                        ) {
+                            Text("Add custom tool")
+                        }
+                    }
+                    customToolDrafts.forEachIndexed { index, value ->
+                        item {
+                            OutlinedTextField(
+                                value = value,
+                                onValueChange = { nextValue ->
+                                    customToolDrafts = customToolDrafts.toMutableList().also { it[index] = nextValue }
+                                },
+                                label = { Text("Custom tool") },
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val customTools = customToolDrafts
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+                            .map { CustomToolPrefix + it }
+                            .toSet()
+                        onUpdateToolProficiencies(characterBundle, toolDraft + customTools)
+                        isToolsDialogOpen = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isToolsDialogOpen = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun AttributesHeader(
+    character: Character,
+    onOpenDrawer: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    val tokens = LocalDesignTokens.current.typography
+    val portraitReference = character.portraitUri ?: AssetReferences.portraitPlaceholderPath("portrait_placeholder.png")
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(96.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onOpenDrawer, modifier = Modifier.size(44.dp)) {
+            Icon(
+                imageVector = Icons.Filled.Menu,
+                contentDescription = text("drawer_open_character_manager"),
+                tint = Color(0xFFF3EEE6),
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier = Modifier.size(70.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = Color(0x55A19892),
+                    radius = size.minDimension / 2f - 4.dp.toPx(),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+                drawCircle(
+                    color = Color(0x42FFFFFF),
+                    radius = size.minDimension / 2f - 9.dp.toPx(),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+            }
+            Surface(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape),
+                shape = CircleShape,
+                color = Color(0xFF141118)
+            ) {
+                AppImage(
+                    imageRef = portraitReference,
+                    contentDescription = character.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    fallback = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF2D2730)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = character.name.take(1).ifBlank { "?" },
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = tokens.portraitInitial.fontSizeSp.sp
+                                ),
+                                color = Color(0xFFF7F2EA)
+                            )
+                        }
+                    }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = character.name.ifBlank { "Unnamed Hero" },
+                style = MaterialTheme.typography.titleLarge,
+                color = Color(0xFFF7F2EA),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = buildHeaderSubtitle(character),
+                modifier = Modifier.padding(top = 4.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFD2CAC2),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        IconButton(onClick = onOpenSettings, modifier = Modifier.size(44.dp)) {
+            Icon(
+                imageVector = Icons.Outlined.Settings,
+                contentDescription = text("overview_settings"),
+                tint = Color(0xFFF3EEE6),
+                modifier = Modifier.size(28.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttributeSummaryButton(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    Surface(
+        modifier = modifier
+            .height(52.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF17141B).copy(alpha = 0.72f),
+        border = BorderStroke(1.dp, Color(0x42FFFFFF))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFFC2BBB3),
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = label,
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFF1ECE5),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color(0xFFF7F2EA)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttributesSectionTitle(title: String) {
+    val tokens = LocalDesignTokens.current.typography
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize = tokens.headlineMedium.fontSizeSp.sp),
+            color = Color(0xFFF7F2EA)
+        )
+        Canvas(
+            modifier = Modifier
+                .padding(start = 14.dp)
+                .weight(1f)
+                .height(18.dp)
+        ) {
+            val centerY = size.height / 2f
+            drawLine(
+                color = Color(0x55A19892),
+                start = Offset(0f, centerY),
+                end = Offset(size.width - 18.dp.toPx(), centerY),
+                strokeWidth = 1.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        }
+    }
+}
+
+@Composable
+private fun AbilityScoreCard(
+    score: AbilityScore,
+    proficiencyBonus: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    val tokens = LocalDesignTokens.current.typography
+    Card(
+        modifier = modifier
+            .aspectRatio(0.88f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, Color(0x42FFFFFF)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF17141B).copy(alpha = 0.66f))
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            FrameCorner(modifier = Modifier.align(Alignment.TopStart))
+            FrameCorner(modifier = Modifier.align(Alignment.TopEnd), mirrored = true)
+            FrameCorner(modifier = Modifier.align(Alignment.BottomStart), upsideDown = true)
+            FrameCorner(modifier = Modifier.align(Alignment.BottomEnd), mirrored = true, upsideDown = true)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = score.shortName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFF1ECE5)
+                )
+                Text(
+                    text = signed(score.modifier),
+                    modifier = Modifier.padding(top = 2.dp),
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = tokens.hpTemporary.fontSizeSp.sp),
+                    color = Color(0xFFF7F2EA)
+                )
+                Text(
+                    text = score.value.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color(0xFFC2BBB3)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color(0x2EFFFFFF))
+                )
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Canvas(modifier = Modifier.size(12.dp)) {
+                        drawCircle(
+                            color = if (score.saveProficient) Color(0xFFF7F2EA) else Color.Transparent,
+                            radius = 5.dp.toPx()
+                        )
+                        drawCircle(
+                            color = Color(0xFFC2BBB3),
+                            radius = 5.dp.toPx(),
+                            style = Stroke(width = 1.dp.toPx())
+                        )
+                    }
+                    Text(
+                        text = "Save",
+                        modifier = Modifier.padding(start = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFD2CAC2)
+                    )
+                    Text(
+                        text = signed(score.saveModifier(proficiencyBonus)),
+                        modifier = Modifier.padding(start = 10.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFD2CAC2)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SkillColumn(
+    skills: List<SkillRow>,
+    modifier: Modifier = Modifier,
+    onSkillClick: (String) -> Unit = {}
+) {
+    Column(modifier = modifier) {
+        skills.forEachIndexed { index, skill ->
+            SkillRowCard(
+                skill = skill,
+                modifier = Modifier.padding(top = if (index == 0) 0.dp else 0.dp),
+                onClick = { onSkillClick(skill.nameKey) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SkillRowCard(
+    skill: SkillRow,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    val strings = LocalStrings.current
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(7.dp),
+        color = Color(0xFF17141B).copy(alpha = 0.62f),
+        border = BorderStroke(1.dp, Color(0x36FFFFFF))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Canvas(modifier = Modifier.size(12.dp)) {
+                val expertiseColor = Color(0xFFFFD86B)
+                val fillColor = when {
+                    skill.expertise -> expertiseColor
+                    skill.proficient -> Color(0xFFF7F2EA)
+                    skill.jackOfAllTrades -> Color(0x80F7F2EA)
+                    else -> Color.Transparent
+                }
+                val strokeColor = if (skill.expertise) expertiseColor else Color(0xFFC2BBB3)
+                drawCircle(
+                    color = fillColor,
+                    radius = 5.dp.toPx()
+                )
+                drawCircle(
+                    color = strokeColor,
+                    radius = 5.dp.toPx(),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+            }
+            Text(
+                text = strings[skill.nameKey],
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFD2CAC2),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = skill.abilityShort,
+                modifier = Modifier.width(28.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFFC2BBB3),
+                textAlign = TextAlign.End
+            )
+            Text(
+                text = signed(skill.modifier),
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .width(24.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFF7F2EA),
+                textAlign = TextAlign.End
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProficiencyInfoCard(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    Surface(
+        modifier = modifier
+            .height(92.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF17141B).copy(alpha = 0.66f),
+        border = BorderStroke(1.dp, Color(0x42FFFFFF))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFFC2BBB3),
+                modifier = Modifier.size(34.dp)
+            )
+            Column(modifier = Modifier.padding(start = 16.dp)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFC2BBB3)
+                )
+                Text(
+                    text = value,
+                    modifier = Modifier.padding(top = 4.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFF7F2EA),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProficiencyCheckboxRow(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = checked,
+            enabled = enabled,
+            onCheckedChange = onCheckedChange
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (enabled) Color.Unspecified else Color(0x80FFFFFF)
+        )
+    }
+}
+
+@Composable
+private fun FrameCorner(
+    modifier: Modifier = Modifier,
+    mirrored: Boolean = false,
+    upsideDown: Boolean = false
+) {
+    Canvas(modifier = modifier.size(24.dp)) {
+        val x0 = if (mirrored) size.width else 0f
+        val x1 = if (mirrored) size.width - 10.dp.toPx() else 10.dp.toPx()
+        val y0 = if (upsideDown) size.height else 0f
+        val y1 = if (upsideDown) size.height - 10.dp.toPx() else 10.dp.toPx()
+        drawLine(Color(0x55A19892), Offset(x0, y1), Offset(x0, y0), strokeWidth = 1.dp.toPx())
+        drawLine(Color(0x55A19892), Offset(x0, y0), Offset(x1, y0), strokeWidth = 1.dp.toPx())
+    }
+}
+
+private data class AbilityScore(
+    val type: AbilityType,
+    val shortName: String,
+    val displayName: String,
+    val value: Int,
+    val saveProficient: Boolean
+) {
+    val modifier: Int = abilityModifier(value)
+    fun saveModifier(proficiencyBonus: Int): Int = modifier + if (saveProficient) proficiencyBonus else 0
+}
+
+private data class SkillRow(
+    val nameKey: String,
+    val abilityShort: String,
+    val modifier: Int,
+    val proficient: Boolean,
+    val expertise: Boolean,
+    val jackOfAllTrades: Boolean
+)
+
+private fun buildAbilityScores(character: Character): List<AbilityScore> =
+    listOf(
+        AbilityScore(AbilityType.STRENGTH, "STR", "Strength", character.strength, character.strengthSaveProficient),
+        AbilityScore(AbilityType.DEXTERITY, "DEX", "Dexterity", character.dexterity, character.dexteritySaveProficient),
+        AbilityScore(AbilityType.CONSTITUTION, "CON", "Constitution", character.constitution, character.constitutionSaveProficient),
+        AbilityScore(AbilityType.INTELLIGENCE, "INT", "Intelligence", character.intelligence, character.intelligenceSaveProficient),
+        AbilityScore(AbilityType.WISDOM, "WIS", "Wisdom", character.wisdom, character.wisdomSaveProficient),
+        AbilityScore(AbilityType.CHARISMA, "CHA", "Charisma", character.charisma, character.charismaSaveProficient)
+    )
+
+enum class AbilityType {
+    STRENGTH,
+    DEXTERITY,
+    CONSTITUTION,
+    INTELLIGENCE,
+    WISDOM,
+    CHARISMA
+}
+
+private fun buildSkillRows(skills: List<Skill>, abilityScores: List<AbilityScore>, proficiencyBonus: Int): List<SkillRow> {
+    val skillState = skills.associateBy { it.name }
+    val modifiers = abilityScores.associate { it.shortName to it.modifier }
+    return skillDefinitions.map { definition ->
+        val skill = skillState[definition.nameKey]
+        val proficient = skill?.isProficient == true
+        val expertise = skill?.isExpertise == true
+        val jackOfAllTrades = skill?.hasJackOfAllTrades == true
+        SkillRow(
+            nameKey = definition.nameKey,
+            abilityShort = definition.abilityShort,
+            modifier = (modifiers[definition.abilityShort] ?: 0) + skillTrainingBonus(skill, proficiencyBonus),
+            proficient = proficient,
+            expertise = expertise,
+            jackOfAllTrades = jackOfAllTrades
+        )
+    }
+}
+
+private data class SkillDefinition(val nameKey: String, val abilityShort: String)
+
+private val skillDefinitions = listOf(
+    SkillDefinition("skill_acrobatics", "DEX"),
+    SkillDefinition("skill_animal_handling", "WIS"),
+    SkillDefinition("skill_arcana", "INT"),
+    SkillDefinition("skill_athletics", "STR"),
+    SkillDefinition("skill_deception", "CHA"),
+    SkillDefinition("skill_history", "INT"),
+    SkillDefinition("skill_insight", "WIS"),
+    SkillDefinition("skill_intimidation", "CHA"),
+    SkillDefinition("skill_investigation", "INT"),
+    SkillDefinition("skill_medicine", "WIS"),
+    SkillDefinition("skill_nature", "INT"),
+    SkillDefinition("skill_perception", "WIS"),
+    SkillDefinition("skill_performance", "CHA"),
+    SkillDefinition("skill_persuasion", "CHA"),
+    SkillDefinition("skill_religion", "INT"),
+    SkillDefinition("skill_sleight_of_hand", "DEX"),
+    SkillDefinition("skill_stealth", "DEX"),
+    SkillDefinition("skill_survival", "WIS")
+)
+
+private fun passivePerceptionValue(character: Character, proficiencyBonus: Int, perceptionSkill: Skill?): Int =
+    10 + abilityModifier(character.wisdom) + skillTrainingBonus(perceptionSkill, proficiencyBonus) + character.passivePerceptionBonus
+
+private fun skillTrainingBonus(skill: Skill?, proficiencyBonus: Int): Int =
+    when {
+        skill?.isExpertise == true -> proficiencyBonus * 2
+        skill?.isProficient == true -> proficiencyBonus
+        skill?.hasJackOfAllTrades == true -> proficiencyBonus / 2
+        else -> 0
+    }
+
+private fun proficiencyBonusForLevel(level: Int): Int =
+    when (level.coerceIn(1, 20)) {
+        in 1..4 -> 2
+        in 5..8 -> 3
+        in 9..12 -> 4
+        in 13..16 -> 5
+        else -> 6
+    }
+
+private fun abilityModifier(value: Int): Int = Math.floorDiv(value - 10, 2)
+
+private fun signed(value: Int): String = if (value >= 0) "+$value" else value.toString()
+
+private fun encodeProficiencyIds(ids: Set<String>): String =
+    ids.toList().sorted().joinToString("|")
+
+private fun decodeProficiencyIds(value: String): Set<String> =
+    value.split("|").mapNotNull { it.trim().takeIf(String::isNotEmpty) }.toSet()
+
+private fun Set<String>.toggled(id: String, checked: Boolean): Set<String> =
+    if (checked) this + id else this - id
+
+private fun formatSelectedProficiencies(
+    selectedIds: Set<String>,
+    options: List<ProficiencyOption>,
+    emptyText: String = "None"
+): String {
+    val labels = options.filter { it.id in selectedIds }.map { it.label }
+    return labels.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: emptyText
+}
+
+private fun formatWeaponProficiencies(selectedIds: Set<String>): String {
+    val labels = buildList {
+        if (WeaponGroupSimpleId in selectedIds) {
+            add("Simple")
+        } else {
+            addAll(simpleWeaponOptions.filter { it.id in selectedIds }.map { it.label })
+        }
+        if (WeaponGroupMartialId in selectedIds) {
+            add("Martial")
+        } else {
+            addAll(martialWeaponOptions.filter { it.id in selectedIds }.map { it.label })
+        }
+    }
+    return labels.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "None"
+}
+
+private fun formatToolProficiencies(selectedIds: Set<String>): String {
+    val knownOptions = toolProficiencyCategories.flatMap { it.options }
+    val labels = buildList {
+        addAll(knownOptions.filter { it.id in selectedIds }.map { it.label })
+        addAll(selectedIds.filter { it.startsWith(CustomToolPrefix) }.map { it.removePrefix(CustomToolPrefix) })
+    }
+    return labels.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "None"
+}
+
+private fun buildHeaderSubtitle(character: Character): String =
+    listOf(
+        character.race.ifBlank { "Human" },
+        character.subclass.takeIf { it.isNotBlank() },
+        character.characterClass.takeIf { it.isNotBlank() },
+        "Level ${character.level}"
+    ).filterNotNull().joinToString(" • ")
+
+private data class ProficiencyOption(val id: String, val label: String)
+
+private data class ProficiencyCategory(
+    val id: String,
+    val label: String,
+    val options: List<ProficiencyOption>
+)
+
+private const val CustomToolPrefix = "custom:"
+
+private val armorProficiencyOptions = listOf(
+    ProficiencyOption("light_armor", "Light Armor"),
+    ProficiencyOption("medium_armor", "Medium Armor"),
+    ProficiencyOption("heavy_armor", "Heavy Armor"),
+    ProficiencyOption("shields", "Shields")
+)
+
+private const val WeaponGroupSimpleId = "simple_weapons"
+private const val WeaponGroupMartialId = "martial_weapons"
+
+private val simpleWeaponOptions = listOf(
+    ProficiencyOption("club", "Club"),
+    ProficiencyOption("dagger", "Dagger"),
+    ProficiencyOption("greatclub", "Greatclub"),
+    ProficiencyOption("handaxe", "Handaxe"),
+    ProficiencyOption("javelin", "Javelin"),
+    ProficiencyOption("light_hammer", "Light Hammer"),
+    ProficiencyOption("mace", "Mace"),
+    ProficiencyOption("quarterstaff", "Quarterstaff"),
+    ProficiencyOption("sickle", "Sickle"),
+    ProficiencyOption("spear", "Spear"),
+    ProficiencyOption("light_crossbow", "Light Crossbow"),
+    ProficiencyOption("dart", "Dart"),
+    ProficiencyOption("shortbow", "Shortbow"),
+    ProficiencyOption("sling", "Sling")
+)
+
+private val martialWeaponOptions = listOf(
+    ProficiencyOption("battleaxe", "Battleaxe"),
+    ProficiencyOption("flail", "Flail"),
+    ProficiencyOption("glaive", "Glaive"),
+    ProficiencyOption("greataxe", "Greataxe"),
+    ProficiencyOption("greatsword", "Greatsword"),
+    ProficiencyOption("halberd", "Halberd"),
+    ProficiencyOption("lance", "Lance"),
+    ProficiencyOption("longsword", "Longsword"),
+    ProficiencyOption("maul", "Maul"),
+    ProficiencyOption("morningstar", "Morningstar"),
+    ProficiencyOption("pike", "Pike"),
+    ProficiencyOption("rapier", "Rapier"),
+    ProficiencyOption("scimitar", "Scimitar"),
+    ProficiencyOption("shortsword", "Shortsword"),
+    ProficiencyOption("trident", "Trident"),
+    ProficiencyOption("war_pick", "War Pick"),
+    ProficiencyOption("warhammer", "Warhammer"),
+    ProficiencyOption("whip", "Whip"),
+    ProficiencyOption("blowgun", "Blowgun"),
+    ProficiencyOption("hand_crossbow", "Hand Crossbow"),
+    ProficiencyOption("heavy_crossbow", "Heavy Crossbow"),
+    ProficiencyOption("longbow", "Longbow"),
+    ProficiencyOption("net", "Net")
+)
+
+private val toolProficiencyCategories = listOf(
+    ProficiencyCategory(
+        id = "artisans_tools",
+        label = "Artisan's Tools",
+        options = listOf(
+            ProficiencyOption("alchemists_supplies", "Alchemist's Supplies"),
+            ProficiencyOption("brewers_supplies", "Brewer's Supplies"),
+            ProficiencyOption("calligraphers_supplies", "Calligrapher's Supplies"),
+            ProficiencyOption("carpenters_tools", "Carpenter's Tools"),
+            ProficiencyOption("cartographers_tools", "Cartographer's Tools"),
+            ProficiencyOption("cobblers_tools", "Cobbler's Tools"),
+            ProficiencyOption("cooks_utensils", "Cook's Utensils"),
+            ProficiencyOption("glassblowers_tools", "Glassblower's Tools"),
+            ProficiencyOption("jewelers_tools", "Jeweler's Tools"),
+            ProficiencyOption("leatherworkers_tools", "Leatherworker's Tools"),
+            ProficiencyOption("masons_tools", "Mason's Tools"),
+            ProficiencyOption("painters_supplies", "Painter's Supplies"),
+            ProficiencyOption("potters_tools", "Potter's Tools"),
+            ProficiencyOption("smiths_tools", "Smith's Tools"),
+            ProficiencyOption("tinkers_tools", "Tinker's Tools"),
+            ProficiencyOption("weavers_tools", "Weaver's Tools"),
+            ProficiencyOption("woodcarvers_tools", "Woodcarver's Tools")
+        )
+    ),
+    ProficiencyCategory(
+        id = "gaming_sets",
+        label = "Gaming Sets",
+        options = listOf(
+            ProficiencyOption("dice_set", "Dice Set"),
+            ProficiencyOption("dragonchess_set", "Dragonchess Set"),
+            ProficiencyOption("playing_card_set", "Playing Card Set"),
+            ProficiencyOption("three_dragon_ante_set", "Three-Dragon Ante Set")
+        )
+    ),
+    ProficiencyCategory(
+        id = "musical_instruments",
+        label = "Musical Instruments",
+        options = listOf(
+            ProficiencyOption("bagpipes", "Bagpipes"),
+            ProficiencyOption("drum", "Drum"),
+            ProficiencyOption("dulcimer", "Dulcimer"),
+            ProficiencyOption("flute", "Flute"),
+            ProficiencyOption("lute", "Lute"),
+            ProficiencyOption("lyre", "Lyre"),
+            ProficiencyOption("horn", "Horn"),
+            ProficiencyOption("pan_flute", "Pan Flute"),
+            ProficiencyOption("shawm", "Shawm"),
+            ProficiencyOption("viol", "Viol")
+        )
+    ),
+    ProficiencyCategory(
+        id = "other_tools",
+        label = "Other Tools",
+        options = listOf(
+            ProficiencyOption("disguise_kit", "Disguise Kit"),
+            ProficiencyOption("forgery_kit", "Forgery Kit"),
+            ProficiencyOption("herbalism_kit", "Herbalism Kit"),
+            ProficiencyOption("navigators_tools", "Navigator's Tools"),
+            ProficiencyOption("poisoners_kit", "Poisoner's Kit"),
+            ProficiencyOption("thieves_tools", "Thieves' Tools")
+        )
+    ),
+    ProficiencyCategory(
+        id = "vehicles",
+        label = "Vehicles",
+        options = listOf(
+            ProficiencyOption("land_vehicles", "Land Vehicles"),
+            ProficiencyOption("water_vehicles", "Water Vehicles")
+        )
+    )
+)
+
+internal fun previewFallbackCharacter(): Character =
+    Character(
+        name = "Alaric Stormwind",
+        race = "Human",
+        characterClass = "Wizard",
+        subclass = "Divination",
+        level = 7,
+        portraitUri = null,
+        currentHp = 30,
+        maxHp = 42,
+        temporaryHp = 0,
+        hitDieSides = 8,
+        spentHitDice = 0,
+        hasInspiration = false,
+        armorClass = 10,
+        speed = 30,
+        initiative = 0,
+        experience = 0,
+        strength = 10,
+        dexterity = 16,
+        constitution = 14,
+        intelligence = 18,
+        wisdom = 13,
+        charisma = 12,
+        strengthSaveProficient = false,
+        dexteritySaveProficient = false,
+        constitutionSaveProficient = false,
+        intelligenceSaveProficient = true,
+        wisdomSaveProficient = true,
+        charismaSaveProficient = false,
+        passivePerceptionBonus = 0,
+        armorProficiencies = "light_armor",
+        weaponProficiencies = "dagger|quarterstaff|light_crossbow",
+        toolProficiencies = "calligraphers_supplies",
+        alignment = "",
+        background = "",
+        faith = "",
+        homeland = "",
+        age = "",
+        gender = "",
+        height = "",
+        weight = "",
+        eyes = "",
+        hair = "",
+        skin = "",
+        personalityTraits = "",
+        ideals = "",
+        bonds = "",
+        flaws = "",
+        biography = "",
+        createdAt = 0L,
+        updatedAt = 0L
+    )

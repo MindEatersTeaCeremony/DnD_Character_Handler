@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 4,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -45,7 +45,17 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "dnd_character_handler.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).fallbackToDestructiveMigration().build().also { INSTANCE = it }
+                ).addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                    MIGRATION_6_7,
+                    MIGRATION_7_8,
+                    MIGRATION_8_9,
+                    MIGRATION_9_10
+                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
 
@@ -65,6 +75,48 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE characters ADD COLUMN hasInspiration INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN passivePerceptionBonus INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN strengthSaveProficient INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN dexteritySaveProficient INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN constitutionSaveProficient INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN intelligenceSaveProficient INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN wisdomSaveProficient INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN charismaSaveProficient INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE skills ADD COLUMN isExpertise INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE skills ADD COLUMN hasJackOfAllTrades INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN armorProficiencies TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE characters ADD COLUMN weaponProficiencies TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN toolProficiencies TEXT NOT NULL DEFAULT ''")
             }
         }
     }

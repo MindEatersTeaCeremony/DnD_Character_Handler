@@ -132,7 +132,7 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                     modifier = Modifier.fillMaxSize(),
                 contentWindowInsets = WindowInsets.systemBars,
                 topBar = {
-                    if (currentRoute != AppScreen.Overview.route) {
+                    if (currentRoute != AppScreen.Overview.route && currentRoute != AppScreen.Attributes.route) {
                         TopAppBar(
                             windowInsets = TopAppBarDefaults.windowInsets,
                             title = { Text(text(currentScreen.titleKey)) },
@@ -181,7 +181,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                             )
                         }
                             composable(AppScreen.Attributes.route) {
-                                AttributesScreen(appState.attributesViewModel)
+                                AttributesScreen(
+                                    viewModel = appState.attributesViewModel,
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onOpenSettings = {}
+                                )
                             }
                             composable(AppScreen.Combat.route) {
                                 CombatScreen(appState.combatViewModel)

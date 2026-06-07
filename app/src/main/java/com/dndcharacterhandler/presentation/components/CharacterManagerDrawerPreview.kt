@@ -10,9 +10,14 @@ import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.theme.DnDTheme
 
-@Preview(showBackground = true, showSystemUi = true, device = "spec:width=412dp,height=915dp")
+@Preview(
+    name = "Character Manager Drawer",
+    showBackground = true,
+    showSystemUi = true,
+    device = "spec:width=412dp,height=915dp"
+)
 @Composable
-private fun CharacterManagerDrawerPreview() {
+fun CharacterManagerDrawerPreview() {
     val previewStrings = LocalizedStrings(
         language = AppLanguage.ENGLISH,
         values = mapOf(
@@ -113,6 +118,16 @@ private fun previewCharacterBundle(
             intelligence = 10,
             wisdom = 10,
             charisma = 10,
+            strengthSaveProficient = false,
+            dexteritySaveProficient = false,
+            constitutionSaveProficient = false,
+            intelligenceSaveProficient = false,
+            wisdomSaveProficient = false,
+            charismaSaveProficient = false,
+            passivePerceptionBonus = 0,
+            armorProficiencies = "",
+            weaponProficiencies = "",
+            toolProficiencies = "",
             alignment = "",
             background = "",
             faith = "",

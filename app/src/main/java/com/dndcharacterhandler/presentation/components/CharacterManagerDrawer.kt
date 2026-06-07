@@ -25,7 +25,6 @@ import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -91,8 +90,8 @@ fun CharacterManagerDrawer(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 70.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             item {
                 Text(
@@ -103,7 +102,7 @@ fun CharacterManagerDrawer(
                     ),
                     color = Color(0xFFF7F2EA)
                 )
-                DrawerOrnamentDivider(modifier = Modifier.padding(top = 8.dp, bottom = 18.dp))
+                DrawerOrnamentDivider(modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
             }
 
             items(state.characters, key = { it.character.id }) { characterBundle ->
@@ -125,7 +124,7 @@ fun CharacterManagerDrawer(
             }
 
             item {
-                DrawerOrnamentDivider(modifier = Modifier.padding(top = 18.dp, bottom = 12.dp))
+                DrawerOrnamentDivider(modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
                 DrawerActionCard(
                     label = text("drawer_export_character"),
                     icon = Icons.Outlined.FileUpload,
@@ -137,13 +136,12 @@ fun CharacterManagerDrawer(
                 DrawerActionCard(
                     label = text("drawer_delete_character"),
                     icon = Icons.Outlined.Delete,
-                    iconTint = Color(0xFFC6A36C),
                     onClick = onDeleteCharacter
                 )
             }
 
             item {
-                DrawerOrnamentDivider(modifier = Modifier.padding(top = 18.dp, bottom = 12.dp))
+                DrawerOrnamentDivider(modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
                 DrawerActionCard(
                     label = text("drawer_import_character"),
                     icon = Icons.Outlined.FileDownload,
@@ -152,11 +150,11 @@ fun CharacterManagerDrawer(
             }
 
             item {
-                DrawerOrnamentDivider(modifier = Modifier.padding(top = 18.dp, bottom = 12.dp))
+                DrawerOrnamentDivider(modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
                 Box {
                     DrawerLanguageCard(
                         label = text("drawer_language"),
-                        value = text(state.language.localizationKey),
+                        value = state.language.code.uppercase(),
                         onClick = { languageExpanded = true }
                     )
                     DropdownMenu(
@@ -177,7 +175,7 @@ fun CharacterManagerDrawer(
             }
 
             item {
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
@@ -198,7 +196,7 @@ private fun DrawerCharacterCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(124.dp)
+            .height(96.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = Color(0xFF17141B).copy(alpha = 0.72f),
@@ -207,18 +205,18 @@ private fun DrawerCharacterCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp),
+                .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             DrawerSelectionDot(selected = selected)
             DrawerPortrait(
                 portraitUri = character.portraitUri,
                 characterName = characterName,
-                modifier = Modifier.padding(start = 14.dp)
+                modifier = Modifier.padding(start = 8.dp)
             )
             Column(
                 modifier = Modifier
-                    .padding(start = 18.dp)
+                    .padding(start = 12.dp)
                     .weight(1f),
                 verticalArrangement = Arrangement.Center
             ) {
@@ -231,7 +229,7 @@ private fun DrawerCharacterCard(
                 )
                 Text(
                     text = classLabel,
-                    modifier = Modifier.padding(top = 6.dp),
+                    modifier = Modifier.padding(top = 3.dp),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFFD2CAC2),
                     maxLines = 1,
@@ -239,7 +237,7 @@ private fun DrawerCharacterCard(
                 )
                 Text(
                     text = strings.format("drawer_level", character.level),
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = 2.dp),
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = tokens.subtitleToken.fontSizeSp.sp),
                     color = Color(0xFFC6A36C)
                 )
@@ -252,20 +250,20 @@ private fun DrawerCharacterCard(
 private fun DrawerSelectionDot(selected: Boolean) {
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(20.dp)
             .clip(CircleShape)
             .background(Color.Transparent),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(24.dp)) {
+        Canvas(modifier = Modifier.size(18.dp)) {
             drawCircle(
                 color = if (selected) Color(0xFFFFD86B) else Color.Transparent,
-                radius = 9.dp.toPx()
+                radius = 6.dp.toPx()
             )
             drawCircle(
                 color = if (selected) Color(0xFFFFD86B) else Color(0xFFC2BBB3),
-                radius = 10.dp.toPx(),
-                style = Stroke(width = 2.dp.toPx())
+                radius = 7.dp.toPx(),
+                style = Stroke(width = 1.5.dp.toPx())
             )
         }
     }
@@ -280,7 +278,7 @@ private fun DrawerPortrait(
     val portraitReference = portraitUri ?: AssetReferences.portraitPlaceholderPath("portrait_placeholder.png")
 
     Box(
-        modifier = modifier.size(88.dp),
+        modifier = modifier.size(70.dp),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -291,13 +289,13 @@ private fun DrawerPortrait(
             )
             drawCircle(
                 color = Color(0x42FFFFFF),
-                radius = size.minDimension / 2f - 12.dp.toPx(),
+                radius = size.minDimension / 2f - 9.dp.toPx(),
                 style = Stroke(width = 1.dp.toPx())
             )
         }
         Surface(
             modifier = Modifier
-                .size(72.dp)
+                .size(56.dp)
                 .clip(CircleShape),
             shape = CircleShape,
             color = Color(0xFF141118)
@@ -342,7 +340,7 @@ private fun DrawerActionCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(88.dp)
+            .height(60.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = Color(0xFF17141B).copy(alpha = 0.48f),
@@ -351,18 +349,18 @@ private fun DrawerActionCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconTint,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 text = label,
-                modifier = Modifier.padding(start = 28.dp),
+                modifier = Modifier.padding(start = 14.dp),
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = tokens.titleMedium.fontSizeSp.sp),
                 color = Color(0xFFD2CAC2),
                 maxLines = 1,
@@ -383,7 +381,7 @@ private fun DrawerLanguageCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(88.dp)
+            .height(60.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = Color(0xFF17141B).copy(alpha = 0.48f),
@@ -392,20 +390,20 @@ private fun DrawerLanguageCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Outlined.Language,
                 contentDescription = null,
                 tint = Color(0xFFF1ECE5),
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 text = label,
                 modifier = Modifier
-                    .padding(start = 28.dp)
-                    .weight(1f),
+                    .padding(start = 14.dp)
+                    .padding(end = 10.dp),
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = tokens.titleMedium.fontSizeSp.sp),
                 color = Color(0xFFD2CAC2),
                 maxLines = 1,
@@ -417,12 +415,6 @@ private fun DrawerLanguageCard(
                 color = Color(0xFFD2CAC2),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
-            )
-            Icon(
-                imageVector = Icons.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Color(0xFFC6A36C),
-                modifier = Modifier.padding(start = 10.dp).size(30.dp)
             )
         }
     }

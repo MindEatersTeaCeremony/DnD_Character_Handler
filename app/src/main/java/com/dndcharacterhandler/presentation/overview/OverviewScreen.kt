@@ -28,10 +28,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Bedtime
-import androidx.compose.material.icons.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.Settings
@@ -507,7 +507,7 @@ private fun OverviewContent(
         OverviewStat(
             labelKey = "overview_speed",
             value = "${character?.speed ?: 30} ft",
-            icon = Icons.Outlined.DirectionsRun,
+            icon = Icons.AutoMirrored.Outlined.DirectionsRun,
             field = OverviewMiniStatField.SPEED
         )
     )
@@ -1991,6 +1991,16 @@ private fun OverviewScreenPreview() {
         intelligence = 18,
         wisdom = 14,
         charisma = 12,
+        strengthSaveProficient = false,
+        dexteritySaveProficient = false,
+        constitutionSaveProficient = false,
+        intelligenceSaveProficient = true,
+        wisdomSaveProficient = true,
+        charismaSaveProficient = false,
+        passivePerceptionBonus = 0,
+        armorProficiencies = "light_armor",
+        weaponProficiencies = "dagger|quarterstaff|light_crossbow",
+        toolProficiencies = "calligraphers_supplies",
         alignment = "",
         background = "",
         faith = "",

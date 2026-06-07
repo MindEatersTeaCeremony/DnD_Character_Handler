@@ -22,7 +22,7 @@ import com.dndcharacterhandler.domain.model.Spell
 fun CharacterWithDetails.toDomain(): CharacterBundle =
     CharacterBundle(
         character = character.toDomain(),
-        skills = skills.map { Skill(it.id, it.name, it.isProficient) },
+        skills = skills.map { Skill(it.id, it.name, it.isProficient, it.isExpertise, it.hasJackOfAllTrades) },
         attacks = attacks.map { Attack(it.id, it.name, it.icon, it.range, it.attackBonusOrSaveDc, it.damage, it.damageType) },
         combatResources = combatResources.map { CombatResource(it.id, it.name, it.currentUses, it.maximumUses) },
         inventoryItems = inventoryItems.map {
@@ -58,6 +58,16 @@ fun CharacterEntity.toDomain(): Character =
         intelligence = intelligence,
         wisdom = wisdom,
         charisma = charisma,
+        strengthSaveProficient = strengthSaveProficient,
+        dexteritySaveProficient = dexteritySaveProficient,
+        constitutionSaveProficient = constitutionSaveProficient,
+        intelligenceSaveProficient = intelligenceSaveProficient,
+        wisdomSaveProficient = wisdomSaveProficient,
+        charismaSaveProficient = charismaSaveProficient,
+        passivePerceptionBonus = passivePerceptionBonus,
+        armorProficiencies = armorProficiencies,
+        weaponProficiencies = weaponProficiencies,
+        toolProficiencies = toolProficiencies,
         alignment = alignment,
         background = background,
         faith = faith,
@@ -103,6 +113,16 @@ fun Character.toEntity(): CharacterEntity =
         intelligence = intelligence,
         wisdom = wisdom,
         charisma = charisma,
+        strengthSaveProficient = strengthSaveProficient,
+        dexteritySaveProficient = dexteritySaveProficient,
+        constitutionSaveProficient = constitutionSaveProficient,
+        intelligenceSaveProficient = intelligenceSaveProficient,
+        wisdomSaveProficient = wisdomSaveProficient,
+        charismaSaveProficient = charismaSaveProficient,
+        passivePerceptionBonus = passivePerceptionBonus,
+        armorProficiencies = armorProficiencies,
+        weaponProficiencies = weaponProficiencies,
+        toolProficiencies = toolProficiencies,
         alignment = alignment,
         background = background,
         faith = faith,
@@ -124,7 +144,14 @@ fun Character.toEntity(): CharacterEntity =
     )
 
 fun Skill.toEntity(characterId: Long): SkillEntity =
-    SkillEntity(id = id, characterOwnerId = characterId, name = name, isProficient = isProficient)
+    SkillEntity(
+        id = id,
+        characterOwnerId = characterId,
+        name = name,
+        isProficient = isProficient,
+        isExpertise = isExpertise,
+        hasJackOfAllTrades = hasJackOfAllTrades
+    )
 
 fun Attack.toEntity(characterId: Long): AttackEntity =
     AttackEntity(id = id, characterOwnerId = characterId, name = name, icon = icon, range = range, attackBonusOrSaveDc = attackBonusOrSaveDc, damage = damage, damageType = damageType)

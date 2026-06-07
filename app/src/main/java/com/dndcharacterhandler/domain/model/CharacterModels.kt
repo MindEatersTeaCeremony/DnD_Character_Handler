@@ -24,6 +24,16 @@ data class Character(
     val intelligence: Int,
     val wisdom: Int,
     val charisma: Int,
+    val strengthSaveProficient: Boolean,
+    val dexteritySaveProficient: Boolean,
+    val constitutionSaveProficient: Boolean,
+    val intelligenceSaveProficient: Boolean,
+    val wisdomSaveProficient: Boolean,
+    val charismaSaveProficient: Boolean,
+    val passivePerceptionBonus: Int,
+    val armorProficiencies: String,
+    val weaponProficiencies: String,
+    val toolProficiencies: String,
     val alignment: String,
     val background: String,
     val faith: String,
@@ -55,7 +65,13 @@ data class CharacterBundle(
     val notes: List<Note>
 )
 
-data class Skill(val id: Long = 0, val name: String, val isProficient: Boolean)
+data class Skill(
+    val id: Long = 0,
+    val name: String,
+    val isProficient: Boolean,
+    val isExpertise: Boolean = false,
+    val hasJackOfAllTrades: Boolean = false
+)
 data class Attack(
     val id: Long = 0,
     val name: String,
@@ -109,7 +125,7 @@ fun defaultCharacterBundle(now: Long = System.currentTimeMillis()): CharacterBun
         "skill_history", "skill_insight", "skill_intimidation", "skill_investigation", "skill_medicine",
         "skill_nature", "skill_perception", "skill_performance", "skill_persuasion", "skill_religion",
         "skill_sleight_of_hand", "skill_stealth", "skill_survival"
-    ).map { Skill(name = it, isProficient = false) }
+    ).map { Skill(name = it, isProficient = false, isExpertise = false, hasJackOfAllTrades = false) }
 
     return CharacterBundle(
         character = Character(
@@ -129,12 +145,22 @@ fun defaultCharacterBundle(now: Long = System.currentTimeMillis()): CharacterBun
             speed = 30,
             initiative = 0,
             experience = 0,
-            strength = 15,
-            dexterity = 14,
-            constitution = 14,
+            strength = 10,
+            dexterity = 10,
+            constitution = 10,
             intelligence = 10,
-            wisdom = 12,
+            wisdom = 10,
             charisma = 10,
+            strengthSaveProficient = false,
+            dexteritySaveProficient = false,
+            constitutionSaveProficient = false,
+            intelligenceSaveProficient = false,
+            wisdomSaveProficient = false,
+            charismaSaveProficient = false,
+            passivePerceptionBonus = 0,
+            armorProficiencies = "",
+            weaponProficiencies = "",
+            toolProficiencies = "",
             alignment = "",
             background = "",
             faith = "",

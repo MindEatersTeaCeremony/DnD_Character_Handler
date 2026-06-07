@@ -50,6 +50,16 @@ fun CharacterBundle.toArchiveManifest(
         put("intelligence", character.intelligence)
         put("wisdom", character.wisdom)
         put("charisma", character.charisma)
+        put("strengthSaveProficient", character.strengthSaveProficient)
+        put("dexteritySaveProficient", character.dexteritySaveProficient)
+        put("constitutionSaveProficient", character.constitutionSaveProficient)
+        put("intelligenceSaveProficient", character.intelligenceSaveProficient)
+        put("wisdomSaveProficient", character.wisdomSaveProficient)
+        put("charismaSaveProficient", character.charismaSaveProficient)
+        put("passivePerceptionBonus", character.passivePerceptionBonus)
+        put("armorProficiencies", character.armorProficiencies)
+        put("weaponProficiencies", character.weaponProficiencies)
+        put("toolProficiencies", character.toolProficiencies)
         put("alignment", character.alignment)
         put("background", character.background)
         put("faith", character.faith)
@@ -78,6 +88,8 @@ fun CharacterBundle.toArchiveManifest(
             JSONObject().apply {
                 put("name", skill.name)
                 put("isProficient", skill.isProficient)
+                put("isExpertise", skill.isExpertise)
+                put("hasJackOfAllTrades", skill.hasJackOfAllTrades)
             }
         }))
         put("attacks", JSONArray(attacks.mapIndexed { index, attack ->
@@ -167,6 +179,16 @@ fun archiveManifestToCharacterBundle(
         intelligence = characterJson.optInt("intelligence"),
         wisdom = characterJson.optInt("wisdom"),
         charisma = characterJson.optInt("charisma"),
+        strengthSaveProficient = characterJson.optBoolean("strengthSaveProficient"),
+        dexteritySaveProficient = characterJson.optBoolean("dexteritySaveProficient"),
+        constitutionSaveProficient = characterJson.optBoolean("constitutionSaveProficient"),
+        intelligenceSaveProficient = characterJson.optBoolean("intelligenceSaveProficient"),
+        wisdomSaveProficient = characterJson.optBoolean("wisdomSaveProficient"),
+        charismaSaveProficient = characterJson.optBoolean("charismaSaveProficient"),
+        passivePerceptionBonus = characterJson.optInt("passivePerceptionBonus"),
+        armorProficiencies = characterJson.optString("armorProficiencies"),
+        weaponProficiencies = characterJson.optString("weaponProficiencies"),
+        toolProficiencies = characterJson.optString("toolProficiencies"),
         alignment = characterJson.optString("alignment"),
         background = characterJson.optString("background"),
         faith = characterJson.optString("faith"),
@@ -205,7 +227,12 @@ fun archiveManifestToCharacterBundle(
 private fun JSONArray.toSkillList(): List<Skill> =
     (0 until length()).map { index ->
         getJSONObject(index).let { json ->
-            Skill(name = json.optString("name"), isProficient = json.optBoolean("isProficient"))
+            Skill(
+                name = json.optString("name"),
+                isProficient = json.optBoolean("isProficient"),
+                isExpertise = json.optBoolean("isExpertise"),
+                hasJackOfAllTrades = json.optBoolean("hasJackOfAllTrades")
+            )
         }
     }
 
