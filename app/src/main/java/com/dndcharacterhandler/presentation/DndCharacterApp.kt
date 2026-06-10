@@ -7,23 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -46,10 +39,10 @@ import com.dndcharacterhandler.presentation.biography.BiographyScreen
 import com.dndcharacterhandler.presentation.combat.CombatScreen
 import com.dndcharacterhandler.presentation.components.BottomNavigationBar
 import com.dndcharacterhandler.presentation.components.CharacterManagerDrawer
+import com.dndcharacterhandler.presentation.components.ScreenTopActions
 import com.dndcharacterhandler.presentation.features.FeaturesScreen
 import com.dndcharacterhandler.presentation.inventory.InventoryScreen
 import com.dndcharacterhandler.presentation.localization.LocalStrings
-import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.notes.NotesScreen
 import com.dndcharacterhandler.presentation.overview.OverviewScreen
 import com.dndcharacterhandler.presentation.spells.SpellsScreen
@@ -69,7 +62,6 @@ data class DndCharacterAppState(
     val localizationRepository: LocalizationRepository
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DndCharacterApp(appState: DndCharacterAppState) {
     val navController = rememberNavController()
@@ -77,7 +69,6 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
     val scope = rememberCoroutineScope()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: AppScreen.Overview.route
-    val currentScreen = bottomNavigationScreens.firstOrNull { it.route == currentRoute } ?: AppScreen.Overview
     val managerState by appState.characterManagerViewModel.uiState.collectAsStateWithLifecycle()
     val strings = remember(managerState.language) {
         appState.localizationRepository.getStrings(managerState.language)
@@ -133,18 +124,18 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                 contentWindowInsets = WindowInsets.systemBars,
                 topBar = {
                     if (currentRoute != AppScreen.Overview.route && currentRoute != AppScreen.Attributes.route) {
-                        TopAppBar(
-                            windowInsets = TopAppBarDefaults.windowInsets,
-                            title = { Text(text(currentScreen.titleKey)) },
-                            navigationIcon = {
-                                IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Menu,
-                                        contentDescription = text("drawer_open_character_manager")
-                                    )
-                                }
-                            }
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .padding(horizontal = 24.dp, vertical = 4.dp)
+                                .height(44.dp)
+                        ) {
+                            ScreenTopActions(
+                                onOpenDrawer = { scope.launch { drawerState.open() } },
+                                onOpenSettings = {}
+                            )
+                        }
                     }
                 },
                     bottomBar = {

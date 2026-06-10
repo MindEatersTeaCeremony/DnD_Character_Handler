@@ -419,6 +419,618 @@
     "fr": "Survival",
     "es": "Survival"
   },
+  "attributes_proficiency_bonus": {
+    "en": "Proficiency Bonus",
+    "ru": "Бонус мастерства"
+  },
+  "attributes_passive_perception": {
+    "en": "Passive Perception",
+    "ru": "Пассивная внимательность"
+  },
+  "attributes_ability_scores": {
+    "en": "Ability Scores",
+    "ru": "Характеристики"
+  },
+  "attributes_skills": {
+    "en": "Skills",
+    "ru": "Навыки"
+  },
+  "attributes_proficiencies": {
+    "en": "Proficiencies",
+    "ru": "Владения"
+  },
+  "attributes_passive_perception_bonus_title": {
+    "en": "Passive Perception Bonus",
+    "ru": "Бонус пассивной внимательности"
+  },
+  "attributes_base_value": {
+    "en": "Base value: %s",
+    "ru": "Базовое значение: %s"
+  },
+  "attributes_additional_bonus": {
+    "en": "Additional bonus",
+    "ru": "Дополнительный бонус"
+  },
+  "attributes_has_proficiency": {
+    "en": "Has proficiency",
+    "ru": "Есть владение"
+  },
+  "attributes_has_expertise": {
+    "en": "Has expertise",
+    "ru": "Есть экспертиза"
+  },
+  "attributes_jack_of_all_trades": {
+    "en": "Jack of All Trades",
+    "ru": "Мастер на все руки"
+  },
+  "attributes_edit_ability_title": {
+    "en": "Edit %s",
+    "ru": "Изменить %s"
+  },
+  "attributes_edit_ability_hint": {
+    "en": "Set %s score, not the modifier.",
+    "ru": "Введите значение %s, а не модификатор."
+  },
+  "attributes_ability_score_label": {
+    "en": "%s score",
+    "ru": "Значение %s"
+  },
+  "attributes_save_proficiency_label": {
+    "en": "Proficient in %s saving throw",
+    "ru": "Владение спасброском %s"
+  },
+  "ability_str_short": {
+    "en": "STR",
+    "ru": "СИЛ"
+  },
+  "ability_dex_short": {
+    "en": "DEX",
+    "ru": "ЛОВ"
+  },
+  "ability_con_short": {
+    "en": "CON",
+    "ru": "ТЕЛ"
+  },
+  "ability_int_short": {
+    "en": "INT",
+    "ru": "ИНТ"
+  },
+  "ability_wis_short": {
+    "en": "WIS",
+    "ru": "МДР"
+  },
+  "ability_cha_short": {
+    "en": "CHA",
+    "ru": "ХАР"
+  },
+  "ability_strength": {
+    "en": "Strength",
+    "ru": "Сила"
+  },
+  "ability_dexterity": {
+    "en": "Dexterity",
+    "ru": "Ловкость"
+  },
+  "ability_constitution": {
+    "en": "Constitution",
+    "ru": "Телосложение"
+  },
+  "ability_intelligence": {
+    "en": "Intelligence",
+    "ru": "Интеллект"
+  },
+  "ability_wisdom": {
+    "en": "Wisdom",
+    "ru": "Мудрость"
+  },
+  "ability_charisma": {
+    "en": "Charisma",
+    "ru": "Харизма"
+  },
+  "common_none": {
+    "en": "None",
+    "ru": "Нет"
+  },
+  "attributes_proficiency_armor": {
+    "en": "Armor",
+    "ru": "Броня"
+  },
+  "attributes_proficiency_weapons": {
+    "en": "Weapons",
+    "ru": "Оружие"
+  },
+  "attributes_proficiency_tools": {
+    "en": "Tools",
+    "ru": "Инструменты"
+  },
+  "attributes_proficiency_languages": {
+    "en": "Languages",
+    "ru": "Языки"
+  },
+  "attributes_armor_dialog_title": {
+    "en": "Armor Proficiencies",
+    "ru": "Владение броней"
+  },
+  "attributes_weapon_dialog_title": {
+    "en": "Weapon Proficiencies",
+    "ru": "Владение оружием"
+  },
+  "attributes_tools_dialog_title": {
+    "en": "Tool Proficiencies",
+    "ru": "Владение инструментами"
+  },
+  "attributes_languages_dialog_title": {
+    "en": "Language Proficiencies",
+    "ru": "Владение языками"
+  },
+  "attributes_weapon_simple": {
+    "en": "Simple Weapons",
+    "ru": "Простое оружие"
+  },
+  "attributes_weapon_martial": {
+    "en": "Martial Weapons",
+    "ru": "Воинское оружие"
+  },
+  "attributes_weapon_simple_short": {
+    "en": "Simple",
+    "ru": "Простое"
+  },
+  "attributes_weapon_martial_short": {
+    "en": "Martial",
+    "ru": "Воинское"
+  },
+  "attributes_show_simple_weapons": {
+    "en": "Show Simple list",
+    "ru": "Показать простое оружие"
+  },
+  "attributes_show_martial_weapons": {
+    "en": "Show Martial list",
+    "ru": "Показать воинское оружие"
+  },
+  "attributes_add_custom_tool": {
+    "en": "Add custom tool",
+    "ru": "Добавить свой инструмент"
+  },
+  "attributes_custom_tool": {
+    "en": "Custom tool",
+    "ru": "Свой инструмент"
+  },
+  "attributes_add_custom_language": {
+    "en": "Add custom language",
+    "ru": "Добавить свой язык"
+  },
+  "attributes_custom_language": {
+    "en": "Custom language",
+    "ru": "Свой язык"
+  },
+  "Light Armor": {
+    "en": "Light Armor",
+    "ru": "Легкая броня"
+  },
+  "Medium Armor": {
+    "en": "Medium Armor",
+    "ru": "Средняя броня"
+  },
+  "Heavy Armor": {
+    "en": "Heavy Armor",
+    "ru": "Тяжелая броня"
+  },
+  "Shields": {
+    "en": "Shields",
+    "ru": "Щиты"
+  },
+  "Club": {
+    "en": "Club",
+    "ru": "Дубинка"
+  },
+  "Dagger": {
+    "en": "Dagger",
+    "ru": "Кинжал"
+  },
+  "Greatclub": {
+    "en": "Greatclub",
+    "ru": "Большая дубинка"
+  },
+  "Handaxe": {
+    "en": "Handaxe",
+    "ru": "Ручной топор"
+  },
+  "Javelin": {
+    "en": "Javelin",
+    "ru": "Метательное копье"
+  },
+  "Light Hammer": {
+    "en": "Light Hammer",
+    "ru": "Легкий молот"
+  },
+  "Mace": {
+    "en": "Mace",
+    "ru": "Булава"
+  },
+  "Quarterstaff": {
+    "en": "Quarterstaff",
+    "ru": "Боевой посох"
+  },
+  "Sickle": {
+    "en": "Sickle",
+    "ru": "Серп"
+  },
+  "Spear": {
+    "en": "Spear",
+    "ru": "Копье"
+  },
+  "Light Crossbow": {
+    "en": "Light Crossbow",
+    "ru": "Легкий арбалет"
+  },
+  "Dart": {
+    "en": "Dart",
+    "ru": "Дротик"
+  },
+  "Shortbow": {
+    "en": "Shortbow",
+    "ru": "Короткий лук"
+  },
+  "Sling": {
+    "en": "Sling",
+    "ru": "Праща"
+  },
+  "Battleaxe": {
+    "en": "Battleaxe",
+    "ru": "Боевой топор"
+  },
+  "Flail": {
+    "en": "Flail",
+    "ru": "Цеп"
+  },
+  "Glaive": {
+    "en": "Glaive",
+    "ru": "Глефа"
+  },
+  "Greataxe": {
+    "en": "Greataxe",
+    "ru": "Секира"
+  },
+  "Greatsword": {
+    "en": "Greatsword",
+    "ru": "Двуручный меч"
+  },
+  "Halberd": {
+    "en": "Halberd",
+    "ru": "Алебарда"
+  },
+  "Lance": {
+    "en": "Lance",
+    "ru": "Пика"
+  },
+  "Longsword": {
+    "en": "Longsword",
+    "ru": "Длинный меч"
+  },
+  "Maul": {
+    "en": "Maul",
+    "ru": "Кувалда"
+  },
+  "Morningstar": {
+    "en": "Morningstar",
+    "ru": "Моргенштерн"
+  },
+  "Pike": {
+    "en": "Pike",
+    "ru": "Пика"
+  },
+  "Rapier": {
+    "en": "Rapier",
+    "ru": "Рапира"
+  },
+  "Scimitar": {
+    "en": "Scimitar",
+    "ru": "Скимитар"
+  },
+  "Shortsword": {
+    "en": "Shortsword",
+    "ru": "Короткий меч"
+  },
+  "Trident": {
+    "en": "Trident",
+    "ru": "Трезубец"
+  },
+  "War Pick": {
+    "en": "War Pick",
+    "ru": "Боевая кирка"
+  },
+  "Warhammer": {
+    "en": "Warhammer",
+    "ru": "Боевой молот"
+  },
+  "Whip": {
+    "en": "Whip",
+    "ru": "Кнут"
+  },
+  "Blowgun": {
+    "en": "Blowgun",
+    "ru": "Духовая трубка"
+  },
+  "Hand Crossbow": {
+    "en": "Hand Crossbow",
+    "ru": "Ручной арбалет"
+  },
+  "Heavy Crossbow": {
+    "en": "Heavy Crossbow",
+    "ru": "Тяжелый арбалет"
+  },
+  "Longbow": {
+    "en": "Longbow",
+    "ru": "Длинный лук"
+  },
+  "Net": {
+    "en": "Net",
+    "ru": "Сеть"
+  },
+  "Artisan's Tools": {
+    "en": "Artisan's Tools",
+    "ru": "Ремесленные инструменты"
+  },
+  "Gaming Sets": {
+    "en": "Gaming Sets",
+    "ru": "Игровые наборы"
+  },
+  "Musical Instruments": {
+    "en": "Musical Instruments",
+    "ru": "Музыкальные инструменты"
+  },
+  "Other Tools": {
+    "en": "Other Tools",
+    "ru": "Прочие инструменты"
+  },
+  "Vehicles": {
+    "en": "Vehicles",
+    "ru": "Транспорт"
+  },
+  "Alchemist's Supplies": {
+    "en": "Alchemist's Supplies",
+    "ru": "Инструменты алхимика"
+  },
+  "Brewer's Supplies": {
+    "en": "Brewer's Supplies",
+    "ru": "Инструменты пивовара"
+  },
+  "Calligrapher's Supplies": {
+    "en": "Calligrapher's Supplies",
+    "ru": "Инструменты каллиграфа"
+  },
+  "Carpenter's Tools": {
+    "en": "Carpenter's Tools",
+    "ru": "Инструменты плотника"
+  },
+  "Cartographer's Tools": {
+    "en": "Cartographer's Tools",
+    "ru": "Инструменты картографа"
+  },
+  "Cobbler's Tools": {
+    "en": "Cobbler's Tools",
+    "ru": "Инструменты сапожника"
+  },
+  "Cook's Utensils": {
+    "en": "Cook's Utensils",
+    "ru": "Кухонная утварь"
+  },
+  "Glassblower's Tools": {
+    "en": "Glassblower's Tools",
+    "ru": "Инструменты стеклодува"
+  },
+  "Jeweler's Tools": {
+    "en": "Jeweler's Tools",
+    "ru": "Инструменты ювелира"
+  },
+  "Leatherworker's Tools": {
+    "en": "Leatherworker's Tools",
+    "ru": "Инструменты кожевника"
+  },
+  "Mason's Tools": {
+    "en": "Mason's Tools",
+    "ru": "Инструменты каменщика"
+  },
+  "Painter's Supplies": {
+    "en": "Painter's Supplies",
+    "ru": "Инструменты художника"
+  },
+  "Potter's Tools": {
+    "en": "Potter's Tools",
+    "ru": "Инструменты гончара"
+  },
+  "Smith's Tools": {
+    "en": "Smith's Tools",
+    "ru": "Инструменты кузнеца"
+  },
+  "Tinker's Tools": {
+    "en": "Tinker's Tools",
+    "ru": "Инструменты ремонтника"
+  },
+  "Weaver's Tools": {
+    "en": "Weaver's Tools",
+    "ru": "Инструменты ткача"
+  },
+  "Woodcarver's Tools": {
+    "en": "Woodcarver's Tools",
+    "ru": "Инструменты резчика по дереву"
+  },
+  "Dice Set": {
+    "en": "Dice Set",
+    "ru": "Набор костей"
+  },
+  "Dragonchess Set": {
+    "en": "Dragonchess Set",
+    "ru": "Драконьи шахматы"
+  },
+  "Playing Card Set": {
+    "en": "Playing Card Set",
+    "ru": "Игральные карты"
+  },
+  "Three-Dragon Ante Set": {
+    "en": "Three-Dragon Ante Set",
+    "ru": "Ставка трех драконов"
+  },
+  "Bagpipes": {
+    "en": "Bagpipes",
+    "ru": "Волынка"
+  },
+  "Drum": {
+    "en": "Drum",
+    "ru": "Барабан"
+  },
+  "Dulcimer": {
+    "en": "Dulcimer",
+    "ru": "Цимбалы"
+  },
+  "Flute": {
+    "en": "Flute",
+    "ru": "Флейта"
+  },
+  "Lute": {
+    "en": "Lute",
+    "ru": "Лютня"
+  },
+  "Lyre": {
+    "en": "Lyre",
+    "ru": "Лира"
+  },
+  "Horn": {
+    "en": "Horn",
+    "ru": "Рожок"
+  },
+  "Pan Flute": {
+    "en": "Pan Flute",
+    "ru": "Флейта Пана"
+  },
+  "Shawm": {
+    "en": "Shawm",
+    "ru": "Шалмей"
+  },
+  "Viol": {
+    "en": "Viol",
+    "ru": "Виола"
+  },
+  "Disguise Kit": {
+    "en": "Disguise Kit",
+    "ru": "Набор для грима"
+  },
+  "Forgery Kit": {
+    "en": "Forgery Kit",
+    "ru": "Набор фальсификатора"
+  },
+  "Herbalism Kit": {
+    "en": "Herbalism Kit",
+    "ru": "Набор травника"
+  },
+  "Navigator's Tools": {
+    "en": "Navigator's Tools",
+    "ru": "Инструменты навигатора"
+  },
+  "Poisoner's Kit": {
+    "en": "Poisoner's Kit",
+    "ru": "Набор отравителя"
+  },
+  "Thieves' Tools": {
+    "en": "Thieves' Tools",
+    "ru": "Воровские инструменты"
+  },
+  "Land Vehicles": {
+    "en": "Land Vehicles",
+    "ru": "Наземный транспорт"
+  },
+  "Water Vehicles": {
+    "en": "Water Vehicles",
+    "ru": "Водный транспорт"
+  },
+  "Standard Languages": {
+    "en": "Standard Languages",
+    "ru": "Стандартные языки"
+  },
+  "Exotic Languages": {
+    "en": "Exotic Languages",
+    "ru": "Экзотические языки"
+  },
+  "Special Languages": {
+    "en": "Special Languages",
+    "ru": "Особые языки"
+  },
+  "Common": {
+    "en": "Common",
+    "ru": "Общий"
+  },
+  "Dwarvish": {
+    "en": "Dwarvish",
+    "ru": "Дварфийский"
+  },
+  "Elvish": {
+    "en": "Elvish",
+    "ru": "Эльфийский"
+  },
+  "Giant": {
+    "en": "Giant",
+    "ru": "Великаний"
+  },
+  "Gnomish": {
+    "en": "Gnomish",
+    "ru": "Гномий"
+  },
+  "Goblin": {
+    "en": "Goblin",
+    "ru": "Гоблинский"
+  },
+  "Halfling": {
+    "en": "Halfling",
+    "ru": "Полуросликов"
+  },
+  "Orc": {
+    "en": "Orc",
+    "ru": "Орочий"
+  },
+  "Abyssal": {
+    "en": "Abyssal",
+    "ru": "Бездны"
+  },
+  "Celestial": {
+    "en": "Celestial",
+    "ru": "Небесный"
+  },
+  "Draconic": {
+    "en": "Draconic",
+    "ru": "Драконий"
+  },
+  "Deep Speech": {
+    "en": "Deep Speech",
+    "ru": "Глубинная речь"
+  },
+  "Infernal": {
+    "en": "Infernal",
+    "ru": "Инфернальный"
+  },
+  "Primordial": {
+    "en": "Primordial",
+    "ru": "Первозданный"
+  },
+  "Sylvan": {
+    "en": "Sylvan",
+    "ru": "Сильван"
+  },
+  "Undercommon": {
+    "en": "Undercommon",
+    "ru": "Подземный общий"
+  },
+  "Druidic": {
+    "en": "Druidic",
+    "ru": "Друидический"
+  },
+  "Thieves' Cant": {
+    "en": "Thieves' Cant",
+    "ru": "Воровской жаргон"
+  },
+  "Telepathy": {
+    "en": "Telepathy",
+    "ru": "Телепатия"
+  },
   "combat_section_attacks_title": {
     "en": "Attacks",
     "ru": "Атаки",

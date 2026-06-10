@@ -29,12 +29,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material.icons.outlined.LocalCafe
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -84,6 +82,7 @@ import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
 import com.dndcharacterhandler.presentation.components.AppImage
+import com.dndcharacterhandler.presentation.components.ScreenTopActions
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.DnDTheme
@@ -528,7 +527,7 @@ private fun OverviewContent(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
-                OverviewHeaderRow(
+                ScreenTopActions(
                     onOpenDrawer = onOpenDrawer,
                     onOpenSettings = onOpenSettings
                 )
@@ -1275,51 +1274,6 @@ private fun SubtitleDivider() {
 }
 
 @Composable
-private fun OverviewHeaderRow(
-    onOpenDrawer: () -> Unit,
-    onOpenSettings: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        HeaderIconButton(onClick = onOpenDrawer) {
-            Icon(
-                imageVector = Icons.Filled.Menu,
-                contentDescription = text("drawer_open_character_manager"),
-                tint = Color(0xFFF3EEE6),
-                modifier = Modifier.size(28.dp)
-            )
-        }
-        HeaderIconButton(onClick = onOpenSettings) {
-            Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = text("overview_settings"),
-                tint = Color(0xFFF3EEE6),
-                modifier = Modifier.size(28.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun HeaderIconButton(
-    onClick: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
-}
-
-@Composable
 private fun PortraitFrame(
     portraitUri: String?,
     characterName: String,
@@ -1815,7 +1769,7 @@ private fun copyPortraitToCharacterFiles(
             ?.filter { it.name.startsWith("portrait.") }
             ?.forEach { it.delete() }
 
-        val target = File(directory, "portrait.$extension")
+        val target = File(directory, "portrait.${System.currentTimeMillis()}.$extension")
         context.contentResolver.openInputStream(sourceUri)?.use { input ->
             FileOutputStream(target).use { output ->
                 input.copyTo(output)
@@ -2001,6 +1955,7 @@ private fun OverviewScreenPreview() {
         armorProficiencies = "light_armor",
         weaponProficiencies = "dagger|quarterstaff|light_crossbow",
         toolProficiencies = "calligraphers_supplies",
+        languageProficiencies = "common|elvish|draconic",
         alignment = "",
         background = "",
         faith = "",

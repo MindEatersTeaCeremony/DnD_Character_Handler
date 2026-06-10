@@ -60,6 +60,7 @@ fun CharacterBundle.toArchiveManifest(
         put("armorProficiencies", character.armorProficiencies)
         put("weaponProficiencies", character.weaponProficiencies)
         put("toolProficiencies", character.toolProficiencies)
+        put("languageProficiencies", character.languageProficiencies)
         put("alignment", character.alignment)
         put("background", character.background)
         put("faith", character.faith)
@@ -189,6 +190,7 @@ fun archiveManifestToCharacterBundle(
         armorProficiencies = characterJson.optString("armorProficiencies"),
         weaponProficiencies = characterJson.optString("weaponProficiencies"),
         toolProficiencies = characterJson.optString("toolProficiencies"),
+        languageProficiencies = characterJson.optString("languageProficiencies"),
         alignment = characterJson.optString("alignment"),
         background = characterJson.optString("background"),
         faith = characterJson.optString("faith"),

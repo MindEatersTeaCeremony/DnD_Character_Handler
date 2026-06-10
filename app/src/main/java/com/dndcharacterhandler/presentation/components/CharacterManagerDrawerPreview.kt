@@ -128,6 +128,7 @@ private fun previewCharacterBundle(
             armorProficiencies = "",
             weaponProficiencies = "",
             toolProficiencies = "",
+            languageProficiencies = "",
             alignment = "",
             background = "",
             faith = "",

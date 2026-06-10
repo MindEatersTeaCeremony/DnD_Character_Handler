@@ -43,6 +43,7 @@ data class CharacterEntity(
     val armorProficiencies: String,
     val weaponProficiencies: String,
     val toolProficiencies: String,
+    val languageProficiencies: String,
     val alignment: String,
     val background: String,
     val faith: String,
