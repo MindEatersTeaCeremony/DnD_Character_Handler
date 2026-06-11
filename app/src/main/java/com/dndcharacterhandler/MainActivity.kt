@@ -56,7 +56,11 @@ class MainActivity : ComponentActivity() {
                         inventoryViewModel = InventoryViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
                         spellsViewModel = SpellsViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
                         featuresViewModel = FeaturesViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
-                        biographyViewModel = BiographyViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
+                        biographyViewModel = BiographyViewModel(
+                            characterRepository = characterRepository,
+                            getCharacterBundleUseCase = getCharacterBundleUseCase,
+                            selectedCharacterHolder = selectedCharacterHolder
+                        ),
                         notesViewModel = NotesViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
                         characterManagerViewModel = com.dndcharacterhandler.presentation.components.CharacterManagerViewModel(
                             characterRepository = characterRepository,

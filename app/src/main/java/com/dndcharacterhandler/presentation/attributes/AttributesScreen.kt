@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -47,12 +46,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.dndcharacterhandler.domain.model.AssetReferences
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.Skill
@@ -68,8 +64,8 @@ import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
-import com.dndcharacterhandler.presentation.components.AppImage
-import com.dndcharacterhandler.presentation.components.ScreenTopActions
+import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
+import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
@@ -290,23 +286,14 @@ fun AttributesContent(
         mutableStateOf(character.passivePerceptionBonus.toString())
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(Color(0xFF1A161D), Color(0xFF0E0B11), Color(0xFF09070D)),
-                    radius = 1700f
-                )
-            )
-    ) {
+    ScreenBackground {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 110.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                AttributesHeader(
+                CharacterScreenHeader(
                     character = character,
                     onOpenDrawer = onOpenDrawer,
                     onOpenSettings = onOpenSettings
@@ -886,104 +873,6 @@ fun AttributesContent(
 }
 
 @Composable
-private fun AttributesHeader(
-    character: Character,
-    onOpenDrawer: () -> Unit,
-    onOpenSettings: () -> Unit
-) {
-    val tokens = LocalDesignTokens.current.typography
-    val portraitReference = character.portraitUri ?: AssetReferences.portraitPlaceholderPath("portrait_placeholder.png")
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(96.dp)
-    ) {
-        ScreenTopActions(
-            onOpenDrawer = onOpenDrawer,
-            onOpenSettings = onOpenSettings,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(96.dp)
-                .padding(start = 52.dp, end = 52.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier.size(70.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawCircle(
-                        color = Color(0x55A19892),
-                        radius = size.minDimension / 2f - 4.dp.toPx(),
-                        style = Stroke(width = 1.dp.toPx())
-                    )
-                    drawCircle(
-                        color = Color(0x42FFFFFF),
-                        radius = size.minDimension / 2f - 9.dp.toPx(),
-                        style = Stroke(width = 1.dp.toPx())
-                    )
-                }
-                Surface(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape),
-                    shape = CircleShape,
-                    color = Color(0xFF141118)
-                ) {
-                    AppImage(
-                        imageRef = portraitReference,
-                        contentDescription = character.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        fallback = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFF2D2730)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = character.name.take(1).ifBlank { "?" },
-                                    style = MaterialTheme.typography.headlineMedium.copy(
-                                        fontSize = tokens.portraitInitial.fontSizeSp.sp
-                                    ),
-                                    color = Color(0xFFF7F2EA)
-                                )
-                            }
-                        }
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = character.name.ifBlank { "Unnamed Hero" },
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color(0xFFF7F2EA),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = buildHeaderSubtitle(character),
-                    modifier = Modifier.padding(top = 4.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color(0xFFD2CAC2),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun AttributeSummaryButton(
     label: String,
     value: String,
@@ -1533,14 +1422,6 @@ private fun formatLanguageProficiencies(
     }
     return labels.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: strings["common_none"]
 }
-
-private fun buildHeaderSubtitle(character: Character): String =
-    listOf(
-        character.race.ifBlank { "Human" },
-        character.subclass.takeIf { it.isNotBlank() },
-        character.characterClass.takeIf { it.isNotBlank() },
-        "Level ${character.level}"
-    ).filterNotNull().joinToString(" • ")
 
 private data class ProficiencyOption(val id: String, val labelKey: String)
 

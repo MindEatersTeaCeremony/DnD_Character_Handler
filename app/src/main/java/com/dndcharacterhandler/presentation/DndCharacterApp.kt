@@ -123,7 +123,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                     modifier = Modifier.fillMaxSize(),
                 contentWindowInsets = WindowInsets.systemBars,
                 topBar = {
-                    if (currentRoute != AppScreen.Overview.route && currentRoute != AppScreen.Attributes.route) {
+                    if (
+                        currentRoute != AppScreen.Overview.route &&
+                        currentRoute != AppScreen.Attributes.route &&
+                        currentRoute != AppScreen.Biography.route
+                    ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -191,7 +195,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                                 FeaturesScreen(appState.featuresViewModel)
                             }
                             composable(AppScreen.Biography.route) {
-                                BiographyScreen(appState.biographyViewModel)
+                                BiographyScreen(
+                                    viewModel = appState.biographyViewModel,
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onOpenSettings = {}
+                                )
                             }
                             composable(AppScreen.Notes.route) {
                                 NotesScreen(appState.notesViewModel)
