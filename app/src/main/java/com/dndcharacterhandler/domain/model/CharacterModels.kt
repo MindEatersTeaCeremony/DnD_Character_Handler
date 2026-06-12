@@ -1,5 +1,7 @@
 package com.dndcharacterhandler.domain.model
 
+enum class ArmorClassMode { AUTOMATIC, MANUAL }
+
 data class Character(
     val id: Long = 0,
     val name: String,
@@ -15,6 +17,8 @@ data class Character(
     val spentHitDice: Int,
     val hasInspiration: Boolean,
     val armorClass: Int,
+    val baseArmorClass: Int,
+    val armorClassMode: ArmorClassMode,
     val speed: Int,
     val initiative: Int,
     val experience: Int,
@@ -89,6 +93,17 @@ data class CombatResource(
     val maximumUses: Int
 )
 enum class InventoryCategory { WEAPON, ARMOR, CONSUMABLE, OTHER }
+enum class InventoryArmorType { LIGHT, MEDIUM, HEAVY, SHIELD }
+
+data class InventoryArmorDetails(
+    val armorType: InventoryArmorType,
+    val armorClass: Int,
+    val appliesDexterityBonus: Boolean,
+    val maxDexterityBonus: Int?,
+    val strengthMinimum: Int,
+    val hasStealthDisadvantage: Boolean
+)
+
 data class InventoryItem(
     val id: Long = 0,
     val name: String,
@@ -96,7 +111,10 @@ data class InventoryItem(
     val weight: Double,
     val quantity: Int,
     val isEquipped: Boolean,
-    val icon: String
+    val icon: String,
+    val costQuantity: Int? = null,
+    val costUnit: String? = null,
+    val armorDetails: InventoryArmorDetails? = null
 )
 data class Spell(
     val id: Long = 0,
@@ -144,6 +162,8 @@ fun defaultCharacterBundle(now: Long = System.currentTimeMillis()): CharacterBun
             spentHitDice = 0,
             hasInspiration = false,
             armorClass = 10,
+            baseArmorClass = 10,
+            armorClassMode = ArmorClassMode.AUTOMATIC,
             speed = 30,
             initiative = 0,
             experience = 0,

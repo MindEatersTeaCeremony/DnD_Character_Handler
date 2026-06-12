@@ -42,6 +42,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,10 +74,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.data.localization.LocalizedStrings
+import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.AssetReferences
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.AppLanguage
+import com.dndcharacterhandler.domain.model.InventoryArmorDetails
+import com.dndcharacterhandler.domain.model.InventoryArmorType
+import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
@@ -215,16 +220,35 @@ class OverviewViewModel(
         }
     }
 
-    fun updateArmorClass(characterBundle: CharacterBundle, armorClass: Int) {
-        val sanitized = armorClass.coerceAtLeast(1)
+    fun updateArmorClass(
+        characterBundle: CharacterBundle,
+        baseArmorClass: Int,
+        armorClassMode: ArmorClassMode,
+        manualArmorClass: Int?
+    ) {
         val current = characterBundle.character
-        if (sanitized == current.armorClass) return
+        val sanitizedBaseArmorClass = baseArmorClass.coerceAtLeast(1)
+        val sanitizedArmorClass = when (armorClassMode) {
+            ArmorClassMode.AUTOMATIC -> calculateArmorClass(
+                baseArmorClass = sanitizedBaseArmorClass,
+                dexterityScore = current.dexterity,
+                inventoryItems = characterBundle.inventoryItems
+            )
+            ArmorClassMode.MANUAL -> manualArmorClass?.coerceAtLeast(1) ?: current.armorClass
+        }
+        if (
+            sanitizedArmorClass == current.armorClass &&
+            sanitizedBaseArmorClass == current.baseArmorClass &&
+            armorClassMode == current.armorClassMode
+        ) return
 
         viewModelScope.launch {
             characterRepository.upsertCharacter(
                 characterBundle.copy(
                     character = current.copy(
-                        armorClass = sanitized,
+                        armorClass = sanitizedArmorClass,
+                        baseArmorClass = sanitizedBaseArmorClass,
+                        armorClassMode = armorClassMode,
                         updatedAt = System.currentTimeMillis()
                     )
                 )
@@ -429,7 +453,7 @@ private fun OverviewContent(
     onHealHitPoints: (CharacterBundle, Int) -> Unit,
     onAddTemporaryHitPoints: (CharacterBundle, Int) -> Unit,
     onUpdateMaxHitPoints: (CharacterBundle, Int) -> Unit,
-    onUpdateArmorClass: (CharacterBundle, Int) -> Unit,
+    onUpdateArmorClass: (CharacterBundle, Int, ArmorClassMode, Int?) -> Unit,
     onUpdateInitiative: (CharacterBundle, Int) -> Unit,
     onUpdateSpeed: (CharacterBundle, Int) -> Unit,
     onUpdateHitDieSides: (CharacterBundle, Int) -> Unit,
@@ -471,6 +495,13 @@ private fun OverviewContent(
     var activeMiniStatField by remember { mutableStateOf<OverviewMiniStatField?>(null) }
     var miniStatDraft by remember(character?.id, character?.armorClass, character?.initiative, character?.speed) {
         mutableStateOf("")
+    }
+    var armorClassBaseDraft by remember(character?.id, character?.baseArmorClass) { mutableStateOf("") }
+    var armorClassManualDraft by remember(character?.id, character?.armorClass, character?.armorClassMode) {
+        mutableStateOf("")
+    }
+    var armorClassModeDraft by remember(character?.id, character?.armorClassMode) {
+        mutableStateOf(ArmorClassMode.AUTOMATIC)
     }
     var isShortRestDialogOpen by remember { mutableStateOf(false) }
     var isLongRestDialogOpen by remember { mutableStateOf(false) }
@@ -663,6 +694,11 @@ private fun OverviewContent(
                                     OverviewMiniStatField.ARMOR_CLASS -> (character?.armorClass ?: 10).toString()
                                     OverviewMiniStatField.INITIATIVE -> (character?.initiative ?: 0).toString()
                                     OverviewMiniStatField.SPEED -> (character?.speed ?: 30).toString()
+                                }
+                                if (stat.field == OverviewMiniStatField.ARMOR_CLASS) {
+                                    armorClassBaseDraft = (character?.baseArmorClass ?: 10).toString()
+                                    armorClassManualDraft = (character?.armorClass ?: 10).toString()
+                                    armorClassModeDraft = character?.armorClassMode ?: ArmorClassMode.AUTOMATIC
                                 }
                             }
                         )
@@ -981,6 +1017,8 @@ private fun OverviewContent(
         } else {
             miniStatDraft.toIntOrNull()?.coerceAtLeast(1) ?: 1
         }
+        val parsedBaseArmorClass = armorClassBaseDraft.toIntOrNull()?.coerceAtLeast(1) ?: 10
+        val parsedManualArmorClass = armorClassManualDraft.toIntOrNull()?.coerceAtLeast(1)
 
         AlertDialog(
             onDismissRequest = { activeMiniStatField = null },
@@ -994,35 +1032,85 @@ private fun OverviewContent(
                 )
             },
             text = {
-                OutlinedTextField(
-                    value = miniStatDraft,
-                    onValueChange = { value ->
-                        miniStatDraft = if (isSigned) {
-                            sanitizeSignedIntegerInput(value)
-                        } else {
-                            value.filter(Char::isDigit)
-                        }
-                    },
-                    singleLine = true,
-                    label = {
-                        Text(
-                            when (field) {
-                                OverviewMiniStatField.ARMOR_CLASS -> text("overview_ac_full")
-                                OverviewMiniStatField.INITIATIVE -> text("overview_initiative")
-                                OverviewMiniStatField.SPEED -> text("overview_speed")
-                            }
+                if (field == OverviewMiniStatField.ARMOR_CLASS) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = armorClassBaseDraft,
+                            onValueChange = { value ->
+                                armorClassBaseDraft = value.filter(Char::isDigit)
+                            },
+                            singleLine = true,
+                            label = { Text(text("overview_ac_base")) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = if (isSigned) KeyboardType.Text else KeyboardType.Number
+
+                        Text(
+                            text = text("overview_ac_mode"),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFFF7F2EA)
+                        )
+
+                        ArmorClassModeOption(
+                            title = text("overview_ac_mode_automatic"),
+                            description = text("overview_ac_mode_automatic_hint"),
+                            selected = armorClassModeDraft == ArmorClassMode.AUTOMATIC,
+                            onClick = { armorClassModeDraft = ArmorClassMode.AUTOMATIC }
+                        )
+                        ArmorClassModeOption(
+                            title = text("overview_ac_mode_manual"),
+                            description = text("overview_ac_mode_manual_hint"),
+                            selected = armorClassModeDraft == ArmorClassMode.MANUAL,
+                            onClick = { armorClassModeDraft = ArmorClassMode.MANUAL }
+                        )
+
+                        if (armorClassModeDraft == ArmorClassMode.MANUAL) {
+                            OutlinedTextField(
+                                value = armorClassManualDraft,
+                                onValueChange = { value ->
+                                    armorClassManualDraft = value.filter(Char::isDigit)
+                                },
+                                singleLine = true,
+                                label = { Text(text("overview_ac_manual")) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = miniStatDraft,
+                        onValueChange = { value ->
+                            miniStatDraft = if (isSigned) {
+                                sanitizeSignedIntegerInput(value)
+                            } else {
+                                value.filter(Char::isDigit)
+                            }
+                        },
+                        singleLine = true,
+                        label = {
+                            Text(
+                                when (field) {
+                                    OverviewMiniStatField.ARMOR_CLASS -> text("overview_ac_full")
+                                    OverviewMiniStatField.INITIATIVE -> text("overview_initiative")
+                                    OverviewMiniStatField.SPEED -> text("overview_speed")
+                                }
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = if (isSigned) KeyboardType.Text else KeyboardType.Number
+                        )
                     )
-                )
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         when (field) {
-                            OverviewMiniStatField.ARMOR_CLASS -> onUpdateArmorClass(characterBundle, parsedValue)
+                            OverviewMiniStatField.ARMOR_CLASS -> onUpdateArmorClass(
+                                characterBundle,
+                                parsedBaseArmorClass,
+                                armorClassModeDraft,
+                                parsedManualArmorClass
+                            )
                             OverviewMiniStatField.INITIATIVE -> onUpdateInitiative(characterBundle, parsedValue)
                             OverviewMiniStatField.SPEED -> onUpdateSpeed(characterBundle, parsedValue)
                         }
@@ -1862,6 +1950,68 @@ private fun sanitizeSignedIntegerInput(value: String): String {
     return sign + digits
 }
 
+@Composable
+private fun ArmorClassModeOption(
+    title: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF1A171D),
+        border = BorderStroke(1.dp, if (selected) Color(0x80FFFFFF) else Color(0x30FFFFFF)),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(selected = selected, onClick = null)
+            Column(
+                modifier = Modifier.padding(start = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(text = title, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFF7F2EA))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFD2CAC2)
+                )
+            }
+        }
+    }
+}
+
+private fun calculateArmorClass(
+    baseArmorClass: Int,
+    dexterityScore: Int,
+    inventoryItems: List<InventoryItem>
+): Int {
+    val dexterityModifier = Math.floorDiv(dexterityScore - 10, 2)
+    val equippedArmor = inventoryItems.firstOrNull {
+        it.isEquipped && it.armorDetails?.armorType != null && it.armorDetails.armorType != InventoryArmorType.SHIELD
+    }?.armorDetails
+    val equippedShield = inventoryItems.firstOrNull {
+        it.isEquipped && it.armorDetails?.armorType == InventoryArmorType.SHIELD
+    }?.armorDetails
+
+    val effectiveArmorClass = if (equippedArmor != null) {
+        equippedArmor.armorClass + equippedArmor.appliedDexterityModifier(dexterityModifier)
+    } else {
+        baseArmorClass + dexterityModifier
+    }
+
+    return (effectiveArmorClass + (equippedShield?.armorClass ?: 0)).coerceAtLeast(1)
+}
+
+private fun InventoryArmorDetails.appliedDexterityModifier(dexterityModifier: Int): Int {
+    if (!appliesDexterityBonus) return 0
+    return maxDexterityBonus?.let { dexterityModifier.coerceAtMost(it) } ?: dexterityModifier
+}
+
 @Preview(showBackground = true, showSystemUi = true, device = "spec:width=412dp,height=915dp")
 @Composable
 private fun OverviewScreenPreview() {
@@ -1905,6 +2055,13 @@ private fun OverviewScreenPreview() {
             "overview_hit_dice_spend_hint" to "Confirm how many hit dice you want to spend during the rest",
             "overview_hit_dice_spend" to "Spend",
             "overview_ac_full" to "Armor Class",
+            "overview_ac_base" to "Base AC",
+            "overview_ac_manual" to "Manual AC",
+            "overview_ac_mode" to "Armor class mode",
+            "overview_ac_mode_automatic" to "Automatic",
+            "overview_ac_mode_automatic_hint" to "Base AC, equipped armor, shield, and Dexterity are combined automatically.",
+            "overview_ac_mode_manual" to "Manual",
+            "overview_ac_mode_manual_hint" to "Enter the armor class value yourself and stop automatic recalculation.",
             "overview_edit_ac_title" to "Edit Armor Class",
             "overview_edit_initiative_title" to "Edit Initiative",
             "overview_edit_speed_title" to "Edit Speed",
@@ -1928,6 +2085,8 @@ private fun OverviewScreenPreview() {
         spentHitDice = 0,
         hasInspiration = true,
         armorClass = 15,
+        baseArmorClass = 10,
+        armorClassMode = ArmorClassMode.AUTOMATIC,
         speed = 30,
         initiative = 3,
         experience = 23500,
@@ -1990,7 +2149,7 @@ private fun OverviewScreenPreview() {
                 onHealHitPoints = { _, _ -> },
                 onAddTemporaryHitPoints = { _, _ -> },
                 onUpdateMaxHitPoints = { _, _ -> },
-                onUpdateArmorClass = { _, _ -> },
+                onUpdateArmorClass = { _, _, _, _ -> },
                 onUpdateInitiative = { _, _ -> },
                 onUpdateSpeed = { _, _ -> },
                 onUpdateHitDieSides = { _, _ -> },

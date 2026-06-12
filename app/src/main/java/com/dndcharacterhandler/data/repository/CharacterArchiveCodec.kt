@@ -2,10 +2,13 @@ package com.dndcharacterhandler.data.repository
 
 import androidx.core.net.toUri
 import com.dndcharacterhandler.domain.model.Attack
+import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.Feature
+import com.dndcharacterhandler.domain.model.InventoryArmorDetails
+import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.Note
@@ -15,7 +18,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-private const val SCHEMA_VERSION = 1
+private const val SCHEMA_VERSION = 2
 
 data class ImportedArchive(
     val characterBundle: CharacterBundle,
@@ -41,6 +44,8 @@ fun CharacterBundle.toArchiveManifest(
         put("spentHitDice", character.spentHitDice)
         put("hasInspiration", character.hasInspiration)
         put("armorClass", character.armorClass)
+        put("baseArmorClass", character.baseArmorClass)
+        put("armorClassMode", character.armorClassMode.name)
         put("speed", character.speed)
         put("initiative", character.initiative)
         put("experience", character.experience)
@@ -118,6 +123,9 @@ fun CharacterBundle.toArchiveManifest(
                 put("quantity", item.quantity)
                 put("isEquipped", item.isEquipped)
                 put("icon", mapAssetReference(item.icon, "inventory_${index}_${slugify(item.name)}"))
+                put("costQuantity", item.costQuantity)
+                put("costUnit", item.costUnit)
+                put("armorDetails", item.armorDetails?.toJson())
             }
         }))
         put("spells", JSONArray(spells.map { spell ->
@@ -152,7 +160,8 @@ fun archiveManifestToCharacterBundle(
     manifest: JSONObject,
     resolveAssetReference: (String?) -> String?
 ): ImportedArchive {
-    require(manifest.getInt("schemaVersion") == SCHEMA_VERSION) {
+    val schemaVersion = manifest.getInt("schemaVersion")
+    require(schemaVersion in 1..SCHEMA_VERSION) {
         "Unsupported character archive schema version."
     }
 
@@ -172,6 +181,11 @@ fun archiveManifestToCharacterBundle(
         spentHitDice = characterJson.optInt("spentHitDice").coerceAtLeast(0),
         hasInspiration = characterJson.optBoolean("hasInspiration"),
         armorClass = characterJson.optInt("armorClass"),
+        baseArmorClass = characterJson.optInt("baseArmorClass", 10).coerceAtLeast(1),
+        armorClassMode = characterJson.optString("armorClassMode")
+            .takeIf { it.isNotBlank() }
+            ?.let(ArmorClassMode::valueOf)
+            ?: ArmorClassMode.AUTOMATIC,
         speed = characterJson.optInt("speed"),
         initiative = characterJson.optInt("initiative"),
         experience = characterJson.optInt("experience"),
@@ -273,10 +287,33 @@ private fun JSONArray.toInventoryItemList(resolveAssetReference: (String?) -> St
                 weight = json.optDouble("weight"),
                 quantity = json.optInt("quantity"),
                 isEquipped = json.optBoolean("isEquipped"),
-                icon = resolveAssetReference(json.optNullableString("icon")).orEmpty()
+                icon = resolveAssetReference(json.optNullableString("icon")).orEmpty(),
+                costQuantity = json.optNullableInt("costQuantity"),
+                costUnit = json.optNullableString("costUnit"),
+                armorDetails = json.optJSONObject("armorDetails")?.toArmorDetails()
             )
         }
     }
+
+private fun InventoryArmorDetails.toJson(): JSONObject =
+    JSONObject().apply {
+        put("armorType", armorType.name)
+        put("armorClass", armorClass)
+        put("appliesDexterityBonus", appliesDexterityBonus)
+        put("maxDexterityBonus", maxDexterityBonus)
+        put("strengthMinimum", strengthMinimum)
+        put("hasStealthDisadvantage", hasStealthDisadvantage)
+    }
+
+private fun JSONObject.toArmorDetails(): InventoryArmorDetails =
+    InventoryArmorDetails(
+        armorType = InventoryArmorType.valueOf(optString("armorType")),
+        armorClass = optInt("armorClass"),
+        appliesDexterityBonus = optBoolean("appliesDexterityBonus"),
+        maxDexterityBonus = optNullableInt("maxDexterityBonus"),
+        strengthMinimum = optInt("strengthMinimum"),
+        hasStealthDisadvantage = optBoolean("hasStealthDisadvantage")
+    )
 
 private fun JSONArray.toSpellList(): List<Spell> =
     (0 until length()).map { index ->
@@ -317,6 +354,10 @@ private fun JSONArray.toNoteList(): List<Note> =
 
 private fun JSONObject.optNullableString(key: String): String? {
     return if (isNull(key)) null else optString(key).ifBlank { null }
+}
+
+private fun JSONObject.optNullableInt(key: String): Int? {
+    return if (isNull(key) || !has(key)) null else optInt(key)
 }
 
 private fun Int.coerceInHitDieSides(): Int {

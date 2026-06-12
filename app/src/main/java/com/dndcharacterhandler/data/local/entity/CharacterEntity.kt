@@ -6,7 +6,9 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import androidx.room.Embedded
+import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.InventoryCategory
+import com.dndcharacterhandler.domain.model.InventoryArmorType
 
 @Entity(tableName = "characters")
 data class CharacterEntity(
@@ -24,6 +26,8 @@ data class CharacterEntity(
     val spentHitDice: Int,
     val hasInspiration: Boolean,
     val armorClass: Int,
+    val baseArmorClass: Int,
+    val armorClassMode: ArmorClassMode,
     val speed: Int,
     val initiative: Int,
     val experience: Int,
@@ -148,7 +152,15 @@ data class InventoryItemEntity(
     val weight: Double,
     val quantity: Int,
     val isEquipped: Boolean,
-    val icon: String
+    val icon: String,
+    val costQuantity: Int?,
+    val costUnit: String?,
+    val armorType: InventoryArmorType?,
+    val armorClass: Int?,
+    val appliesDexterityBonus: Boolean?,
+    val maxDexterityBonus: Int?,
+    val strengthMinimum: Int?,
+    val hasStealthDisadvantage: Boolean?
 )
 
 @Entity(

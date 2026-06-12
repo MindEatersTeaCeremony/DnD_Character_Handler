@@ -5,6 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.tooling.preview.Preview
 import com.dndcharacterhandler.data.localization.LocalizedStrings
 import com.dndcharacterhandler.domain.model.AppLanguage
+import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.presentation.localization.LocalStrings
@@ -109,6 +110,8 @@ private fun previewCharacterBundle(
             spentHitDice = 0,
             hasInspiration = false,
             armorClass = 10,
+            baseArmorClass = 10,
+            armorClassMode = ArmorClassMode.AUTOMATIC,
             speed = 30,
             initiative = 0,
             experience = 0,

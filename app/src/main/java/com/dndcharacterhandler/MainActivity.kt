@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import com.dndcharacterhandler.data.local.AppDatabase
 import com.dndcharacterhandler.data.localization.LocalizationRepository
 import com.dndcharacterhandler.data.preferences.LanguagePreferencesRepository
+import com.dndcharacterhandler.data.repository.AssetInventoryCatalogRepository
 import com.dndcharacterhandler.data.repository.CharacterFileRepositoryImpl
 import com.dndcharacterhandler.data.repository.CharacterRepositoryImpl
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
         )
         val languagePreferencesRepository = LanguagePreferencesRepository(applicationContext)
         val localizationRepository = LocalizationRepository(applicationContext)
+        val inventoryCatalogRepository = AssetInventoryCatalogRepository(applicationContext)
         val getCharacterBundleUseCase = GetCharacterBundleUseCase(characterRepository)
         val selectedCharacterHolder = SelectedCharacterHolder()
 
@@ -53,7 +55,12 @@ class MainActivity : ComponentActivity() {
                             selectedCharacterHolder = selectedCharacterHolder
                         ),
                         combatViewModel = CombatViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
-                        inventoryViewModel = InventoryViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
+                        inventoryViewModel = InventoryViewModel(
+                            characterRepository = characterRepository,
+                            inventoryCatalogRepository = inventoryCatalogRepository,
+                            getCharacterBundleUseCase = getCharacterBundleUseCase,
+                            selectedCharacterHolder = selectedCharacterHolder
+                        ),
                         spellsViewModel = SpellsViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
                         featuresViewModel = FeaturesViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
                         biographyViewModel = BiographyViewModel(

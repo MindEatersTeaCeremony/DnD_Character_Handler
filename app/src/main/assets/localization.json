@@ -1803,6 +1803,83 @@
     "de": "Notiz",
     "fr": "Notes",
     "es": "Notas"
+  },
+  "inventory_catalog_title": {
+    "en": "Add from catalog",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0438\u0437 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0430",
+    "de": "Aus Katalog hinzufugen",
+    "fr": "Ajouter depuis le catalogue",
+    "es": "Agregar desde el catalogo"
+  },
+  "inventory_catalog_loading": {
+    "en": "Loading catalog...",
+    "ru": "\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0430...",
+    "de": "Katalog wird geladen...",
+    "fr": "Chargement du catalogue...",
+    "es": "Cargando catalogo..."
+  },
+  "inventory_catalog_empty": {
+    "en": "No matching items found.",
+    "ru": "\u041f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0438\u0435 \u043f\u0440\u0435\u0434\u043c\u0435\u0442\u044b \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u044b.",
+    "de": "Keine passenden Gegenstande gefunden.",
+    "fr": "Aucun objet correspondant trouve.",
+    "es": "No se encontraron objetos coincidentes."
+  },
+  "inventory_add_item": {
+    "en": "Add item",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u0440\u0435\u0434\u043c\u0435\u0442",
+    "de": "Gegenstand hinzufugen",
+    "fr": "Ajouter l'objet",
+    "es": "Agregar objeto"
+  },
+  "overview_ac_base": {
+    "en": "Base AC",
+    "ru": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 AC",
+    "de": "Basis-RK",
+    "fr": "CA de base",
+    "es": "CA base"
+  },
+  "overview_ac_manual": {
+    "en": "Manual AC",
+    "ru": "\u0420\u0443\u0447\u043d\u043e\u0439 AC",
+    "de": "Manuelle RK",
+    "fr": "CA manuelle",
+    "es": "CA manual"
+  },
+  "overview_ac_mode": {
+    "en": "Armor class mode",
+    "ru": "\u0420\u0435\u0436\u0438\u043c \u043a\u043b\u0430\u0441\u0441\u0430 \u0431\u0440\u043e\u043d\u0438",
+    "de": "Ruestungsklassenmodus",
+    "fr": "Mode de classe d'armure",
+    "es": "Modo de clase de armadura"
+  },
+  "overview_ac_mode_automatic": {
+    "en": "Automatic",
+    "ru": "\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439",
+    "de": "Automatisch",
+    "fr": "Automatique",
+    "es": "Automatico"
+  },
+  "overview_ac_mode_automatic_hint": {
+    "en": "Base AC, equipped armor, shield, and Dexterity are combined automatically.",
+    "ru": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 AC, \u043d\u0430\u0434\u0435\u0442\u0430\u044f \u0431\u0440\u043e\u043d\u044f, \u0449\u0438\u0442 \u0438 \u041b\u043e\u0432\u043a\u043e\u0441\u0442\u044c \u0441\u0447\u0438\u0442\u0430\u044e\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438.",
+    "de": "Basis-RK, getragene Ruestung, Schild und Geschicklichkeit werden automatisch kombiniert.",
+    "fr": "La CA de base, l'armure equipee, le bouclier et la Dexterite sont combines automatiquement.",
+    "es": "La CA base, la armadura equipada, el escudo y la Destreza se combinan automaticamente."
+  },
+  "overview_ac_mode_manual": {
+    "en": "Manual",
+    "ru": "\u0420\u0443\u0447\u043d\u043e\u0439",
+    "de": "Manuell",
+    "fr": "Manuel",
+    "es": "Manual"
+  },
+  "overview_ac_mode_manual_hint": {
+    "en": "Enter the armor class value yourself and stop automatic recalculation.",
+    "ru": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 AC \u0432\u0440\u0443\u0447\u043d\u0443\u044e \u0438 \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u0435 \u0430\u0432\u0442\u043e\u043f\u0435\u0440\u0435\u0441\u0447\u0435\u0442.",
+    "de": "Geben Sie den RK-Wert selbst ein und deaktivieren Sie die automatische Neuberechnung.",
+    "fr": "Saisissez vous-meme la valeur de CA et desactivez le recalcul automatique.",
+    "es": "Introduce el valor de CA manualmente y desactiva el recálculo automatico."
   }
 
 }

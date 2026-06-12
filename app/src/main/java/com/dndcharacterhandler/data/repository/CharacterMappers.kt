@@ -10,10 +10,12 @@ import com.dndcharacterhandler.data.local.entity.NoteEntity
 import com.dndcharacterhandler.data.local.entity.SkillEntity
 import com.dndcharacterhandler.data.local.entity.SpellEntity
 import com.dndcharacterhandler.domain.model.Attack
+import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.Feature
+import com.dndcharacterhandler.domain.model.InventoryArmorDetails
 import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.Note
 import com.dndcharacterhandler.domain.model.Skill
@@ -26,7 +28,29 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
         attacks = attacks.map { Attack(it.id, it.name, it.icon, it.range, it.attackBonusOrSaveDc, it.damage, it.damageType) },
         combatResources = combatResources.map { CombatResource(it.id, it.name, it.currentUses, it.maximumUses) },
         inventoryItems = inventoryItems.map {
-            InventoryItem(it.id, it.name, it.category, it.weight, it.quantity, it.isEquipped, it.icon)
+            InventoryItem(
+                id = it.id,
+                name = it.name,
+                category = it.category,
+                weight = it.weight,
+                quantity = it.quantity,
+                isEquipped = it.isEquipped,
+                icon = it.icon,
+                costQuantity = it.costQuantity,
+                costUnit = it.costUnit,
+                armorDetails = if (it.armorType != null && it.armorClass != null && it.appliesDexterityBonus != null && it.strengthMinimum != null && it.hasStealthDisadvantage != null) {
+                    InventoryArmorDetails(
+                        armorType = it.armorType,
+                        armorClass = it.armorClass,
+                        appliesDexterityBonus = it.appliesDexterityBonus,
+                        maxDexterityBonus = it.maxDexterityBonus,
+                        strengthMinimum = it.strengthMinimum,
+                        hasStealthDisadvantage = it.hasStealthDisadvantage
+                    )
+                } else {
+                    null
+                }
+            )
         },
         spells = spells.map { Spell(it.id, it.name, it.level, it.school, it.isPrepared, it.description) },
         features = features.map { Feature(it.id, it.name, it.description, it.resourceTracking) },
@@ -49,6 +73,8 @@ fun CharacterEntity.toDomain(): Character =
         spentHitDice = spentHitDice,
         hasInspiration = hasInspiration,
         armorClass = armorClass,
+        baseArmorClass = baseArmorClass,
+        armorClassMode = armorClassMode,
         speed = speed,
         initiative = initiative,
         experience = experience,
@@ -105,6 +131,8 @@ fun Character.toEntity(): CharacterEntity =
         spentHitDice = spentHitDice,
         hasInspiration = hasInspiration,
         armorClass = armorClass,
+        baseArmorClass = baseArmorClass,
+        armorClassMode = armorClassMode,
         speed = speed,
         initiative = initiative,
         experience = experience,
@@ -162,7 +190,24 @@ fun CombatResource.toEntity(characterId: Long): CombatResourceEntity =
     CombatResourceEntity(id = id, characterOwnerId = characterId, name = name, currentUses = currentUses, maximumUses = maximumUses)
 
 fun InventoryItem.toEntity(characterId: Long): InventoryItemEntity =
-    InventoryItemEntity(id = id, characterOwnerId = characterId, name = name, category = category, weight = weight, quantity = quantity, isEquipped = isEquipped, icon = icon)
+    InventoryItemEntity(
+        id = id,
+        characterOwnerId = characterId,
+        name = name,
+        category = category,
+        weight = weight,
+        quantity = quantity,
+        isEquipped = isEquipped,
+        icon = icon,
+        costQuantity = costQuantity,
+        costUnit = costUnit,
+        armorType = armorDetails?.armorType,
+        armorClass = armorDetails?.armorClass,
+        appliesDexterityBonus = armorDetails?.appliesDexterityBonus,
+        maxDexterityBonus = armorDetails?.maxDexterityBonus,
+        strengthMinimum = armorDetails?.strengthMinimum,
+        hasStealthDisadvantage = armorDetails?.hasStealthDisadvantage
+    )
 
 fun Spell.toEntity(characterId: Long): SpellEntity =
     SpellEntity(id = id, characterOwnerId = characterId, name = name, level = level, school = school, isPrepared = isPrepared, description = description)

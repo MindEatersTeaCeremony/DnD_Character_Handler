@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.domain.model.Character
+import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.Skill
 import com.dndcharacterhandler.domain.repository.CharacterRepository
@@ -1614,6 +1615,8 @@ internal fun previewFallbackCharacter(): Character =
         spentHitDice = 0,
         hasInspiration = false,
         armorClass = 10,
+        baseArmorClass = 10,
+        armorClassMode = ArmorClassMode.AUTOMATIC,
         speed = 30,
         initiative = 0,
         experience = 0,

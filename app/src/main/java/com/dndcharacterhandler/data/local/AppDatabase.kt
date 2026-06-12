@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 12,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -56,7 +56,9 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_8_9,
                     MIGRATION_9_10,
                     MIGRATION_10_11,
-                    MIGRATION_11_12
+                    MIGRATION_11_12,
+                    MIGRATION_12_13,
+                    MIGRATION_13_14
                 ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
@@ -131,6 +133,26 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE notes ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN costQuantity INTEGER")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN costUnit TEXT")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN armorType TEXT")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN armorClass INTEGER")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN appliesDexterityBonus INTEGER")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN maxDexterityBonus INTEGER")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN strengthMinimum INTEGER")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN hasStealthDisadvantage INTEGER")
+            }
+        }
+
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN baseArmorClass INTEGER NOT NULL DEFAULT 10")
+                db.execSQL("ALTER TABLE characters ADD COLUMN armorClassMode TEXT NOT NULL DEFAULT 'AUTOMATIC'")
             }
         }
     }
