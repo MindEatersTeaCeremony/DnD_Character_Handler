@@ -211,7 +211,8 @@ data class NoteEntity(
     val title: String,
     val createdDate: Long,
     val updatedDate: Long,
-    val content: String
+    val content: String,
+    val isPinned: Boolean = false
 )
 
 data class CharacterWithDetails(

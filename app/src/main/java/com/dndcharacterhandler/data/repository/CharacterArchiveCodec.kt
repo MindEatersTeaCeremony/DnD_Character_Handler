@@ -142,6 +142,7 @@ fun CharacterBundle.toArchiveManifest(
                 put("createdDate", note.createdDate)
                 put("updatedDate", note.updatedDate)
                 put("content", note.content)
+                put("isPinned", note.isPinned)
             }
         }))
     }
@@ -308,7 +309,8 @@ private fun JSONArray.toNoteList(): List<Note> =
                 title = json.optString("title"),
                 createdDate = json.optLong("createdDate"),
                 updatedDate = json.optLong("updatedDate"),
-                content = json.optString("content")
+                content = json.optString("content"),
+                isPinned = json.optBoolean("isPinned", false)
             )
         }
     }

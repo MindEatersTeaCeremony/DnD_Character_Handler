@@ -126,7 +126,9 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                     if (
                         currentRoute != AppScreen.Overview.route &&
                         currentRoute != AppScreen.Attributes.route &&
-                        currentRoute != AppScreen.Biography.route
+                        currentRoute != AppScreen.Inventory.route &&
+                        currentRoute != AppScreen.Biography.route &&
+                        currentRoute != AppScreen.Notes.route
                     ) {
                         Box(
                             modifier = Modifier
@@ -186,7 +188,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                                 CombatScreen(appState.combatViewModel)
                             }
                             composable(AppScreen.Inventory.route) {
-                                InventoryScreen(appState.inventoryViewModel)
+                                InventoryScreen(
+                                    viewModel = appState.inventoryViewModel,
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onOpenSettings = {}
+                                )
                             }
                             composable(AppScreen.Spells.route) {
                                 SpellsScreen(appState.spellsViewModel)
@@ -202,7 +208,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                                 )
                             }
                             composable(AppScreen.Notes.route) {
-                                NotesScreen(appState.notesViewModel)
+                                NotesScreen(
+                                    viewModel = appState.notesViewModel,
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onOpenSettings = {}
+                                )
                             }
                         }
                     }

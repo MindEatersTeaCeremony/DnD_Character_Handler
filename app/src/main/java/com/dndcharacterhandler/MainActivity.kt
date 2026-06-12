@@ -61,7 +61,11 @@ class MainActivity : ComponentActivity() {
                             getCharacterBundleUseCase = getCharacterBundleUseCase,
                             selectedCharacterHolder = selectedCharacterHolder
                         ),
-                        notesViewModel = NotesViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
+                        notesViewModel = NotesViewModel(
+                            characterRepository = characterRepository,
+                            getCharacterBundleUseCase = getCharacterBundleUseCase,
+                            selectedCharacterHolder = selectedCharacterHolder
+                        ),
                         characterManagerViewModel = com.dndcharacterhandler.presentation.components.CharacterManagerViewModel(
                             characterRepository = characterRepository,
                             fileRepository = fileRepository,

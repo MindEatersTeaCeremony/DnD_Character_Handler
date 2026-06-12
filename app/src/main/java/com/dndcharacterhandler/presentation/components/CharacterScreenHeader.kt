@@ -41,6 +41,8 @@ fun CharacterScreenHeader(
 ) {
     val tokens = LocalDesignTokens.current.typography
     val portraitReference = character.portraitUri ?: AssetReferences.portraitPlaceholderPath("portrait_placeholder.png")
+    val characterDetails = buildCharacterHeaderDetails(character)
+    val levelLabel = "Level ${character.level}"
 
     Box(
         modifier = modifier
@@ -118,9 +120,19 @@ fun CharacterScreenHeader(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (characterDetails.isNotBlank()) {
+                    Text(
+                        text = characterDetails,
+                        modifier = Modifier.padding(top = 4.dp),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = tokens.bodyLarge.fontSizeSp.sp),
+                        color = Color(0xFFD2CAC2),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
-                    text = buildCharacterHeaderSubtitle(character),
-                    modifier = Modifier.padding(top = 4.dp),
+                    text = levelLabel,
+                    modifier = Modifier.padding(top = 2.dp),
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = tokens.bodyLarge.fontSizeSp.sp),
                     color = Color(0xFFD2CAC2),
                     maxLines = 1,
@@ -131,10 +143,9 @@ fun CharacterScreenHeader(
     }
 }
 
-private fun buildCharacterHeaderSubtitle(character: Character): String =
+private fun buildCharacterHeaderDetails(character: Character): String =
     listOfNotNull(
         character.race.ifBlank { null },
         character.subclass.ifBlank { null },
-        character.characterClass.ifBlank { null },
-        "Level ${character.level}"
+        character.characterClass.ifBlank { null }
     ).joinToString(" • ")
