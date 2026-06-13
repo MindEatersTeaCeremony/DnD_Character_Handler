@@ -10,6 +10,11 @@ import com.dndcharacterhandler.domain.model.InventoryArmorDetails
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryItem
+import com.dndcharacterhandler.domain.model.InventoryWeaponClass
+import com.dndcharacterhandler.domain.model.InventoryWeaponDamage
+import com.dndcharacterhandler.domain.model.InventoryWeaponDetails
+import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
+import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 import com.dndcharacterhandler.presentation.attributes.previewFallbackCharacter
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.theme.DnDTheme
@@ -38,21 +43,127 @@ fun InventoryScreenPreview() {
             "inventory_catalog_loading" to "Loading catalog...",
             "inventory_catalog_empty" to "No matching items found.",
             "inventory_add_item" to "Add item",
-            "common_cancel" to "Cancel"
+            "common_cancel" to "Cancel",
+            "common_save" to "Save",
+            "inventory_edit_item" to "Edit item",
+            "inventory_currency_edit_title" to "Edit currency",
+            "inventory_currency_cp" to "Copper pieces",
+            "inventory_currency_sp" to "Silver pieces",
+            "inventory_currency_gp" to "Gold pieces",
+            "inventory_field_name" to "Name",
+            "inventory_field_description" to "Description",
+            "inventory_field_magical" to "Magical",
+            "inventory_field_category" to "Category",
+            "inventory_field_quantity" to "Quantity",
+            "inventory_field_weight" to "Weight",
+            "inventory_field_cost_quantity" to "Cost value",
+            "inventory_field_cost_unit" to "Cost unit",
+            "inventory_section_description" to "Description",
+            "inventory_section_inventory" to "Inventory",
+            "inventory_section_armor" to "Armor",
+            "inventory_field_armor_type" to "Armor type",
+            "inventory_field_armor_class" to "Armor class",
+            "inventory_field_applies_dex" to "Add Dexterity modifier",
+            "inventory_field_max_dex_bonus" to "Max Dexterity bonus",
+            "inventory_field_strength_minimum" to "Strength minimum",
+            "inventory_field_stealth_disadvantage" to "Stealth disadvantage",
+            "inventory_section_weapon" to "Weapon",
+            "inventory_field_weapon_type" to "Weapon type",
+            "inventory_field_base_weapon" to "Base weapon",
+            "inventory_field_normal_range" to "Normal range",
+            "inventory_field_long_range" to "Long range",
+            "inventory_field_damage" to "Damage",
+            "inventory_field_damage_dice" to "Damage dice",
+            "inventory_field_damage_dice_count" to "Dice count",
+            "inventory_field_damage_die_type" to "Die type",
+            "inventory_field_damage_bonus" to "Damage bonus",
+            "inventory_field_bonus" to "Bonus",
+            "inventory_field_damage_type" to "Damage type",
+            "inventory_field_weapon_properties" to "Weapon properties",
+            "inventory_field_two_handed_damage" to "Alternate damage",
+            "inventory_add_alternate_damage" to "Add alternate damage",
+            "inventory_remove_alternate_damage" to "Remove alternate damage",
+            "inventory_damage_type_placeholder" to "Tap to choose damage type",
+            "inventory_field_two_handed_damage_dice" to "Two-handed damage dice",
+            "inventory_field_two_handed_damage_type" to "Two-handed damage type"
         )
     )
     val items = listOf(
-        InventoryItem(1L, "Longsword", InventoryCategory.WEAPON, 3.0, 1, true, ""),
-        InventoryItem(2L, "Shortbow", InventoryCategory.WEAPON, 2.0, 1, false, ""),
-        InventoryItem(3L, "Dagger", InventoryCategory.WEAPON, 1.0, 3, false, ""),
         InventoryItem(
-            4L,
-            "Chain Mail",
-            InventoryCategory.ARMOR,
-            55.0,
-            1,
-            true,
-            "",
+            id = 1L,
+            name = "Longsword",
+            description = "A reliable martial blade.",
+            isMagical = false,
+            category = InventoryCategory.WEAPON,
+            weight = 3.0,
+            quantity = 1,
+            isEquipped = true,
+            icon = "",
+            weaponDetails = InventoryWeaponDetails(
+                weaponClass = InventoryWeaponClass.MARTIAL,
+                rangeType = InventoryWeaponRangeType.MELEE,
+                baseWeaponId = "longsword",
+                normalRange = 5,
+                longRange = null,
+                damages = listOf(InventoryWeaponDamage("1d8", "Slashing")),
+                twoHandedDamage = InventoryWeaponDamage("1d10", "Slashing"),
+                properties = setOf(InventoryWeaponProperty.VERSATILE)
+            )
+        ),
+        InventoryItem(
+            id = 2L,
+            name = "Shortbow",
+            description = "A simple ranged weapon for steady shots.",
+            isMagical = false,
+            category = InventoryCategory.WEAPON,
+            weight = 2.0,
+            quantity = 1,
+            isEquipped = false,
+            icon = "",
+            weaponDetails = InventoryWeaponDetails(
+                weaponClass = InventoryWeaponClass.SIMPLE,
+                rangeType = InventoryWeaponRangeType.RANGED,
+                baseWeaponId = "shortbow",
+                normalRange = 80,
+                longRange = 320,
+                damages = listOf(InventoryWeaponDamage("1d6", "Piercing")),
+                properties = setOf(InventoryWeaponProperty.AMMUNITION)
+            )
+        ),
+        InventoryItem(
+            id = 3L,
+            name = "Dagger",
+            description = "A compact blade that can be thrown.",
+            isMagical = true,
+            category = InventoryCategory.WEAPON,
+            weight = 1.0,
+            quantity = 3,
+            isEquipped = false,
+            icon = "",
+            weaponDetails = InventoryWeaponDetails(
+                weaponClass = InventoryWeaponClass.SIMPLE,
+                rangeType = InventoryWeaponRangeType.MELEE,
+                baseWeaponId = "dagger",
+                normalRange = 20,
+                longRange = 60,
+                damages = listOf(InventoryWeaponDamage("1d4", "Piercing")),
+                properties = setOf(
+                    InventoryWeaponProperty.FINESSE,
+                    InventoryWeaponProperty.LIGHT,
+                    InventoryWeaponProperty.THROWN
+                )
+            )
+        ),
+        InventoryItem(
+            id = 4L,
+            name = "Chain Mail",
+            description = "Heavy interlocking metal rings.",
+            isMagical = false,
+            category = InventoryCategory.ARMOR,
+            weight = 55.0,
+            quantity = 1,
+            isEquipped = true,
+            icon = "",
             armorDetails = InventoryArmorDetails(
                 armorType = InventoryArmorType.HEAVY,
                 armorClass = 16,
@@ -63,13 +174,15 @@ fun InventoryScreenPreview() {
             )
         ),
         InventoryItem(
-            5L,
-            "Shield",
-            InventoryCategory.ARMOR,
-            6.0,
-            1,
-            true,
-            "",
+            id = 5L,
+            name = "Shield",
+            description = "A sturdy shield.",
+            isMagical = true,
+            category = InventoryCategory.ARMOR,
+            weight = 6.0,
+            quantity = 1,
+            isEquipped = true,
+            icon = "",
             armorDetails = InventoryArmorDetails(
                 armorType = InventoryArmorType.SHIELD,
                 armorClass = 2,
@@ -79,15 +192,27 @@ fun InventoryScreenPreview() {
                 hasStealthDisadvantage = false
             )
         ),
-        InventoryItem(6L, "Healing Potion", InventoryCategory.CONSUMABLE, 0.5, 3, false, ""),
         InventoryItem(
-            7L,
-            "Breastplate",
-            InventoryCategory.ARMOR,
-            20.0,
-            1,
-            false,
-            "",
+            id = 6L,
+            name = "Healing Potion",
+            description = "A small vial that restores hit points.",
+            isMagical = true,
+            category = InventoryCategory.CONSUMABLE,
+            weight = 0.5,
+            quantity = 3,
+            isEquipped = false,
+            icon = ""
+        ),
+        InventoryItem(
+            id = 7L,
+            name = "Breastplate",
+            description = "A fitted medium armor chest piece.",
+            isMagical = false,
+            category = InventoryCategory.ARMOR,
+            weight = 20.0,
+            quantity = 1,
+            isEquipped = false,
+            icon = "",
             armorDetails = InventoryArmorDetails(
                 armorType = InventoryArmorType.MEDIUM,
                 armorClass = 14,
@@ -97,14 +222,28 @@ fun InventoryScreenPreview() {
                 hasStealthDisadvantage = false
             )
         ),
-        InventoryItem(8L, "Rope (50 ft)", InventoryCategory.OTHER, 10.0, 1, false, "")
+        InventoryItem(
+            id = 8L,
+            name = "Rope (50 ft)",
+            description = "Sturdy hempen rope.",
+            isMagical = false,
+            category = InventoryCategory.OTHER,
+            weight = 10.0,
+            quantity = 1,
+            isEquipped = false,
+            icon = ""
+        )
     )
 
     CompositionLocalProvider(LocalStrings provides strings) {
         DnDTheme {
             InventoryContent(
                 characterBundle = CharacterBundle(
-                    character = previewFallbackCharacter(),
+                    character = previewFallbackCharacter().copy(
+                        copperPieces = 125,
+                        silverPieces = 42,
+                        goldPieces = 387
+                    ),
                     skills = emptyList(),
                     attacks = emptyList(),
                     combatResources = emptyList(),

@@ -715,6 +715,10 @@
     "en": "Morningstar",
     "ru": "Моргенштерн"
   },
+  "Musket": {
+    "en": "Musket",
+    "ru": "\u041c\u0443\u0448\u043a\u0435\u0442"
+  },
   "Pike": {
     "en": "Pike",
     "ru": "Пика"
@@ -1123,7 +1127,7 @@
     "es": "Consumible"
   },
   "inventory_category_other": {
-    "en": "Other",
+    "en": "Loot",
     "ru": "Прочее",
     "de": "Sonstiges",
     "fr": "Autre",
@@ -1723,6 +1727,27 @@
     "fr": "Edit Initiative",
     "es": "Edit Initiative"
   },
+  "overview_initiative_bonus": {
+    "en": "Initiative bonus",
+    "ru": "\u0411\u043e\u043d\u0443\u0441 \u0438\u043d\u0438\u0446\u0438\u0430\u0442\u0438\u0432\u044b",
+    "de": "Initiativebonus",
+    "fr": "Bonus d'initiative",
+    "es": "Bono de iniciativa"
+  },
+  "overview_initiative_base_value": {
+    "en": "Dexterity modifier: %1$s",
+    "ru": "\u041c\u043e\u0434\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u041b\u043e\u0432\u043a\u043e\u0441\u0442\u0438: %1$s",
+    "de": "Geschicklichkeitsmodifikator: %1$s",
+    "fr": "Modificateur de Dexterite : %1$s",
+    "es": "Modificador de Destreza: %1$s"
+  },
+  "overview_initiative_result": {
+    "en": "Result: %1$s",
+    "ru": "\u0418\u0442\u043e\u0433: %1$s",
+    "de": "Ergebnis: %1$s",
+    "fr": "Resultat : %1$s",
+    "es": "Resultado: %1$s"
+  },
   "overview_edit_speed_title": {
     "en": "Edit Speed",
     "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c",
@@ -1827,10 +1852,577 @@
   },
   "inventory_add_item": {
     "en": "Add item",
-    "ru": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u0440\u0435\u0434\u043c\u0435\u0442",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u0440\u0435\u0434\u043c\u0435\u0442\u0430",
     "de": "Gegenstand hinzufugen",
     "fr": "Ajouter l'objet",
     "es": "Agregar objeto"
+  },
+  "inventory_add_create_section": {
+    "en": "Create item",
+    "ru": "\u0421\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u043f\u0440\u0435\u0434\u043c\u0435\u0442\u0430",
+    "de": "Gegenstand erstellen",
+    "fr": "Creer un objet",
+    "es": "Crear objeto"
+  },
+  "inventory_add_catalog_section": {
+    "en": "Add from catalog",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u0437 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0430",
+    "de": "Aus Katalog hinzufugen",
+    "fr": "Ajouter depuis le catalogue",
+    "es": "Agregar desde el catalogo"
+  },
+  "inventory_create_action": {
+    "en": "Create",
+    "ru": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c",
+    "de": "Erstellen",
+    "fr": "Creer",
+    "es": "Crear"
+  },
+  "inventory_select_item_type": {
+    "en": "Select item type",
+    "ru": "\u0412\u044b\u0431\u043e\u0440 \u0442\u0438\u043f\u0430 \u043f\u0440\u0435\u0434\u043c\u0435\u0442\u0430",
+    "de": "Gegenstandstyp auswahlen",
+    "fr": "Choisir le type d'objet",
+    "es": "Seleccionar tipo de objeto"
+  },
+  "inventory_delete_action": {
+    "en": "Delete",
+    "ru": "\u0423\u0434\u0430\u043b\u0438\u0442\u044c",
+    "de": "Loschen",
+    "fr": "Supprimer",
+    "es": "Eliminar"
+  },
+  "inventory_edit_item": {
+    "en": "Edit item",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043f\u0440\u0435\u0434\u043c\u0435\u0442",
+    "de": "Gegenstand bearbeiten",
+    "fr": "Modifier l'objet",
+    "es": "Editar objeto"
+  },
+  "inventory_field_name": {
+    "en": "Name",
+    "ru": "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435",
+    "de": "Name",
+    "fr": "Nom",
+    "es": "Nombre"
+  },
+  "inventory_field_description": {
+    "en": "Description",
+    "ru": "\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435",
+    "de": "Beschreibung",
+    "fr": "Description",
+    "es": "Descripcion"
+  },
+  "inventory_field_magical": {
+    "en": "Magical",
+    "ru": "\u041c\u0430\u0433\u0438\u0447\u0435\u0441\u043a\u0438\u0439",
+    "de": "Magisch",
+    "fr": "Magique",
+    "es": "Magico"
+  },
+  "inventory_field_category": {
+    "en": "Category",
+    "ru": "\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f",
+    "de": "Kategorie",
+    "fr": "Categorie",
+    "es": "Categoria"
+  },
+  "inventory_field_quantity": {
+    "en": "Quantity",
+    "ru": "\u041a\u043e\u043b-\u0432\u043e",
+    "de": "Menge",
+    "fr": "Quantite",
+    "es": "Cantidad"
+  },
+  "inventory_field_weight": {
+    "en": "Weight",
+    "ru": "\u0412\u0435\u0441",
+    "de": "Gewicht",
+    "fr": "Poids",
+    "es": "Peso"
+  },
+  "inventory_field_cost_quantity": {
+    "en": "Cost value",
+    "ru": "\u0426\u0435\u043d\u0430",
+    "de": "Kostenwert",
+    "fr": "Valeur du cout",
+    "es": "Valor del costo"
+  },
+  "inventory_field_cost_unit": {
+    "en": "Cost unit",
+    "ru": "\u0412\u0430\u043b\u044e\u0442\u0430",
+    "de": "Kosteneinheit",
+    "fr": "Unite du cout",
+    "es": "Unidad del costo"
+  },
+  "inventory_section_description": {
+    "en": "Description",
+    "ru": "\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435",
+    "de": "Beschreibung",
+    "fr": "Description",
+    "es": "Descripcion"
+  },
+  "inventory_section_inventory": {
+    "en": "Inventory",
+    "ru": "\u0418\u043d\u0432\u0435\u043d\u0442\u0430\u0440\u043d\u044b\u0435 \u0434\u0430\u043d\u043d\u044b\u0435",
+    "de": "Inventar",
+    "fr": "Inventaire",
+    "es": "Inventario"
+  },
+  "inventory_section_armor": {
+    "en": "Armor",
+    "ru": "\u0411\u0440\u043e\u043d\u044f",
+    "de": "Ruestung",
+    "fr": "Armure",
+    "es": "Armadura"
+  },
+  "inventory_field_armor_type": {
+    "en": "Armor type",
+    "ru": "\u0422\u0438\u043f \u0431\u0440\u043e\u043d\u0438",
+    "de": "Ruestungstyp",
+    "fr": "Type d'armure",
+    "es": "Tipo de armadura"
+  },
+  "inventory_field_armor_class": {
+    "en": "Armor class",
+    "ru": "AC",
+    "de": "Ruestungsklasse",
+    "fr": "Classe d'armure",
+    "es": "Clase de armadura"
+  },
+  "inventory_field_applies_dex": {
+    "en": "Add Dexterity modifier",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u043b\u044f\u0442\u044c \u043c\u043e\u0434. \u041b\u043e\u0432\u043a\u043e\u0441\u0442\u0438",
+    "de": "Geschicklichkeitsmodifikator hinzufuegen",
+    "fr": "Ajouter le modificateur de Dexterite",
+    "es": "Agregar modificador de Destreza"
+  },
+  "inventory_field_max_dex_bonus": {
+    "en": "Max Dexterity bonus",
+    "ru": "\u041c\u0430\u043a\u0441. \u0431\u043e\u043d\u0443\u0441 \u041b\u043e\u0432\u043a\u043e\u0441\u0442\u0438",
+    "de": "Maximaler Geschicklichkeitsbonus",
+    "fr": "Bonus max de Dexterite",
+    "es": "Bonificacion maxima de Destreza"
+  },
+  "inventory_field_strength_minimum": {
+    "en": "Strength minimum",
+    "ru": "\u041c\u0438\u043d. \u0421\u0438\u043b\u0430",
+    "de": "Mindeststaerke",
+    "fr": "Force minimale",
+    "es": "Fuerza minima"
+  },
+  "inventory_field_stealth_disadvantage": {
+    "en": "Stealth disadvantage",
+    "ru": "\u041f\u043e\u043c\u0435\u0445\u0430 \u043d\u0430 \u0421\u043a\u0440\u044b\u0442\u043d\u043e\u0441\u0442\u044c",
+    "de": "Nachteil auf Heimlichkeit",
+    "fr": "Desavantage en Discretion",
+    "es": "Desventaja en Sigilo"
+  },
+  "inventory_section_weapon": {
+    "en": "Weapon",
+    "ru": "\u041e\u0440\u0443\u0436\u0438\u0435",
+    "de": "Waffe",
+    "fr": "Arme",
+    "es": "Arma"
+  },
+  "inventory_field_weapon_type": {
+    "en": "Weapon type",
+    "ru": "\u0422\u0438\u043f \u043e\u0440\u0443\u0436\u0438\u044f",
+    "de": "Waffentyp",
+    "fr": "Type d'arme",
+    "es": "Tipo de arma"
+  },
+  "inventory_field_base_weapon": {
+    "en": "Base weapon",
+    "ru": "\u0411\u0430\u0437\u043e\u0432\u043e\u0435 \u043e\u0440\u0443\u0436\u0438\u0435",
+    "de": "Basiswaffe",
+    "fr": "Arme de base",
+    "es": "Arma base"
+  },
+  "inventory_armor_type_light": {
+    "en": "Light",
+    "ru": "\u041b\u0435\u0433\u043a\u0430\u044f",
+    "de": "Leicht",
+    "fr": "Legere",
+    "es": "Ligera"
+  },
+  "inventory_armor_type_medium": {
+    "en": "Medium",
+    "ru": "\u0421\u0440\u0435\u0434\u043d\u044f\u044f",
+    "de": "Mittel",
+    "fr": "Intermediaire",
+    "es": "Media"
+  },
+  "inventory_armor_type_heavy": {
+    "en": "Heavy",
+    "ru": "\u0422\u044f\u0436\u0435\u043b\u0430\u044f",
+    "de": "Schwer",
+    "fr": "Lourde",
+    "es": "Pesada"
+  },
+  "inventory_armor_type_shield": {
+    "en": "Shield",
+    "ru": "\u0429\u0438\u0442",
+    "de": "Schild",
+    "fr": "Bouclier",
+    "es": "Escudo"
+  },
+  "inventory_weapon_range_melee": {
+    "en": "Melee",
+    "ru": "\u0411\u043b\u0438\u0436\u043d\u0435\u0435",
+    "de": "Nahkampf",
+    "fr": "Corps a corps",
+    "es": "Cuerpo a cuerpo"
+  },
+  "inventory_weapon_range_ranged": {
+    "en": "Ranged",
+    "ru": "\u0414\u0430\u043b\u044c\u043d\u0435\u0435",
+    "de": "Fernkampf",
+    "fr": "A distance",
+    "es": "A distancia"
+  },
+  "inventory_weapon_property_ammunition": {
+    "en": "Ammunition",
+    "ru": "\u0411\u043e\u0435\u043f\u0440\u0438\u043f\u0430\u0441",
+    "de": "Munition",
+    "fr": "Munitions",
+    "es": "Municion"
+  },
+  "inventory_weapon_property_finesse": {
+    "en": "Finesse",
+    "ru": "\u0424\u0435\u0445\u0442\u043e\u0432\u0430\u043b\u044c\u043d\u043e\u0435",
+    "de": "Finesse",
+    "fr": "Finesse",
+    "es": "Sutileza"
+  },
+  "inventory_weapon_property_heavy": {
+    "en": "Heavy",
+    "ru": "\u0422\u044f\u0436\u0435\u043b\u043e\u0435",
+    "de": "Schwer",
+    "fr": "Lourde",
+    "es": "Pesada"
+  },
+  "inventory_weapon_property_light": {
+    "en": "Light",
+    "ru": "\u041b\u0435\u0433\u043a\u043e\u0435",
+    "de": "Leicht",
+    "fr": "Legere",
+    "es": "Ligera"
+  },
+  "inventory_weapon_property_loading": {
+    "en": "Loading",
+    "ru": "\u041f\u0435\u0440\u0435\u0437\u0430\u0440\u044f\u0434\u043a\u0430",
+    "de": "Laden",
+    "fr": "Chargement",
+    "es": "Recarga"
+  },
+  "inventory_weapon_property_reach": {
+    "en": "Reach",
+    "ru": "\u0414\u043e\u0441\u044f\u0433\u0430\u0435\u043c\u043e\u0441\u0442\u044c",
+    "de": "Reichweite",
+    "fr": "Allonge",
+    "es": "Alcance"
+  },
+  "inventory_weapon_property_thrown": {
+    "en": "Thrown",
+    "ru": "\u041c\u0435\u0442\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0435",
+    "de": "Geworfen",
+    "fr": "Lancee",
+    "es": "Arrojadiza"
+  },
+  "inventory_weapon_property_two_handed": {
+    "en": "Two-Handed",
+    "ru": "\u0414\u0432\u0443\u0440\u0443\u0447\u043d\u043e\u0435",
+    "de": "Zweihandig",
+    "fr": "A deux mains",
+    "es": "A dos manos"
+  },
+  "inventory_weapon_property_versatile": {
+    "en": "Versatile",
+    "ru": "\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b\u044c\u043d\u043e\u0435",
+    "de": "Vielseitig",
+    "fr": "Polyvalente",
+    "es": "Versatil"
+  },
+  "inventory_damage_type_acid": {
+    "en": "Acid",
+    "ru": "\u041a\u0438\u0441\u043b\u043e\u0442\u0430",
+    "de": "Saeure",
+    "fr": "Acide",
+    "es": "Acido"
+  },
+  "inventory_damage_type_bludgeoning": {
+    "en": "Bludgeoning",
+    "ru": "\u0414\u0440\u043e\u0431\u044f\u0449\u0438\u0439",
+    "de": "Wucht",
+    "fr": "Contondant",
+    "es": "Contundente"
+  },
+  "inventory_damage_type_cold": {
+    "en": "Cold",
+    "ru": "\u0425\u043e\u043b\u043e\u0434",
+    "de": "Kaelte",
+    "fr": "Froid",
+    "es": "Frio"
+  },
+  "inventory_damage_type_fire": {
+    "en": "Fire",
+    "ru": "\u041e\u0433\u043e\u043d\u044c",
+    "de": "Feuer",
+    "fr": "Feu",
+    "es": "Fuego"
+  },
+  "inventory_damage_type_force": {
+    "en": "Force",
+    "ru": "\u0421\u0438\u043b\u0430",
+    "de": "Macht",
+    "fr": "Force",
+    "es": "Fuerza"
+  },
+  "inventory_damage_type_lightning": {
+    "en": "Lightning",
+    "ru": "\u041c\u043e\u043b\u043d\u0438\u044f",
+    "de": "Blitz",
+    "fr": "Foudre",
+    "es": "Relampago"
+  },
+  "inventory_damage_type_necrotic": {
+    "en": "Necrotic",
+    "ru": "\u041d\u0435\u043a\u0440\u043e\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439",
+    "de": "Nekrotisch",
+    "fr": "Necrotique",
+    "es": "Necrotico"
+  },
+  "inventory_damage_type_piercing": {
+    "en": "Piercing",
+    "ru": "\u041a\u043e\u043b\u044e\u0449\u0438\u0439",
+    "de": "Stich",
+    "fr": "Perforant",
+    "es": "Perforante"
+  },
+  "inventory_damage_type_poison": {
+    "en": "Poison",
+    "ru": "\u042f\u0434",
+    "de": "Gift",
+    "fr": "Poison",
+    "es": "Veneno"
+  },
+  "inventory_damage_type_psychic": {
+    "en": "Psychic",
+    "ru": "\u041f\u0441\u0438\u0445\u0438\u0447\u0435\u0441\u043a\u0438\u0439",
+    "de": "Psychisch",
+    "fr": "Psychique",
+    "es": "Psiquico"
+  },
+  "inventory_damage_type_radiant": {
+    "en": "Radiant",
+    "ru": "\u0421\u0438\u044f\u043d\u0438\u0435",
+    "de": "Strahlend",
+    "fr": "Radiant",
+    "es": "Radiante"
+  },
+  "inventory_damage_type_slashing": {
+    "en": "Slashing",
+    "ru": "\u0420\u0443\u0431\u044f\u0449\u0438\u0439",
+    "de": "Hieb",
+    "fr": "Tranchant",
+    "es": "Cortante"
+  },
+  "inventory_damage_type_thunder": {
+    "en": "Thunder",
+    "ru": "\u0413\u0440\u043e\u043c",
+    "de": "Donner",
+    "fr": "Tonnerre",
+    "es": "Trueno"
+  },
+  "inventory_tag_ac_short": {
+    "en": "AC",
+    "ru": "\u041a\u0414",
+    "de": "RK",
+    "fr": "CA",
+    "es": "CA"
+  },
+  "inventory_tag_dex_short": {
+    "en": "Dex",
+    "ru": "\u041b\u0432\u043a",
+    "de": "Ges",
+    "fr": "Dex",
+    "es": "Des"
+  },
+  "inventory_tag_strength_short": {
+    "en": "Str",
+    "ru": "\u0421\u0438\u043b",
+    "de": "Str",
+    "fr": "For",
+    "es": "Fue"
+  },
+  "inventory_tag_stealth_dis": {
+    "en": "Stealth Dis",
+    "ru": "\u041f\u043e\u043c\u0435\u0445\u0430 \u0421\u043a\u0440\u044b\u0442.",
+    "de": "Heimlichk. Nachteil",
+    "fr": "Desav. Discretion",
+    "es": "Desv. Sigilo"
+  },
+  "inventory_unit_feet": {
+    "en": "ft",
+    "ru": "\u0444\u0442",
+    "de": "ft",
+    "fr": "ft",
+    "es": "ft"
+  },
+  "inventory_field_weapon_class": {
+    "en": "Weapon class",
+    "ru": "\u041a\u043b\u0430\u0441\u0441 \u043e\u0440\u0443\u0436\u0438\u044f",
+    "de": "Waffenklasse",
+    "fr": "Classe d'arme",
+    "es": "Clase de arma"
+  },
+  "inventory_field_weapon_range_type": {
+    "en": "Range type",
+    "ru": "\u0422\u0438\u043f \u0434\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u0438",
+    "de": "Reichweitentyp",
+    "fr": "Type de portee",
+    "es": "Tipo de alcance"
+  },
+  "inventory_field_normal_range": {
+    "en": "Normal range",
+    "ru": "\u041e\u0431\u044b\u0447\u043d\u0430\u044f \u0434\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u044f",
+    "de": "Normale Reichweite",
+    "fr": "Portee normale",
+    "es": "Alcance normal"
+  },
+  "inventory_field_long_range": {
+    "en": "Long range",
+    "ru": "\u0414\u0430\u043b\u044c\u043d\u044f\u044f \u0434\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u044f",
+    "de": "Weite Reichweite",
+    "fr": "Portee lointaine",
+    "es": "Alcance largo"
+  },
+  "inventory_field_damage": {
+    "en": "Damage",
+    "ru": "\u0423\u0440\u043e\u043d",
+    "de": "Schaden",
+    "fr": "Degats",
+    "es": "Dano"
+  },
+  "inventory_field_damage_dice_count": {
+    "en": "Dice count",
+    "ru": "\u041a\u043e\u043b-\u0432\u043e \u043a\u0443\u0431\u043e\u0432",
+    "de": "Anzahl der Wuerfel",
+    "fr": "Nombre de des",
+    "es": "Cantidad de dados"
+  },
+  "inventory_field_damage_die_type": {
+    "en": "Die type",
+    "ru": "\u0422\u0438\u043f \u043a\u0443\u0431\u0430",
+    "de": "Wuerfeltyp",
+    "fr": "Type de de",
+    "es": "Tipo de dado"
+  },
+  "inventory_field_damage_bonus": {
+    "en": "Damage bonus",
+    "ru": "\u0411\u043e\u043d\u0443\u0441 \u0443\u0440\u043e\u043d\u0430",
+    "de": "Schadensbonus",
+    "fr": "Bonus de degats",
+    "es": "Bonificacion de dano"
+  },
+  "inventory_field_bonus": {
+    "en": "Bonus",
+    "ru": "\u0411\u043e\u043d\u0443\u0441",
+    "de": "Bonus",
+    "fr": "Bonus",
+    "es": "Bonus"
+  },
+  "inventory_field_damage_dice": {
+    "en": "Damage dice",
+    "ru": "\u041a\u0443\u0431\u044b \u0443\u0440\u043e\u043d\u0430",
+    "de": "Schadenswuerfel",
+    "fr": "Des de degats",
+    "es": "Dados de dano"
+  },
+  "inventory_field_damage_type": {
+    "en": "Damage type",
+    "ru": "\u0422\u0438\u043f \u0443\u0440\u043e\u043d\u0430",
+    "de": "Schadensart",
+    "fr": "Type de degats",
+    "es": "Tipo de dano"
+  },
+  "inventory_field_weapon_properties": {
+    "en": "Weapon properties",
+    "ru": "\u0421\u0432\u043e\u0439\u0441\u0442\u0432\u0430 \u043e\u0440\u0443\u0436\u0438\u044f",
+    "de": "Waffeneigenschaften",
+    "fr": "Proprietes d'arme",
+    "es": "Propiedades del arma"
+  },
+  "inventory_field_two_handed_damage": {
+    "en": "Alternate damage",
+    "ru": "\u0410\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432\u043d\u044b\u0439 \u0443\u0440\u043e\u043d",
+    "de": "Alternativer Schaden",
+    "fr": "Degats alternatifs",
+    "es": "Dano alternativo"
+  },
+  "inventory_add_alternate_damage": {
+    "en": "Add alternate damage",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0430\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432\u043d\u044b\u0439 \u0443\u0440\u043e\u043d",
+    "de": "Alternativen Schaden hinzufuegen",
+    "fr": "Ajouter des degats alternatifs",
+    "es": "Agregar dano alternativo"
+  },
+  "inventory_remove_alternate_damage": {
+    "en": "Remove alternate damage",
+    "ru": "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0430\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432\u043d\u044b\u0439 \u0443\u0440\u043e\u043d",
+    "de": "Alternativen Schaden entfernen",
+    "fr": "Supprimer les degats alternatifs",
+    "es": "Eliminar dano alternativo"
+  },
+  "inventory_damage_type_placeholder": {
+    "en": "Tap to choose damage type",
+    "ru": "\u041d\u0430\u0436\u043c\u0438\u0442\u0435, \u0447\u0442\u043e\u0431\u044b \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0442\u0438\u043f \u0443\u0440\u043e\u043d\u0430",
+    "de": "Tippen, um Schadensart zu waehlen",
+    "fr": "Touchez pour choisir le type de degats",
+    "es": "Toca para elegir el tipo de dano"
+  },
+  "inventory_field_two_handed_damage_dice": {
+    "en": "Two-handed damage dice",
+    "ru": "\u041a\u0443\u0431\u044b \u0443\u0440\u043e\u043d\u0430 (\u0434\u0432\u0443\u0440\u0443\u0447\u043d\u044b\u0439 \u0445\u0432\u0430\u0442)",
+    "de": "Schadenswuerfel zweihandig",
+    "fr": "Des de degats a deux mains",
+    "es": "Dados de dano a dos manos"
+  },
+  "inventory_field_two_handed_damage_type": {
+    "en": "Two-handed damage type",
+    "ru": "\u0422\u0438\u043f \u0443\u0440\u043e\u043d\u0430 (\u0434\u0432\u0443\u0440\u0443\u0447\u043d\u044b\u0439 \u0445\u0432\u0430\u0442)",
+    "de": "Schadensart zweihandig",
+    "fr": "Type de degats a deux mains",
+    "es": "Tipo de dano a dos manos"
+  },
+  "inventory_currency_edit_title": {
+    "en": "Edit currency",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u0430\u043b\u044e\u0442\u0443",
+    "de": "Waehrung bearbeiten",
+    "fr": "Modifier la monnaie",
+    "es": "Editar moneda"
+  },
+  "inventory_currency_cp": {
+    "en": "Copper pieces",
+    "ru": "\u041c\u0435\u0434\u043d\u044b\u0435 \u043c\u043e\u043d\u0435\u0442\u044b",
+    "de": "Kupfermuenzen",
+    "fr": "Pieces de cuivre",
+    "es": "Monedas de cobre"
+  },
+  "inventory_currency_sp": {
+    "en": "Silver pieces",
+    "ru": "\u0421\u0435\u0440\u0435\u0431\u0440\u044f\u043d\u044b\u0435 \u043c\u043e\u043d\u0435\u0442\u044b",
+    "de": "Silbermuenzen",
+    "fr": "Pieces d'argent",
+    "es": "Monedas de plata"
+  },
+  "inventory_currency_gp": {
+    "en": "Gold pieces",
+    "ru": "\u0417\u043e\u043b\u043e\u0442\u044b\u0435 \u043c\u043e\u043d\u0435\u0442\u044b",
+    "de": "Goldmuenzen",
+    "fr": "Pieces d'or",
+    "es": "Monedas de oro"
   },
   "overview_ac_base": {
     "en": "Base AC",

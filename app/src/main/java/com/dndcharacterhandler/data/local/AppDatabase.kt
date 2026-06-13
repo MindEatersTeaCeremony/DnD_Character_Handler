@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 14,
+    version = 20,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -58,7 +58,13 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_10_11,
                     MIGRATION_11_12,
                     MIGRATION_12_13,
-                    MIGRATION_13_14
+                    MIGRATION_13_14,
+                    MIGRATION_14_15,
+                    MIGRATION_15_16,
+                    MIGRATION_16_17,
+                    MIGRATION_17_18,
+                    MIGRATION_18_19,
+                    MIGRATION_19_20
                 ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
@@ -153,6 +159,52 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE characters ADD COLUMN baseArmorClass INTEGER NOT NULL DEFAULT 10")
                 db.execSQL("ALTER TABLE characters ADD COLUMN armorClassMode TEXT NOT NULL DEFAULT 'AUTOMATIC'")
+            }
+        }
+
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponClass TEXT")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponRangeType TEXT")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponNormalRange INTEGER")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponLongRange INTEGER")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponPrimaryDamageDice TEXT")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponPrimaryDamageType TEXT")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponTwoHandedDamageDice TEXT")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponTwoHandedDamageType TEXT")
+            }
+        }
+
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN copperPieces INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN silverPieces INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN goldPieces INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponProperties TEXT")
+            }
+        }
+
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN isMagical INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN weaponBaseId TEXT")
+            }
+        }
+
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN initiativeBonus INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

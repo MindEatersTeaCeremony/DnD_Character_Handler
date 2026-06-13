@@ -7,8 +7,10 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import androidx.room.Embedded
 import com.dndcharacterhandler.domain.model.ArmorClassMode
-import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryArmorType
+import com.dndcharacterhandler.domain.model.InventoryCategory
+import com.dndcharacterhandler.domain.model.InventoryWeaponClass
+import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 
 @Entity(tableName = "characters")
 data class CharacterEntity(
@@ -28,8 +30,12 @@ data class CharacterEntity(
     val armorClass: Int,
     val baseArmorClass: Int,
     val armorClassMode: ArmorClassMode,
+    val copperPieces: Int,
+    val silverPieces: Int,
+    val goldPieces: Int,
     val speed: Int,
     val initiative: Int,
+    val initiativeBonus: Int,
     val experience: Int,
     val strength: Int,
     val dexterity: Int,
@@ -148,6 +154,8 @@ data class InventoryItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val characterOwnerId: Long,
     val name: String,
+    val description: String,
+    val isMagical: Boolean,
     val category: InventoryCategory,
     val weight: Double,
     val quantity: Int,
@@ -160,7 +168,17 @@ data class InventoryItemEntity(
     val appliesDexterityBonus: Boolean?,
     val maxDexterityBonus: Int?,
     val strengthMinimum: Int?,
-    val hasStealthDisadvantage: Boolean?
+    val hasStealthDisadvantage: Boolean?,
+    val weaponClass: InventoryWeaponClass?,
+    val weaponRangeType: InventoryWeaponRangeType?,
+    val weaponBaseId: String?,
+    val weaponNormalRange: Int?,
+    val weaponLongRange: Int?,
+    val weaponPrimaryDamageDice: String?,
+    val weaponPrimaryDamageType: String?,
+    val weaponTwoHandedDamageDice: String?,
+    val weaponTwoHandedDamageType: String?,
+    val weaponProperties: String?
 )
 
 @Entity(

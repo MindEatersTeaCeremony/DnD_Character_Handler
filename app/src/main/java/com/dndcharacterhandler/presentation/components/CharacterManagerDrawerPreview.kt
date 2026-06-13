@@ -114,6 +114,7 @@ private fun previewCharacterBundle(
             armorClassMode = ArmorClassMode.AUTOMATIC,
             speed = 30,
             initiative = 0,
+            initiativeBonus = 0,
             experience = 0,
             strength = 10,
             dexterity = 10,

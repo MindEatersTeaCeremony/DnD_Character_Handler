@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -256,15 +257,40 @@ class OverviewViewModel(
         }
     }
 
-    fun updateInitiative(characterBundle: CharacterBundle, initiative: Int) {
+    fun syncAutomaticArmorClass(characterBundle: CharacterBundle) {
         val current = characterBundle.character
-        if (initiative == current.initiative) return
+        if (current.armorClassMode != ArmorClassMode.AUTOMATIC) return
+
+        val recalculatedArmorClass = calculateArmorClass(
+            baseArmorClass = current.baseArmorClass,
+            dexterityScore = current.dexterity,
+            inventoryItems = characterBundle.inventoryItems
+        )
+        if (recalculatedArmorClass == current.armorClass) return
 
         viewModelScope.launch {
             characterRepository.upsertCharacter(
                 characterBundle.copy(
                     character = current.copy(
-                        initiative = initiative,
+                        armorClass = recalculatedArmorClass,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            )
+        }
+    }
+
+    fun updateInitiative(characterBundle: CharacterBundle, initiativeBonus: Int) {
+        val current = characterBundle.character
+        val recalculatedInitiative = calculateInitiative(current.dexterity, initiativeBonus)
+        if (initiativeBonus == current.initiativeBonus && recalculatedInitiative == current.initiative) return
+
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = current.copy(
+                        initiative = recalculatedInitiative,
+                        initiativeBonus = initiativeBonus,
                         updatedAt = System.currentTimeMillis()
                     )
                 )
@@ -420,6 +446,9 @@ fun OverviewScreen(
     onOpenSettings: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(state.character) {
+        state.character?.let(viewModel::syncAutomaticArmorClass)
+    }
     OverviewContent(
         characterBundle = state.character,
         onOpenDrawer = onOpenDrawer,
@@ -493,7 +522,7 @@ private fun OverviewContent(
     var isMaxHpDialogOpen by remember { mutableStateOf(false) }
     var maxHpDraft by remember(character?.id, character?.maxHp) { mutableStateOf("") }
     var activeMiniStatField by remember { mutableStateOf<OverviewMiniStatField?>(null) }
-    var miniStatDraft by remember(character?.id, character?.armorClass, character?.initiative, character?.speed) {
+    var miniStatDraft by remember(character?.id, character?.armorClass, character?.initiativeBonus, character?.speed) {
         mutableStateOf("")
     }
     var armorClassBaseDraft by remember(character?.id, character?.baseArmorClass) { mutableStateOf("") }
@@ -531,7 +560,7 @@ private fun OverviewContent(
         ),
         OverviewStat(
             labelKey = "overview_initiative",
-            value = signed(character?.initiative ?: 0),
+            value = signed(calculateInitiative(character?.dexterity ?: 10, character?.initiativeBonus ?: 0)),
             icon = Icons.Outlined.FlashOn,
             field = OverviewMiniStatField.INITIATIVE
         ),
@@ -692,7 +721,7 @@ private fun OverviewContent(
                                 activeMiniStatField = stat.field
                                 miniStatDraft = when (stat.field) {
                                     OverviewMiniStatField.ARMOR_CLASS -> (character?.armorClass ?: 10).toString()
-                                    OverviewMiniStatField.INITIATIVE -> (character?.initiative ?: 0).toString()
+                                    OverviewMiniStatField.INITIATIVE -> (character?.initiativeBonus ?: 0).toString()
                                     OverviewMiniStatField.SPEED -> (character?.speed ?: 30).toString()
                                 }
                                 if (stat.field == OverviewMiniStatField.ARMOR_CLASS) {
@@ -1076,29 +1105,53 @@ private fun OverviewContent(
                         }
                     }
                 } else {
-                    OutlinedTextField(
-                        value = miniStatDraft,
-                        onValueChange = { value ->
-                            miniStatDraft = if (isSigned) {
-                                sanitizeSignedIntegerInput(value)
-                            } else {
-                                value.filter(Char::isDigit)
-                            }
-                        },
-                        singleLine = true,
-                        label = {
+                    if (field == OverviewMiniStatField.INITIATIVE) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
-                                when (field) {
-                                    OverviewMiniStatField.ARMOR_CLASS -> text("overview_ac_full")
-                                    OverviewMiniStatField.INITIATIVE -> text("overview_initiative")
-                                    OverviewMiniStatField.SPEED -> text("overview_speed")
-                                }
+                                text = strings.format(
+                                    "overview_initiative_base_value",
+                                    signed(abilityModifier(characterBundle.character.dexterity))
+                                ),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color(0xFFD2CAC2)
                             )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = if (isSigned) KeyboardType.Text else KeyboardType.Number
+                            OutlinedTextField(
+                                value = miniStatDraft,
+                                onValueChange = { value ->
+                                    miniStatDraft = sanitizeSignedIntegerInput(value)
+                                },
+                                singleLine = true,
+                                label = { Text(text("overview_initiative_bonus")) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                            )
+                            Text(
+                                text = strings.format(
+                                    "overview_initiative_result",
+                                    signed(calculateInitiative(characterBundle.character.dexterity, parsedValue))
+                                ),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color(0xFFF7F2EA)
+                            )
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = miniStatDraft,
+                            onValueChange = { value ->
+                                miniStatDraft = value.filter(Char::isDigit)
+                            },
+                            singleLine = true,
+                            label = {
+                                Text(
+                                    when (field) {
+                                        OverviewMiniStatField.ARMOR_CLASS -> text("overview_ac_full")
+                                        OverviewMiniStatField.INITIATIVE -> text("overview_initiative")
+                                        OverviewMiniStatField.SPEED -> text("overview_speed")
+                                    }
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
-                    )
+                    }
                 }
             },
             confirmButton = {
@@ -1944,6 +1997,11 @@ private fun signed(value: Int?): String {
     return if (value >= 0) "+$value" else value.toString()
 }
 
+private fun abilityModifier(score: Int): Int = Math.floorDiv(score - 10, 2)
+
+private fun calculateInitiative(dexterityScore: Int, initiativeBonus: Int): Int =
+    abilityModifier(dexterityScore) + initiativeBonus
+
 private fun sanitizeSignedIntegerInput(value: String): String {
     val sign = value.firstOrNull()?.takeIf { it == '-' || it == '+' }?.toString().orEmpty()
     val digits = value.drop(if (sign.isEmpty()) 0 else 1).filter(Char::isDigit)
@@ -2064,6 +2122,9 @@ private fun OverviewScreenPreview() {
             "overview_ac_mode_manual_hint" to "Enter the armor class value yourself and stop automatic recalculation.",
             "overview_edit_ac_title" to "Edit Armor Class",
             "overview_edit_initiative_title" to "Edit Initiative",
+            "overview_initiative_bonus" to "Initiative bonus",
+            "overview_initiative_base_value" to "Dexterity modifier: %1\$s",
+            "overview_initiative_result" to "Result: %1\$s",
             "overview_edit_speed_title" to "Edit Speed",
             "common_save" to "Save",
             "common_cancel" to "Cancel",
@@ -2089,6 +2150,7 @@ private fun OverviewScreenPreview() {
         armorClassMode = ArmorClassMode.AUTOMATIC,
         speed = 30,
         initiative = 3,
+        initiativeBonus = 0,
         experience = 23500,
         strength = 8,
         dexterity = 16,

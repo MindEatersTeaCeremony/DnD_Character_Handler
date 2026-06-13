@@ -11,6 +11,11 @@ import com.dndcharacterhandler.domain.model.InventoryArmorDetails
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryItem
+import com.dndcharacterhandler.domain.model.InventoryWeaponClass
+import com.dndcharacterhandler.domain.model.InventoryWeaponDamage
+import com.dndcharacterhandler.domain.model.InventoryWeaponDetails
+import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
+import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 import com.dndcharacterhandler.domain.model.Note
 import com.dndcharacterhandler.domain.model.Skill
 import com.dndcharacterhandler.domain.model.Spell
@@ -18,7 +23,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-private const val SCHEMA_VERSION = 2
+private const val SCHEMA_VERSION = 7
 
 data class ImportedArchive(
     val characterBundle: CharacterBundle,
@@ -46,8 +51,12 @@ fun CharacterBundle.toArchiveManifest(
         put("armorClass", character.armorClass)
         put("baseArmorClass", character.baseArmorClass)
         put("armorClassMode", character.armorClassMode.name)
+        put("copperPieces", character.copperPieces)
+        put("silverPieces", character.silverPieces)
+        put("goldPieces", character.goldPieces)
         put("speed", character.speed)
         put("initiative", character.initiative)
+        put("initiativeBonus", character.initiativeBonus)
         put("experience", character.experience)
         put("strength", character.strength)
         put("dexterity", character.dexterity)
@@ -118,6 +127,8 @@ fun CharacterBundle.toArchiveManifest(
         put("inventoryItems", JSONArray(inventoryItems.mapIndexed { index, item ->
             JSONObject().apply {
                 put("name", item.name)
+                put("description", item.description)
+                put("isMagical", item.isMagical)
                 put("category", item.category.name)
                 put("weight", item.weight)
                 put("quantity", item.quantity)
@@ -126,6 +137,7 @@ fun CharacterBundle.toArchiveManifest(
                 put("costQuantity", item.costQuantity)
                 put("costUnit", item.costUnit)
                 put("armorDetails", item.armorDetails?.toJson())
+                put("weaponDetails", item.weaponDetails?.toJson())
             }
         }))
         put("spells", JSONArray(spells.map { spell ->
@@ -186,8 +198,12 @@ fun archiveManifestToCharacterBundle(
             .takeIf { it.isNotBlank() }
             ?.let(ArmorClassMode::valueOf)
             ?: ArmorClassMode.AUTOMATIC,
+        copperPieces = characterJson.optInt("copperPieces").coerceAtLeast(0),
+        silverPieces = characterJson.optInt("silverPieces").coerceAtLeast(0),
+        goldPieces = characterJson.optInt("goldPieces").coerceAtLeast(0),
         speed = characterJson.optInt("speed"),
         initiative = characterJson.optInt("initiative"),
+        initiativeBonus = characterJson.optInt("initiativeBonus"),
         experience = characterJson.optInt("experience"),
         strength = characterJson.optInt("strength"),
         dexterity = characterJson.optInt("dexterity"),
@@ -283,6 +299,8 @@ private fun JSONArray.toInventoryItemList(resolveAssetReference: (String?) -> St
         getJSONObject(index).let { json ->
             InventoryItem(
                 name = json.optString("name"),
+                description = json.optString("description"),
+                isMagical = json.optBoolean("isMagical", false),
                 category = InventoryCategory.valueOf(json.optString("category")),
                 weight = json.optDouble("weight"),
                 quantity = json.optInt("quantity"),
@@ -290,7 +308,8 @@ private fun JSONArray.toInventoryItemList(resolveAssetReference: (String?) -> St
                 icon = resolveAssetReference(json.optNullableString("icon")).orEmpty(),
                 costQuantity = json.optNullableInt("costQuantity"),
                 costUnit = json.optNullableString("costUnit"),
-                armorDetails = json.optJSONObject("armorDetails")?.toArmorDetails()
+                armorDetails = json.optJSONObject("armorDetails")?.toArmorDetails(),
+                weaponDetails = json.optJSONObject("weaponDetails")?.toWeaponDetails()
             )
         }
     }
@@ -313,6 +332,57 @@ private fun JSONObject.toArmorDetails(): InventoryArmorDetails =
         maxDexterityBonus = optNullableInt("maxDexterityBonus"),
         strengthMinimum = optInt("strengthMinimum"),
         hasStealthDisadvantage = optBoolean("hasStealthDisadvantage")
+    )
+
+private fun InventoryWeaponDetails.toJson(): JSONObject =
+    JSONObject().apply {
+        put("weaponClass", weaponClass.name)
+        put("rangeType", rangeType.name)
+        put("baseWeaponId", baseWeaponId)
+        put("normalRange", normalRange)
+        put("longRange", longRange)
+        put("damages", JSONArray(damages.map { damage ->
+            JSONObject().apply {
+                put("dice", damage.dice)
+                put("damageType", damage.damageType)
+            }
+        }))
+        put("twoHandedDamage", twoHandedDamage?.let { damage ->
+            JSONObject().apply {
+                put("dice", damage.dice)
+                put("damageType", damage.damageType)
+            }
+        })
+        put("properties", JSONArray(properties.map(InventoryWeaponProperty::name)))
+    }
+
+private fun JSONObject.toWeaponDetails(): InventoryWeaponDetails =
+    InventoryWeaponDetails(
+        weaponClass = InventoryWeaponClass.valueOf(optString("weaponClass")),
+        rangeType = InventoryWeaponRangeType.valueOf(optString("rangeType")),
+        baseWeaponId = optNullableString("baseWeaponId"),
+        normalRange = optNullableInt("normalRange"),
+        longRange = optNullableInt("longRange"),
+        damages = optJSONArray("damages")?.toWeaponDamageList().orEmpty(),
+        twoHandedDamage = optJSONObject("twoHandedDamage")?.toWeaponDamage(),
+        properties = optJSONArray("properties")
+            ?.let { array ->
+                (0 until array.length()).mapNotNull { index ->
+                    array.optString(index).takeIf { it.isNotBlank() }?.let(InventoryWeaponProperty::valueOf)
+                }.toSet()
+            }
+            ?: emptySet()
+    )
+
+private fun JSONArray.toWeaponDamageList(): List<InventoryWeaponDamage> =
+    (0 until length()).map { index ->
+        getJSONObject(index).toWeaponDamage()
+    }
+
+private fun JSONObject.toWeaponDamage(): InventoryWeaponDamage =
+    InventoryWeaponDamage(
+        dice = optString("dice"),
+        damageType = optString("damageType")
     )
 
 private fun JSONArray.toSpellList(): List<Spell> =

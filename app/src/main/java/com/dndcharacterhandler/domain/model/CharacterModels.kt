@@ -19,8 +19,12 @@ data class Character(
     val armorClass: Int,
     val baseArmorClass: Int,
     val armorClassMode: ArmorClassMode,
+    val copperPieces: Int = 0,
+    val silverPieces: Int = 0,
+    val goldPieces: Int = 0,
     val speed: Int,
     val initiative: Int,
+    val initiativeBonus: Int = 0,
     val experience: Int,
     val strength: Int,
     val dexterity: Int,
@@ -94,6 +98,19 @@ data class CombatResource(
 )
 enum class InventoryCategory { WEAPON, ARMOR, CONSUMABLE, OTHER }
 enum class InventoryArmorType { LIGHT, MEDIUM, HEAVY, SHIELD }
+enum class InventoryWeaponClass { SIMPLE, MARTIAL }
+enum class InventoryWeaponRangeType { MELEE, RANGED }
+enum class InventoryWeaponProperty {
+    AMMUNITION,
+    FINESSE,
+    HEAVY,
+    LIGHT,
+    LOADING,
+    REACH,
+    THROWN,
+    TWO_HANDED,
+    VERSATILE
+}
 
 data class InventoryArmorDetails(
     val armorType: InventoryArmorType,
@@ -104,9 +121,27 @@ data class InventoryArmorDetails(
     val hasStealthDisadvantage: Boolean
 )
 
+data class InventoryWeaponDamage(
+    val dice: String,
+    val damageType: String
+)
+
+data class InventoryWeaponDetails(
+    val weaponClass: InventoryWeaponClass,
+    val rangeType: InventoryWeaponRangeType,
+    val baseWeaponId: String? = null,
+    val normalRange: Int?,
+    val longRange: Int?,
+    val damages: List<InventoryWeaponDamage>,
+    val twoHandedDamage: InventoryWeaponDamage? = null,
+    val properties: Set<InventoryWeaponProperty> = emptySet()
+)
+
 data class InventoryItem(
     val id: Long = 0,
     val name: String,
+    val description: String = "",
+    val isMagical: Boolean = false,
     val category: InventoryCategory,
     val weight: Double,
     val quantity: Int,
@@ -114,7 +149,8 @@ data class InventoryItem(
     val icon: String,
     val costQuantity: Int? = null,
     val costUnit: String? = null,
-    val armorDetails: InventoryArmorDetails? = null
+    val armorDetails: InventoryArmorDetails? = null,
+    val weaponDetails: InventoryWeaponDetails? = null
 )
 data class Spell(
     val id: Long = 0,
@@ -164,8 +200,12 @@ fun defaultCharacterBundle(now: Long = System.currentTimeMillis()): CharacterBun
             armorClass = 10,
             baseArmorClass = 10,
             armorClassMode = ArmorClassMode.AUTOMATIC,
+            copperPieces = 0,
+            silverPieces = 0,
+            goldPieces = 0,
             speed = 30,
             initiative = 0,
+            initiativeBonus = 0,
             experience = 0,
             strength = 10,
             dexterity = 10,

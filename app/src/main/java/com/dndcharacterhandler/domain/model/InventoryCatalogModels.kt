@@ -8,15 +8,19 @@ data class InventoryCatalogItem(
     val category: InventoryCategory,
     val weight: Double,
     val description: String,
+    val isMagical: Boolean = false,
     val source: InventoryCatalogSource,
     val detailLine: String? = null,
     val costQuantity: Int? = null,
     val costUnit: String? = null,
-    val armorDetails: InventoryArmorDetails? = null
+    val armorDetails: InventoryArmorDetails? = null,
+    val weaponDetails: InventoryWeaponDetails? = null
 ) {
     fun toInventoryItem(): InventoryItem =
         InventoryItem(
             name = name,
+            description = description,
+            isMagical = isMagical,
             category = category,
             weight = weight,
             quantity = 1,
@@ -24,6 +28,7 @@ data class InventoryCatalogItem(
             icon = "",
             costQuantity = costQuantity,
             costUnit = costUnit,
-            armorDetails = armorDetails
+            armorDetails = armorDetails,
+            weaponDetails = weaponDetails
         )
 }

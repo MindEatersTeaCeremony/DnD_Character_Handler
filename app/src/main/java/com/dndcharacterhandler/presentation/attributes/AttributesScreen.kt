@@ -57,9 +57,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.ArmorClassMode
+import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.InventoryArmorDetails
+import com.dndcharacterhandler.domain.model.InventoryArmorType
+import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.Skill
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
@@ -97,9 +100,20 @@ class AttributesViewModel(
         if (updated == current) return
 
         viewModelScope.launch {
+            val updatedCharacter = if (ability == AbilityType.DEXTERITY && current.armorClassMode == ArmorClassMode.AUTOMATIC) {
+                updated.copy(
+                    armorClass = calculateArmorClass(
+                        baseArmorClass = current.baseArmorClass,
+                        dexterityScore = sanitizedValue,
+                        inventoryItems = characterBundle.inventoryItems
+                    )
+                )
+            } else {
+                updated
+            }
             characterRepository.upsertCharacter(
                 characterBundle.copy(
-                    character = updated.copy(updatedAt = System.currentTimeMillis())
+                    character = updatedCharacter.copy(updatedAt = System.currentTimeMillis())
                 )
             )
         }
@@ -1619,6 +1633,7 @@ internal fun previewFallbackCharacter(): Character =
         armorClassMode = ArmorClassMode.AUTOMATIC,
         speed = 30,
         initiative = 0,
+        initiativeBonus = 0,
         experience = 0,
         strength = 10,
         dexterity = 16,
@@ -1656,3 +1671,30 @@ internal fun previewFallbackCharacter(): Character =
         createdAt = 0L,
         updatedAt = 0L
     )
+
+private fun calculateArmorClass(
+    baseArmorClass: Int,
+    dexterityScore: Int,
+    inventoryItems: List<InventoryItem>
+): Int {
+    val dexterityModifier = Math.floorDiv(dexterityScore - 10, 2)
+    val equippedArmor = inventoryItems.firstOrNull {
+        it.isEquipped && it.armorDetails?.armorType != null && it.armorDetails.armorType != InventoryArmorType.SHIELD
+    }?.armorDetails
+    val equippedShield = inventoryItems.firstOrNull {
+        it.isEquipped && it.armorDetails?.armorType == InventoryArmorType.SHIELD
+    }?.armorDetails
+
+    val effectiveArmorClass = if (equippedArmor != null) {
+        equippedArmor.armorClass + equippedArmor.appliedDexterityModifier(dexterityModifier)
+    } else {
+        baseArmorClass + dexterityModifier
+    }
+
+    return (effectiveArmorClass + (equippedShield?.armorClass ?: 0)).coerceAtLeast(1)
+}
+
+private fun InventoryArmorDetails.appliedDexterityModifier(dexterityModifier: Int): Int {
+    if (!appliesDexterityBonus) return 0
+    return maxDexterityBonus?.let { dexterityModifier.coerceAtMost(it) } ?: dexterityModifier
+}

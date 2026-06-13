@@ -4,6 +4,8 @@ import androidx.room.TypeConverter
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
+import com.dndcharacterhandler.domain.model.InventoryWeaponClass
+import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 
 class RoomConverters {
     @TypeConverter
@@ -26,4 +28,18 @@ class RoomConverters {
     @TypeConverter
     fun toInventoryArmorType(value: String?): InventoryArmorType? =
         value?.let(InventoryArmorType::valueOf)
+
+    @TypeConverter
+    fun fromInventoryWeaponClass(value: InventoryWeaponClass?): String? = value?.name
+
+    @TypeConverter
+    fun toInventoryWeaponClass(value: String?): InventoryWeaponClass? =
+        value?.let(InventoryWeaponClass::valueOf)
+
+    @TypeConverter
+    fun fromInventoryWeaponRangeType(value: InventoryWeaponRangeType?): String? = value?.name
+
+    @TypeConverter
+    fun toInventoryWeaponRangeType(value: String?): InventoryWeaponRangeType? =
+        value?.let(InventoryWeaponRangeType::valueOf)
 }

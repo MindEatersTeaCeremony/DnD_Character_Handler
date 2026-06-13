@@ -17,6 +17,9 @@ import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.Feature
 import com.dndcharacterhandler.domain.model.InventoryArmorDetails
 import com.dndcharacterhandler.domain.model.InventoryItem
+import com.dndcharacterhandler.domain.model.InventoryWeaponDamage
+import com.dndcharacterhandler.domain.model.InventoryWeaponDetails
+import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
 import com.dndcharacterhandler.domain.model.Note
 import com.dndcharacterhandler.domain.model.Skill
 import com.dndcharacterhandler.domain.model.Spell
@@ -27,10 +30,12 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
         skills = skills.map { Skill(it.id, it.name, it.isProficient, it.isExpertise, it.hasJackOfAllTrades) },
         attacks = attacks.map { Attack(it.id, it.name, it.icon, it.range, it.attackBonusOrSaveDc, it.damage, it.damageType) },
         combatResources = combatResources.map { CombatResource(it.id, it.name, it.currentUses, it.maximumUses) },
-        inventoryItems = inventoryItems.map {
+        inventoryItems = inventoryItems.sortedBy { it.id }.map {
             InventoryItem(
                 id = it.id,
                 name = it.name,
+                description = it.description,
+                isMagical = it.isMagical,
                 category = it.category,
                 weight = it.weight,
                 quantity = it.quantity,
@@ -46,6 +51,43 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
                         maxDexterityBonus = it.maxDexterityBonus,
                         strengthMinimum = it.strengthMinimum,
                         hasStealthDisadvantage = it.hasStealthDisadvantage
+                    )
+                } else {
+                    null
+                },
+                weaponDetails = if (
+                    it.weaponClass != null &&
+                    it.weaponRangeType != null &&
+                    it.weaponPrimaryDamageDice != null &&
+                    it.weaponPrimaryDamageType != null
+                ) {
+                    InventoryWeaponDetails(
+                        weaponClass = it.weaponClass,
+                        rangeType = it.weaponRangeType,
+                        baseWeaponId = it.weaponBaseId,
+                        normalRange = it.weaponNormalRange,
+                        longRange = it.weaponLongRange,
+                        damages = listOf(
+                            InventoryWeaponDamage(
+                                dice = it.weaponPrimaryDamageDice,
+                                damageType = it.weaponPrimaryDamageType
+                            )
+                        ),
+                        twoHandedDamage = if (it.weaponTwoHandedDamageDice != null && it.weaponTwoHandedDamageType != null) {
+                            InventoryWeaponDamage(
+                                dice = it.weaponTwoHandedDamageDice,
+                                damageType = it.weaponTwoHandedDamageType
+                            )
+                        } else {
+                            null
+                        },
+                        properties = it.weaponProperties
+                            .orEmpty()
+                            .split(',')
+                            .mapNotNull { value ->
+                                value.takeIf { it.isNotBlank() }?.let(InventoryWeaponProperty::valueOf)
+                            }
+                            .toSet()
                     )
                 } else {
                     null
@@ -75,8 +117,12 @@ fun CharacterEntity.toDomain(): Character =
         armorClass = armorClass,
         baseArmorClass = baseArmorClass,
         armorClassMode = armorClassMode,
+        copperPieces = copperPieces,
+        silverPieces = silverPieces,
+        goldPieces = goldPieces,
         speed = speed,
         initiative = initiative,
+        initiativeBonus = initiativeBonus,
         experience = experience,
         strength = strength,
         dexterity = dexterity,
@@ -133,8 +179,12 @@ fun Character.toEntity(): CharacterEntity =
         armorClass = armorClass,
         baseArmorClass = baseArmorClass,
         armorClassMode = armorClassMode,
+        copperPieces = copperPieces,
+        silverPieces = silverPieces,
+        goldPieces = goldPieces,
         speed = speed,
         initiative = initiative,
+        initiativeBonus = initiativeBonus,
         experience = experience,
         strength = strength,
         dexterity = dexterity,
@@ -194,6 +244,8 @@ fun InventoryItem.toEntity(characterId: Long): InventoryItemEntity =
         id = id,
         characterOwnerId = characterId,
         name = name,
+        description = description,
+        isMagical = isMagical,
         category = category,
         weight = weight,
         quantity = quantity,
@@ -206,7 +258,20 @@ fun InventoryItem.toEntity(characterId: Long): InventoryItemEntity =
         appliesDexterityBonus = armorDetails?.appliesDexterityBonus,
         maxDexterityBonus = armorDetails?.maxDexterityBonus,
         strengthMinimum = armorDetails?.strengthMinimum,
-        hasStealthDisadvantage = armorDetails?.hasStealthDisadvantage
+        hasStealthDisadvantage = armorDetails?.hasStealthDisadvantage,
+        weaponClass = weaponDetails?.weaponClass,
+        weaponRangeType = weaponDetails?.rangeType,
+        weaponBaseId = weaponDetails?.baseWeaponId,
+        weaponNormalRange = weaponDetails?.normalRange,
+        weaponLongRange = weaponDetails?.longRange,
+        weaponPrimaryDamageDice = weaponDetails?.damages?.firstOrNull()?.dice,
+        weaponPrimaryDamageType = weaponDetails?.damages?.firstOrNull()?.damageType,
+        weaponTwoHandedDamageDice = weaponDetails?.twoHandedDamage?.dice,
+        weaponTwoHandedDamageType = weaponDetails?.twoHandedDamage?.damageType,
+        weaponProperties = weaponDetails?.properties
+            ?.map(InventoryWeaponProperty::name)
+            ?.sorted()
+            ?.joinToString(",")
     )
 
 fun Spell.toEntity(characterId: Long): SpellEntity =

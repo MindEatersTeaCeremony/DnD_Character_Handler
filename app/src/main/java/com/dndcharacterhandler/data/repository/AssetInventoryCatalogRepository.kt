@@ -6,6 +6,11 @@ import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCatalogItem
 import com.dndcharacterhandler.domain.model.InventoryCatalogSource
 import com.dndcharacterhandler.domain.model.InventoryCategory
+import com.dndcharacterhandler.domain.model.InventoryWeaponClass
+import com.dndcharacterhandler.domain.model.InventoryWeaponDamage
+import com.dndcharacterhandler.domain.model.InventoryWeaponDetails
+import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
+import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 import com.dndcharacterhandler.domain.repository.InventoryCatalogRepository
 import org.json.JSONArray
 import org.json.JSONObject
@@ -49,6 +54,7 @@ class AssetInventoryCatalogRepository(
         val description = json.optString("description").ifBlank { detailLine }
         val cost = json.optJSONObject("cost")
         val armorDetails = json.toArmorDetails(categories)
+        val weaponDetails = json.toWeaponDetails(categories)
 
         return InventoryCatalogItem(
             id = "equipment:$id",
@@ -56,11 +62,13 @@ class AssetInventoryCatalogRepository(
             category = category,
             weight = weight,
             description = description,
+            isMagical = false,
             source = InventoryCatalogSource.EQUIPMENT,
             detailLine = detailLine.ifBlank { null },
             costQuantity = cost?.optInt("quantity")?.takeIf { it > 0 },
             costUnit = cost?.optString("unit")?.ifBlank { null },
-            armorDetails = armorDetails
+            armorDetails = armorDetails,
+            weaponDetails = weaponDetails
         )
     }
 
@@ -88,6 +96,7 @@ class AssetInventoryCatalogRepository(
             category = category,
             weight = 0.0,
             description = json.optString("desc"),
+            isMagical = true,
             source = InventoryCatalogSource.MAGIC_ITEM,
             detailLine = detailLine.ifBlank { null }
         )
@@ -137,6 +146,81 @@ class AssetInventoryCatalogRepository(
             else -> null
         }
     }
+
+    private fun JSONObject.toWeaponDetails(categories: JSONArray): InventoryWeaponDetails? {
+        val weaponClass = categories.toWeaponClass() ?: return null
+        val rangeType = categories.toWeaponRangeType() ?: return null
+        val baseDamage = optJSONObject("damage")?.toWeaponDamage() ?: return null
+        val range = preferredWeaponRange()
+        return InventoryWeaponDetails(
+            weaponClass = weaponClass,
+            rangeType = rangeType,
+            baseWeaponId = optString("index").ifBlank { null },
+            normalRange = range?.first,
+            longRange = range?.second,
+            damages = listOf(baseDamage),
+            twoHandedDamage = optJSONObject("two_handed_damage")?.toWeaponDamage(),
+            properties = optJSONArray("properties").toWeaponProperties()
+        )
+    }
+
+    private fun JSONArray.toWeaponClass(): InventoryWeaponClass? {
+        val names = (0 until length()).mapNotNull { index ->
+            optJSONObject(index)?.optString("name")?.takeIf { it.isNotBlank() }
+        }
+        return when {
+            names.any { it == "Simple Weapons" } -> InventoryWeaponClass.SIMPLE
+            names.any { it == "Martial Weapons" } -> InventoryWeaponClass.MARTIAL
+            else -> null
+        }
+    }
+
+    private fun JSONArray.toWeaponRangeType(): InventoryWeaponRangeType? {
+        val names = (0 until length()).mapNotNull { index ->
+            optJSONObject(index)?.optString("name")?.takeIf { it.isNotBlank() }
+        }
+        return when {
+            names.any { it == "Melee Weapons" || it.contains("Melee") } -> InventoryWeaponRangeType.MELEE
+            names.any { it == "Ranged Weapons" || it.contains("Ranged") } -> InventoryWeaponRangeType.RANGED
+            else -> null
+        }
+    }
+
+    private fun JSONObject.preferredWeaponRange(): Pair<Int?, Int?>? {
+        val thrownRange = optJSONObject("throw_range")
+        if (thrownRange != null) {
+            return thrownRange.optNullableInt("normal") to thrownRange.optNullableInt("long")
+        }
+        val range = optJSONObject("range") ?: return null
+        return range.optNullableInt("normal") to range.optNullableInt("long")
+    }
+
+    private fun JSONObject.toWeaponDamage(): InventoryWeaponDamage =
+        InventoryWeaponDamage(
+            dice = optString("damage_dice"),
+            damageType = optJSONObject("damage_type")?.optString("name").orEmpty()
+        )
+
+    private fun JSONArray?.toWeaponProperties(): Set<InventoryWeaponProperty> {
+        if (this == null) return emptySet()
+        return (0 until length()).mapNotNull { index ->
+            optJSONObject(index)?.optString("name")?.takeIf { it.isNotBlank() }?.toWeaponProperty()
+        }.toSet()
+    }
+
+    private fun String.toWeaponProperty(): InventoryWeaponProperty? =
+        when (this) {
+            "Ammunition" -> InventoryWeaponProperty.AMMUNITION
+            "Finesse" -> InventoryWeaponProperty.FINESSE
+            "Heavy" -> InventoryWeaponProperty.HEAVY
+            "Light" -> InventoryWeaponProperty.LIGHT
+            "Loading" -> InventoryWeaponProperty.LOADING
+            "Reach" -> InventoryWeaponProperty.REACH
+            "Thrown" -> InventoryWeaponProperty.THROWN
+            "Two-Handed" -> InventoryWeaponProperty.TWO_HANDED
+            "Versatile" -> InventoryWeaponProperty.VERSATILE
+            else -> null
+        }
 
     private fun buildEquipmentDetailLine(json: JSONObject): String {
         val parts = mutableListOf<String>()
