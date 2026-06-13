@@ -181,18 +181,10 @@ internal fun FeaturesContent(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
-                    ScreenTopActions(
-                        onOpenDrawer = onOpenDrawer,
-                        onOpenSettings = onOpenSettings
-                    )
-                }
-
-                item {
                     CharacterScreenHeader(
                         character = character,
                         onOpenDrawer = onOpenDrawer,
-                        onOpenSettings = onOpenSettings,
-                        showTopActions = false
+                        onOpenSettings = onOpenSettings
                     )
                 }
 
