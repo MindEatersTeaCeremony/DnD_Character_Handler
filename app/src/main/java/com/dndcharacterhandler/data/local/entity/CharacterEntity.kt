@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import androidx.room.Embedded
 import com.dndcharacterhandler.domain.model.ArmorClassMode
+import com.dndcharacterhandler.domain.model.FeatureSource
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryWeaponClass
@@ -220,7 +221,8 @@ data class FeatureEntity(
     val characterOwnerId: Long,
     val name: String,
     val description: String,
-    val resourceTracking: String?
+    val level: Int?,
+    val source: FeatureSource
 )
 
 @Entity(

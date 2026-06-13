@@ -1196,6 +1196,90 @@
     "fr": "This screen will later carry compact scan-friendly gameplay references.",
     "es": "This screen will later carry compact scan-friendly gameplay references."
   },
+  "features_search_placeholder": {
+    "en": "Search Features",
+    "ru": "\u041f\u043e\u0438\u0441\u043a \u043e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u0435\u0439",
+    "de": "Merkmale suchen",
+    "fr": "Rechercher des traits",
+    "es": "Buscar rasgos"
+  },
+  "features_untitled": {
+    "en": "Untitled Feature",
+    "ru": "\u0411\u0435\u0437 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f",
+    "de": "Unbenanntes Merkmal",
+    "fr": "Trait sans titre",
+    "es": "Rasgo sin titulo"
+  },
+  "features_edit_feature": {
+    "en": "Edit Feature",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u044c",
+    "de": "Merkmal bearbeiten",
+    "fr": "Modifier le trait",
+    "es": "Editar rasgo"
+  },
+  "features_name": {
+    "en": "Name",
+    "ru": "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435",
+    "de": "Name",
+    "fr": "Nom",
+    "es": "Nombre"
+  },
+  "features_description": {
+    "en": "Description",
+    "ru": "\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435",
+    "de": "Beschreibung",
+    "fr": "Description",
+    "es": "Descripcion"
+  },
+  "features_level": {
+    "en": "Level",
+    "ru": "\u0423\u0440\u043e\u0432\u0435\u043d\u044c",
+    "de": "Stufe",
+    "fr": "Niveau",
+    "es": "Nivel"
+  },
+  "features_resource_tracking": {
+    "en": "Resource tracking",
+    "ru": "\u041e\u0442\u0441\u043b\u0435\u0436\u0438\u0432\u0430\u043d\u0438\u0435 \u0440\u0435\u0441\u0443\u0440\u0441\u0430",
+    "de": "Ressourcenverfolgung",
+    "fr": "Suivi de ressource",
+    "es": "Seguimiento de recurso"
+  },
+  "features_source": {
+    "en": "Source",
+    "ru": "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a",
+    "de": "Quelle",
+    "fr": "Source",
+    "es": "Origen"
+  },
+  "features_source_race": {
+    "en": "Race",
+    "ru": "\u0420\u0430\u0441\u0430",
+    "de": "Volk",
+    "fr": "Race",
+    "es": "Raza"
+  },
+  "features_source_background": {
+    "en": "Background",
+    "ru": "\u041f\u0440\u043e\u0438\u0441\u0445\u043e\u0436\u0434\u0435\u043d\u0438\u0435",
+    "de": "Hintergrund",
+    "fr": "Historique",
+    "es": "Trasfondo"
+  },
+  "features_source_class": {
+    "en": "Class",
+    "ru": "\u041a\u043b\u0430\u0441\u0441",
+    "de": "Klasse",
+    "fr": "Classe",
+    "es": "Clase"
+  },
+  "features_source_other": {
+    "en": "Other",
+    "ru": "\u0414\u0440\u0443\u0433\u043e\u0435",
+    "de": "Sonstiges",
+    "fr": "Autre",
+    "es": "Otros"
+  },
   "biography_section_identity_title": {
     "en": "Identity",
     "ru": "Личность",

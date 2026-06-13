@@ -62,7 +62,11 @@ class MainActivity : ComponentActivity() {
                             selectedCharacterHolder = selectedCharacterHolder
                         ),
                         spellsViewModel = SpellsViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
-                        featuresViewModel = FeaturesViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
+                        featuresViewModel = FeaturesViewModel(
+                            characterRepository = characterRepository,
+                            getCharacterBundleUseCase = getCharacterBundleUseCase,
+                            selectedCharacterHolder = selectedCharacterHolder
+                        ),
                         biographyViewModel = BiographyViewModel(
                             characterRepository = characterRepository,
                             getCharacterBundleUseCase = getCharacterBundleUseCase,

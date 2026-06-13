@@ -160,11 +160,13 @@ data class Spell(
     val isPrepared: Boolean,
     val description: String
 )
+enum class FeatureSource { RACE, BACKGROUND, CLASS, OTHER }
 data class Feature(
     val id: Long = 0,
     val name: String,
     val description: String,
-    val resourceTracking: String?
+    val level: Int? = null,
+    val source: FeatureSource = FeatureSource.OTHER
 )
 data class Note(
     val id: Long = 0,

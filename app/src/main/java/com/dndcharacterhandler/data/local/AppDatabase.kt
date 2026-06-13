@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 20,
+    version = 23,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -64,7 +64,10 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_16_17,
                     MIGRATION_17_18,
                     MIGRATION_18_19,
-                    MIGRATION_19_20
+                    MIGRATION_19_20,
+                    MIGRATION_20_21,
+                    MIGRATION_21_22,
+                    MIGRATION_22_23
                 ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
@@ -205,6 +208,46 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_19_20 = object : Migration(19, 20) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE characters ADD COLUMN initiativeBonus INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE features ADD COLUMN source TEXT NOT NULL DEFAULT 'OTHER'")
+            }
+        }
+
+        private val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE features ADD COLUMN level INTEGER")
+            }
+        }
+
+        private val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS features_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterOwnerId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        level INTEGER,
+                        source TEXT NOT NULL,
+                        FOREIGN KEY(characterOwnerId) REFERENCES characters(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO features_new (id, characterOwnerId, name, description, level, source)
+                    SELECT id, characterOwnerId, name, description, level, source
+                    FROM features
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE features")
+                db.execSQL("ALTER TABLE features_new RENAME TO features")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_features_characterOwnerId ON features(characterOwnerId)")
             }
         }
     }

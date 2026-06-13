@@ -198,7 +198,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                                 SpellsScreen(appState.spellsViewModel)
                             }
                             composable(AppScreen.Features.route) {
-                                FeaturesScreen(appState.featuresViewModel)
+                                FeaturesScreen(
+                                    viewModel = appState.featuresViewModel,
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onOpenSettings = {}
+                                )
                             }
                             composable(AppScreen.Biography.route) {
                                 BiographyScreen(

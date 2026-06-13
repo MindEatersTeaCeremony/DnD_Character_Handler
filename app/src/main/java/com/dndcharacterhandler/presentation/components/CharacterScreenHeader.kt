@@ -37,6 +37,7 @@ fun CharacterScreenHeader(
     character: Character,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    showTopActions: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalDesignTokens.current.typography
@@ -49,11 +50,13 @@ fun CharacterScreenHeader(
             .fillMaxWidth()
             .height(96.dp)
     ) {
-        ScreenTopActions(
-            onOpenDrawer = onOpenDrawer,
-            onOpenSettings = onOpenSettings,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
+        if (showTopActions) {
+            ScreenTopActions(
+                onOpenDrawer = onOpenDrawer,
+                onOpenSettings = onOpenSettings,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()

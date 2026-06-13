@@ -7,6 +7,7 @@ import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.Feature
+import com.dndcharacterhandler.domain.model.FeatureSource
 import com.dndcharacterhandler.domain.model.InventoryArmorDetails
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
@@ -23,7 +24,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-private const val SCHEMA_VERSION = 7
+private const val SCHEMA_VERSION = 9
 
 data class ImportedArchive(
     val characterBundle: CharacterBundle,
@@ -153,7 +154,8 @@ fun CharacterBundle.toArchiveManifest(
             JSONObject().apply {
                 put("name", feature.name)
                 put("description", feature.description)
-                put("resourceTracking", feature.resourceTracking)
+                put("level", feature.level)
+                put("source", feature.source.name)
             }
         }))
         put("notes", JSONArray(notes.map { note ->
@@ -404,7 +406,15 @@ private fun JSONArray.toFeatureList(): List<Feature> =
             Feature(
                 name = json.optString("name"),
                 description = json.optString("description"),
-                resourceTracking = json.optNullableString("resourceTracking")
+                level = json.optNullableInt("level")
+                    ?: json.optNullableString("resourceTracking")
+                        ?.substringBefore('/')
+                        ?.trim()
+                        ?.toIntOrNull(),
+                source = json.optString("source")
+                    .takeIf { it.isNotBlank() }
+                    ?.let { runCatching { FeatureSource.valueOf(it) }.getOrDefault(FeatureSource.OTHER) }
+                    ?: FeatureSource.OTHER
             )
         }
     }
