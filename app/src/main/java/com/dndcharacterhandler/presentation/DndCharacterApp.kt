@@ -126,6 +126,7 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                     if (
                         currentRoute != AppScreen.Overview.route &&
                         currentRoute != AppScreen.Attributes.route &&
+                        currentRoute != AppScreen.Combat.route &&
                         currentRoute != AppScreen.Inventory.route &&
                         currentRoute != AppScreen.Features.route &&
                         currentRoute != AppScreen.Biography.route &&
@@ -186,7 +187,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                                 )
                             }
                             composable(AppScreen.Combat.route) {
-                                CombatScreen(appState.combatViewModel)
+                                CombatScreen(
+                                    viewModel = appState.combatViewModel,
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onOpenSettings = {}
+                                )
                             }
                             composable(AppScreen.Inventory.route) {
                                 InventoryScreen(

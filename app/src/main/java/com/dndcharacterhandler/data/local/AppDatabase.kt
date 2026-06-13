@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 23,
+    version = 26,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -67,7 +67,10 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_19_20,
                     MIGRATION_20_21,
                     MIGRATION_21_22,
-                    MIGRATION_22_23
+                    MIGRATION_22_23,
+                    MIGRATION_23_24,
+                    MIGRATION_24_25,
+                    MIGRATION_25_26
                 ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
@@ -248,6 +251,25 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("DROP TABLE features")
                 db.execSQL("ALTER TABLE features_new RENAME TO features")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_features_characterOwnerId ON features(characterOwnerId)")
+            }
+        }
+
+        private val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE combat_resources ADD COLUMN restoresOnShortRest INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE combat_resources ADD COLUMN restoresOnLongRest INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN spellcastingAbility TEXT NOT NULL DEFAULT 'WISDOM'")
+            }
+        }
+
+        private val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE inventory_items ADD COLUMN magicalBonus INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

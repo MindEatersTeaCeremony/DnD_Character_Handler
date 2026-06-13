@@ -1,6 +1,7 @@
 package com.dndcharacterhandler.domain.model
 
 enum class ArmorClassMode { AUTOMATIC, MANUAL }
+enum class SpellcastingAbility { STRENGTH, DEXTERITY, CONSTITUTION, INTELLIGENCE, WISDOM, CHARISMA }
 
 data class Character(
     val id: Long = 0,
@@ -25,6 +26,7 @@ data class Character(
     val speed: Int,
     val initiative: Int,
     val initiativeBonus: Int = 0,
+    val spellcastingAbility: SpellcastingAbility = SpellcastingAbility.WISDOM,
     val experience: Int,
     val strength: Int,
     val dexterity: Int,
@@ -94,7 +96,9 @@ data class CombatResource(
     val id: Long = 0,
     val name: String,
     val currentUses: Int,
-    val maximumUses: Int
+    val maximumUses: Int,
+    val restoresOnShortRest: Boolean = false,
+    val restoresOnLongRest: Boolean = false
 )
 enum class InventoryCategory { WEAPON, ARMOR, CONSUMABLE, OTHER }
 enum class InventoryArmorType { LIGHT, MEDIUM, HEAVY, SHIELD }
@@ -142,6 +146,7 @@ data class InventoryItem(
     val name: String,
     val description: String = "",
     val isMagical: Boolean = false,
+    val magicalBonus: Int = 1,
     val category: InventoryCategory,
     val weight: Double,
     val quantity: Int,
@@ -208,6 +213,7 @@ fun defaultCharacterBundle(now: Long = System.currentTimeMillis()): CharacterBun
             speed = 30,
             initiative = 0,
             initiativeBonus = 0,
+            spellcastingAbility = SpellcastingAbility.WISDOM,
             experience = 0,
             strength = 10,
             dexterity = 10,

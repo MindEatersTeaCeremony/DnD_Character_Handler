@@ -12,6 +12,7 @@ import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryWeaponClass
 import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
+import com.dndcharacterhandler.domain.model.SpellcastingAbility
 
 @Entity(tableName = "characters")
 data class CharacterEntity(
@@ -37,6 +38,7 @@ data class CharacterEntity(
     val speed: Int,
     val initiative: Int,
     val initiativeBonus: Int,
+    val spellcastingAbility: SpellcastingAbility,
     val experience: Int,
     val strength: Int,
     val dexterity: Int,
@@ -136,7 +138,9 @@ data class CombatResourceEntity(
     val characterOwnerId: Long,
     val name: String,
     val currentUses: Int,
-    val maximumUses: Int
+    val maximumUses: Int,
+    val restoresOnShortRest: Boolean,
+    val restoresOnLongRest: Boolean
 )
 
 @Entity(
@@ -157,6 +161,7 @@ data class InventoryItemEntity(
     val name: String,
     val description: String,
     val isMagical: Boolean,
+    val magicalBonus: Int,
     val category: InventoryCategory,
     val weight: Double,
     val quantity: Int,

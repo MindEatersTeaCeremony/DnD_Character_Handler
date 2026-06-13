@@ -1063,6 +1063,139 @@
     "fr": "Combat resource tracking is stored locally and ready for UI implementation.",
     "es": "Combat resource tracking is stored locally and ready for UI implementation."
   },
+  "combat_spell_attack_bonus": {
+    "en": "Spell Attack Bonus",
+    "ru": "\u0411\u043e\u043d\u0443\u0441 \u0430\u0442\u0430\u043a\u0438 \u0437\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u0435\u043c",
+    "de": "Zauberangriffsbonus",
+    "fr": "Bonus d'attaque des sorts",
+    "es": "Bonificador de ataque de conjuro"
+  },
+  "combat_spell_save_dc": {
+    "en": "Spell Save DC",
+    "ru": "\u0421\u041b \u0441\u043f\u0430\u0441\u0431\u0440\u043e\u0441\u043a\u0430 \u0437\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u0439",
+    "de": "Zauberrettungswurf-SG",
+    "fr": "DD de sauvegarde des sorts",
+    "es": "CD de salvaci\u00f3n de conjuro"
+  },
+  "combat_spell_bonus": {
+    "en": "Spell Bonus",
+    "ru": "\u0411\u043e\u043d\u0443\u0441 \u0437\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u0439",
+    "de": "Zauberbonus",
+    "fr": "Bonus de sort",
+    "es": "Bono de conjuro"
+  },
+  "combat_spell_dc": {
+    "en": "Spell DC",
+    "ru": "Spell DC",
+    "de": "Zauber-SG",
+    "fr": "DD des sorts",
+    "es": "CD de conjuro"
+  },
+  "combat_combat_resources_title": {
+    "en": "Combat Resources",
+    "ru": "\u0411\u043e\u0435\u0432\u044b\u0435 \u0440\u0435\u0441\u0443\u0440\u0441\u044b",
+    "de": "Kampfressourcen",
+    "fr": "Ressources de combat",
+    "es": "Recursos de combate"
+  },
+  "combat_add_attack": {
+    "en": "Add Attack",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0430\u0442\u0430\u043a\u0443",
+    "de": "Angriff hinzuf\u00fcgen",
+    "fr": "Ajouter une attaque",
+    "es": "A\u00f1adir ataque"
+  },
+  "combat_edit_attack": {
+    "en": "Edit Attack",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0430\u0442\u0430\u043a\u0443",
+    "de": "Angriff bearbeiten",
+    "fr": "Modifier l'attaque",
+    "es": "Editar ataque"
+  },
+  "combat_attack_range": {
+    "en": "Range",
+    "ru": "\u0414\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u044f",
+    "de": "Reichweite",
+    "fr": "Port\u00e9e",
+    "es": "Alcance"
+  },
+  "combat_attack_bonus_or_dc": {
+    "en": "Attack Bonus / DC",
+    "ru": "\u0411\u043e\u043d\u0443\u0441 \u0430\u0442\u0430\u043a\u0438 / \u0421\u041b",
+    "de": "Angriffsbonus / SG",
+    "fr": "Bonus d'attaque / DD",
+    "es": "Bonificador de ataque / CD"
+  },
+  "combat_attack_damage": {
+    "en": "Damage",
+    "ru": "\u0423\u0440\u043e\u043d",
+    "de": "Schaden",
+    "fr": "D\u00e9g\u00e2ts",
+    "es": "Da\u00f1o"
+  },
+  "combat_attack_damage_type": {
+    "en": "Damage Type",
+    "ru": "\u0422\u0438\u043f \u0443\u0440\u043e\u043d\u0430",
+    "de": "Schadensart",
+    "fr": "Type de d\u00e9g\u00e2ts",
+    "es": "Tipo de da\u00f1o"
+  },
+  "combat_empty_attacks": {
+    "en": "No attacks yet.",
+    "ru": "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0430\u0442\u0430\u043a.",
+    "de": "Noch keine Angriffe.",
+    "fr": "Aucune attaque pour l'instant.",
+    "es": "Todav\u00eda no hay ataques."
+  },
+  "combat_empty_resources": {
+    "en": "No combat resources yet.",
+    "ru": "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0431\u043e\u0435\u0432\u044b\u0445 \u0440\u0435\u0441\u0443\u0440\u0441\u043e\u0432.",
+    "de": "Noch keine Kampfressourcen.",
+    "fr": "Aucune ressource de combat pour l'instant.",
+    "es": "Todav\u00eda no hay recursos de combate."
+  },
+  "combat_edit_resource": {
+    "en": "Edit Resource",
+    "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0440\u0435\u0441\u0443\u0440\u0441",
+    "de": "Ressource bearbeiten",
+    "fr": "Modifier la ressource",
+    "es": "Editar recurso"
+  },
+  "combat_resource_current": {
+    "en": "Current",
+    "ru": "\u0422\u0435\u043a\u0443\u0449\u0435\u0435",
+    "de": "Aktuell",
+    "fr": "Actuel",
+    "es": "Actual"
+  },
+  "combat_resource_maximum": {
+    "en": "Maximum",
+    "ru": "\u041c\u0430\u043a\u0441\u0438\u043c\u0443\u043c",
+    "de": "Maximum",
+    "fr": "Maximum",
+    "es": "M\u00e1ximo"
+  },
+  "combat_resource_short_rest": {
+    "en": "Restores on short rest",
+    "ru": "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u043d\u0430 \u043a\u043e\u0440\u043e\u0442\u043a\u043e\u043c \u043e\u0442\u0434\u044b\u0445\u0435",
+    "de": "Erholt sich bei kurzer Rast",
+    "fr": "Se r\u00e9cup\u00e8re au repos court",
+    "es": "Se recupera en descanso corto"
+  },
+  "combat_resource_long_rest": {
+    "en": "Restores on long rest",
+    "ru": "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u043d\u0430 \u0434\u043b\u0438\u043d\u043d\u043e\u043c \u043e\u0442\u0434\u044b\u0445\u0435",
+    "de": "Erholt sich bei langer Rast",
+    "fr": "Se r\u00e9cup\u00e8re au repos long",
+    "es": "Se recupera en descanso largo"
+  },
+  "combat_edit_spellcasting_ability": {
+    "en": "Spellcasting Ability",
+    "ru": "\u0417\u0430\u043a\u043b\u0438\u043d\u0430\u0442\u0435\u043b\u044c\u043d\u0430\u044f \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0430",
+    "de": "Zauberattribut",
+    "fr": "Caract\u00e9ristique d'incantation",
+    "es": "Caracter\u00edstica de conjuro"
+  },
   "inventory_section_items_title": {
     "en": "Inventory List",
     "ru": "Список предметов",
@@ -2411,6 +2544,13 @@
     "es": "Bonificacion de dano"
   },
   "inventory_field_bonus": {
+    "en": "Bonus",
+    "ru": "\u0411\u043e\u043d\u0443\u0441",
+    "de": "Bonus",
+    "fr": "Bonus",
+    "es": "Bonus"
+  },
+  "inventory_field_magical_bonus": {
     "en": "Bonus",
     "ru": "\u0411\u043e\u043d\u0443\u0441",
     "de": "Bonus",

@@ -24,7 +24,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-private const val SCHEMA_VERSION = 9
+private const val SCHEMA_VERSION = 12
 
 data class ImportedArchive(
     val characterBundle: CharacterBundle,
@@ -58,6 +58,7 @@ fun CharacterBundle.toArchiveManifest(
         put("speed", character.speed)
         put("initiative", character.initiative)
         put("initiativeBonus", character.initiativeBonus)
+        put("spellcastingAbility", character.spellcastingAbility.name)
         put("experience", character.experience)
         put("strength", character.strength)
         put("dexterity", character.dexterity)
@@ -123,6 +124,8 @@ fun CharacterBundle.toArchiveManifest(
                 put("name", resource.name)
                 put("currentUses", resource.currentUses)
                 put("maximumUses", resource.maximumUses)
+                put("restoresOnShortRest", resource.restoresOnShortRest)
+                put("restoresOnLongRest", resource.restoresOnLongRest)
             }
         }))
         put("inventoryItems", JSONArray(inventoryItems.mapIndexed { index, item ->
@@ -130,6 +133,7 @@ fun CharacterBundle.toArchiveManifest(
                 put("name", item.name)
                 put("description", item.description)
                 put("isMagical", item.isMagical)
+                put("magicalBonus", item.magicalBonus)
                 put("category", item.category.name)
                 put("weight", item.weight)
                 put("quantity", item.quantity)
@@ -206,6 +210,10 @@ fun archiveManifestToCharacterBundle(
         speed = characterJson.optInt("speed"),
         initiative = characterJson.optInt("initiative"),
         initiativeBonus = characterJson.optInt("initiativeBonus"),
+        spellcastingAbility = characterJson.optString("spellcastingAbility")
+            .takeIf { it.isNotBlank() }
+            ?.let { runCatching { com.dndcharacterhandler.domain.model.SpellcastingAbility.valueOf(it) }.getOrDefault(com.dndcharacterhandler.domain.model.SpellcastingAbility.WISDOM) }
+            ?: com.dndcharacterhandler.domain.model.SpellcastingAbility.WISDOM,
         experience = characterJson.optInt("experience"),
         strength = characterJson.optInt("strength"),
         dexterity = characterJson.optInt("dexterity"),
@@ -291,7 +299,9 @@ private fun JSONArray.toCombatResourceList(): List<CombatResource> =
             CombatResource(
                 name = json.optString("name"),
                 currentUses = json.optInt("currentUses"),
-                maximumUses = json.optInt("maximumUses")
+                maximumUses = json.optInt("maximumUses"),
+                restoresOnShortRest = json.optBoolean("restoresOnShortRest", false),
+                restoresOnLongRest = json.optBoolean("restoresOnLongRest", false)
             )
         }
     }
@@ -303,6 +313,7 @@ private fun JSONArray.toInventoryItemList(resolveAssetReference: (String?) -> St
                 name = json.optString("name"),
                 description = json.optString("description"),
                 isMagical = json.optBoolean("isMagical", false),
+                magicalBonus = json.optInt("magicalBonus", 1),
                 category = InventoryCategory.valueOf(json.optString("category")),
                 weight = json.optDouble("weight"),
                 quantity = json.optInt("quantity"),

@@ -29,13 +29,23 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
         character = character.toDomain(),
         skills = skills.map { Skill(it.id, it.name, it.isProficient, it.isExpertise, it.hasJackOfAllTrades) },
         attacks = attacks.map { Attack(it.id, it.name, it.icon, it.range, it.attackBonusOrSaveDc, it.damage, it.damageType) },
-        combatResources = combatResources.map { CombatResource(it.id, it.name, it.currentUses, it.maximumUses) },
+        combatResources = combatResources.map {
+            CombatResource(
+                it.id,
+                it.name,
+                it.currentUses,
+                it.maximumUses,
+                it.restoresOnShortRest,
+                it.restoresOnLongRest
+            )
+        },
         inventoryItems = inventoryItems.sortedBy { it.id }.map {
             InventoryItem(
                 id = it.id,
                 name = it.name,
                 description = it.description,
                 isMagical = it.isMagical,
+                magicalBonus = it.magicalBonus,
                 category = it.category,
                 weight = it.weight,
                 quantity = it.quantity,
@@ -123,6 +133,7 @@ fun CharacterEntity.toDomain(): Character =
         speed = speed,
         initiative = initiative,
         initiativeBonus = initiativeBonus,
+        spellcastingAbility = spellcastingAbility,
         experience = experience,
         strength = strength,
         dexterity = dexterity,
@@ -185,6 +196,7 @@ fun Character.toEntity(): CharacterEntity =
         speed = speed,
         initiative = initiative,
         initiativeBonus = initiativeBonus,
+        spellcastingAbility = spellcastingAbility,
         experience = experience,
         strength = strength,
         dexterity = dexterity,
@@ -237,7 +249,15 @@ fun Attack.toEntity(characterId: Long): AttackEntity =
     AttackEntity(id = id, characterOwnerId = characterId, name = name, icon = icon, range = range, attackBonusOrSaveDc = attackBonusOrSaveDc, damage = damage, damageType = damageType)
 
 fun CombatResource.toEntity(characterId: Long): CombatResourceEntity =
-    CombatResourceEntity(id = id, characterOwnerId = characterId, name = name, currentUses = currentUses, maximumUses = maximumUses)
+    CombatResourceEntity(
+        id = id,
+        characterOwnerId = characterId,
+        name = name,
+        currentUses = currentUses,
+        maximumUses = maximumUses,
+        restoresOnShortRest = restoresOnShortRest,
+        restoresOnLongRest = restoresOnLongRest
+    )
 
 fun InventoryItem.toEntity(characterId: Long): InventoryItemEntity =
     InventoryItemEntity(
@@ -246,6 +266,7 @@ fun InventoryItem.toEntity(characterId: Long): InventoryItemEntity =
         name = name,
         description = description,
         isMagical = isMagical,
+        magicalBonus = magicalBonus,
         category = category,
         weight = weight,
         quantity = quantity,

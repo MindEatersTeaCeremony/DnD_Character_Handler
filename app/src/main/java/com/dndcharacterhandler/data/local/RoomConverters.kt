@@ -7,6 +7,7 @@ import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryWeaponClass
 import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
+import com.dndcharacterhandler.domain.model.SpellcastingAbility
 
 class RoomConverters {
     @TypeConverter
@@ -50,4 +51,11 @@ class RoomConverters {
     @TypeConverter
     fun toFeatureSource(value: String): FeatureSource =
         runCatching { FeatureSource.valueOf(value) }.getOrDefault(FeatureSource.OTHER)
+
+    @TypeConverter
+    fun fromSpellcastingAbility(value: SpellcastingAbility): String = value.name
+
+    @TypeConverter
+    fun toSpellcastingAbility(value: String): SpellcastingAbility =
+        runCatching { SpellcastingAbility.valueOf(value) }.getOrDefault(SpellcastingAbility.WISDOM)
 }

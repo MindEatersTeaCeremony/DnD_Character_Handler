@@ -100,7 +100,6 @@ private data class BaseWeaponOption(
 private data class WeaponDamageEditorState(
     val diceCount: String,
     val dieType: String,
-    val bonus: String,
     val damageTypes: Set<String>
 )
 
@@ -1096,6 +1095,7 @@ private fun InventoryItemEditDialog(
     var name by remember(inventoryItem) { mutableStateOf(inventoryItem.name) }
     var description by remember(inventoryItem) { mutableStateOf(inventoryItem.description) }
     var isMagical by remember(inventoryItem) { mutableStateOf(inventoryItem.isMagical) }
+    var magicalBonus by remember(inventoryItem) { mutableStateOf(inventoryItem.magicalBonus.toString()) }
     var quantity by remember(inventoryItem) { mutableStateOf(inventoryItem.quantity.toString()) }
     var weight by remember(inventoryItem) { mutableStateOf(formatEditableNumber(inventoryItem.weight)) }
     var costQuantity by remember(inventoryItem) { mutableStateOf(inventoryItem.costQuantity?.toString().orEmpty()) }
@@ -1124,11 +1124,9 @@ private fun InventoryItemEditDialog(
     var weaponLongRange by remember(inventoryItem) { mutableStateOf(inventoryItem.weaponDetails?.longRange?.toString().orEmpty()) }
     var primaryDamageCount by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.diceCount) }
     var primaryDamageDieType by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.dieType) }
-    var primaryDamageBonus by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.bonus) }
     var primaryDamageTypes by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.damageTypes) }
     var alternateDamageCount by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.diceCount) }
     var alternateDamageDieType by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.dieType) }
-    var alternateDamageBonus by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.bonus) }
     var alternateDamageTypes by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.damageTypes) }
     var weaponProperties by remember(inventoryItem) {
         mutableStateOf(inventoryItem.weaponDetails?.properties ?: emptySet())
@@ -1164,12 +1162,33 @@ private fun InventoryItemEditDialog(
                             maxLines = 6,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = isMagical,
-                                onCheckedChange = { isMagical = it }
-                            )
-                            Text(text("inventory_field_magical"))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isMagical,
+                                    onCheckedChange = {
+                                        isMagical = it
+                                        if (it && magicalBonus.isBlank()) magicalBonus = "1"
+                                    }
+                                )
+                                Text(text("inventory_field_magical"))
+                            }
+                            if (isMagical && inventoryItem.category.allowsMagicalBonus()) {
+                                CompactTextField(
+                                    value = magicalBonus,
+                                    onValueChange = { magicalBonus = sanitizeSignedIntegerInput(it) },
+                                    label = text("inventory_field_magical_bonus"),
+                                    prefixText = "+",
+                                    modifier = Modifier.widthIn(max = 112.dp)
+                                )
+                            }
                         }
                         CompactNumberStepperField(
                             label = text("inventory_field_quantity"),
@@ -1301,8 +1320,6 @@ private fun InventoryItemEditDialog(
                             onDiceCountChange = { primaryDamageCount = it.filter(Char::isDigit) },
                             dieType = primaryDamageDieType,
                             onDieTypeChange = { primaryDamageDieType = it },
-                            bonus = primaryDamageBonus,
-                            onBonusChange = { primaryDamageBonus = sanitizeSignedIntegerInput(it) },
                             damageTypes = primaryDamageTypes,
                             onDamageTypesChange = { primaryDamageTypes = it }
                         )
@@ -1315,8 +1332,6 @@ private fun InventoryItemEditDialog(
                                 onDiceCountChange = { alternateDamageCount = it.filter(Char::isDigit) },
                                 dieType = alternateDamageDieType,
                                 onDieTypeChange = { alternateDamageDieType = it },
-                                bonus = alternateDamageBonus,
-                                onBonusChange = { alternateDamageBonus = sanitizeSignedIntegerInput(it) },
                                 damageTypes = alternateDamageTypes,
                                 onDamageTypesChange = { alternateDamageTypes = it }
                             )
@@ -1327,7 +1342,6 @@ private fun InventoryItemEditDialog(
                                     hasAlternateDamage = false
                                     alternateDamageCount = "1"
                                     alternateDamageDieType = "d4"
-                                    alternateDamageBonus = ""
                                     alternateDamageTypes = setOf(defaultDamageType())
                                 }
                             ) {
@@ -1393,13 +1407,11 @@ private fun InventoryItemEditDialog(
                     val primaryDamage = WeaponDamageEditorState(
                         diceCount = primaryDamageCount,
                         dieType = primaryDamageDieType,
-                        bonus = primaryDamageBonus,
                         damageTypes = primaryDamageTypes
                     ).toWeaponDamages()
                     val alternateDamage = WeaponDamageEditorState(
                         diceCount = alternateDamageCount,
                         dieType = alternateDamageDieType,
-                        bonus = alternateDamageBonus,
                         damageTypes = alternateDamageTypes
                     ).toWeaponDamages().firstOrNull()
 
@@ -1436,6 +1448,11 @@ private fun InventoryItemEditDialog(
                             name = name.trim().ifBlank { inventoryItem.name },
                             description = description.trim(),
                             isMagical = isMagical,
+                            magicalBonus = if (isMagical && inventoryItem.category.allowsMagicalBonus()) {
+                                magicalBonus.toIntOrNull() ?: 1
+                            } else {
+                                1
+                            },
                             quantity = quantity.toIntOrNull()?.coerceAtLeast(1) ?: inventoryItem.quantity,
                             weight = weight.toDoubleOrNull()?.coerceAtLeast(0.0) ?: inventoryItem.weight,
                             costQuantity = costQuantity.toIntOrNull(),
@@ -1581,8 +1598,6 @@ private fun WeaponDamageEditor(
     onDiceCountChange: (String) -> Unit,
     dieType: String,
     onDieTypeChange: (String) -> Unit,
-    bonus: String,
-    onBonusChange: (String) -> Unit,
     damageTypes: Set<String>,
     onDamageTypesChange: (Set<String>) -> Unit
 ) {
@@ -1610,13 +1625,6 @@ private fun WeaponDamageEditor(
                 label = text("inventory_field_damage_die_type"),
                 value = dieType,
                 onClick = { isDieTypeDialogOpen = true }
-            )
-            CompactTextField(
-                value = bonus,
-                onValueChange = { onBonusChange(it.filter(Char::isDigit)) },
-                label = text("inventory_field_bonus"),
-                prefixText = "+",
-                modifier = Modifier.weight(0.95f)
             )
         }
         DamageTypeTagField(
@@ -2299,7 +2307,7 @@ private fun InventoryWeaponDetails?.toPrimaryDamageEditorState(): WeaponDamageEd
 
 private fun InventoryWeaponDamage?.toEditorState(): WeaponDamageEditorState {
     if (this == null) {
-        return WeaponDamageEditorState("1", "d4", "", setOf(defaultDamageType()))
+        return WeaponDamageEditorState("1", "d4", setOf(defaultDamageType()))
     }
 
     val normalized = dice.replace(" ", "")
@@ -2308,7 +2316,6 @@ private fun InventoryWeaponDamage?.toEditorState(): WeaponDamageEditorState {
         return WeaponDamageEditorState(
             diceCount = "1",
             dieType = "d4",
-            bonus = pureBonus.toString(),
             damageTypes = setOf(damageType.ifBlank { defaultDamageType() })
         )
     }
@@ -2318,14 +2325,12 @@ private fun InventoryWeaponDamage?.toEditorState(): WeaponDamageEditorState {
         WeaponDamageEditorState(
             diceCount = match.groupValues[1],
             dieType = "d${match.groupValues[2]}",
-            bonus = match.groupValues.getOrNull(3).orEmpty(),
             damageTypes = setOf(damageType.ifBlank { defaultDamageType() })
         )
     } else {
         WeaponDamageEditorState(
             diceCount = "1",
             dieType = "d4",
-            bonus = "",
             damageTypes = setOf(damageType.ifBlank { defaultDamageType() })
         )
     }
@@ -2333,14 +2338,8 @@ private fun InventoryWeaponDamage?.toEditorState(): WeaponDamageEditorState {
 
 private fun WeaponDamageEditorState.toWeaponDamages(): List<InventoryWeaponDamage> {
     val sanitizedCount = diceCount.toIntOrNull()?.takeIf { it > 0 }
-    val sanitizedBonus = bonus.toIntOrNull() ?: 0
     val diceValue = when {
-        sanitizedCount != null -> buildString {
-            append("${sanitizedCount}${dieType.lowercase()}")
-            if (sanitizedBonus > 0) append("+$sanitizedBonus")
-            if (sanitizedBonus < 0) append(sanitizedBonus)
-        }
-        sanitizedBonus != 0 -> sanitizedBonus.toString()
+        sanitizedCount != null -> "${sanitizedCount}${dieType.lowercase()}"
         else -> ""
     }
     if (diceValue.isBlank()) return emptyList()
@@ -2420,6 +2419,9 @@ private fun defaultInventoryItem(category: InventoryCategory): InventoryItem {
     )
 }
 
+private fun InventoryCategory.allowsMagicalBonus(): Boolean =
+    this == InventoryCategory.WEAPON
+
 private fun InventoryItem.propertyTags(dexterityScore: Int, strings: LocalizedStrings): List<String> {
     return buildList {
         armorDetails?.let { armor ->
@@ -2435,7 +2437,7 @@ private fun InventoryItem.propertyTags(dexterityScore: Int, strings: LocalizedSt
         }
         weaponDetails?.let { weapon ->
             add(weapon.primaryTypeTag(strings))
-            addAll(weapon.damageTags(strings))
+            addAll(weapon.damageTags(strings, if (isMagical) magicalBonus else 0))
         }
     }
 }
@@ -2475,17 +2477,19 @@ private fun InventoryWeaponDetails.primaryTypeTag(strings: LocalizedStrings): St
     return parts.joinToString(" ")
 }
 
-private fun InventoryWeaponDetails.damageTags(strings: LocalizedStrings): List<String> {
+private fun InventoryWeaponDetails.damageTags(strings: LocalizedStrings, magicalBonus: Int): List<String> {
     if (damages.isEmpty()) return emptyList()
 
     val primaryDamage = damages.first()
+    val primaryTag = primaryDamage.toTag(strings, magicalBonus)
     val twoHanded = twoHandedDamage
     return if (twoHanded != null && primaryDamage.damageType.equals(twoHanded.damageType, ignoreCase = true)) {
-        listOf("${primaryDamage.dice}/${twoHanded.dice} ${strings[damageTypeLocalizationKey(primaryDamage.damageType)]}")
+        listOf("${appendBonusToDice(primaryDamage.dice, magicalBonus)}/${twoHanded.dice} ${strings[damageTypeLocalizationKey(primaryDamage.damageType)]}")
     } else {
         buildList {
-            addAll(damages.map { it.toTag(strings) })
-            twoHanded?.let { add(it.toTag(strings)) }
+            add(primaryTag)
+            addAll(damages.drop(1).map { it.toTag(strings, 0) })
+            twoHanded?.let { add(it.toTag(strings, 0)) }
         }
     }
 }
@@ -2500,8 +2504,22 @@ private fun InventoryWeaponDetails.formatRangeTag(strings: LocalizedStrings): St
     }
 }
 
-private fun InventoryWeaponDamage.toTag(strings: LocalizedStrings): String =
-    "$dice ${strings[damageTypeLocalizationKey(damageType)]}"
+private fun InventoryWeaponDamage.toTag(strings: LocalizedStrings, magicalBonus: Int): String =
+    "${appendBonusToDice(dice, magicalBonus)} ${strings[damageTypeLocalizationKey(damageType)]}"
+
+private fun appendBonusToDice(dice: String, magicalBonus: Int): String {
+    if (magicalBonus == 0) return dice
+    val normalized = dice.replace(" ", "")
+    val match = Regex("""^(\d+d\d+)([+-]\d+)?$""").matchEntire(normalized) ?: return dice
+    val baseDice = match.groupValues[1]
+    val existingBonus = match.groupValues.getOrNull(2)?.toIntOrNull() ?: 0
+    val totalBonus = existingBonus + magicalBonus
+    return buildString {
+        append(baseDice)
+        if (totalBonus > 0) append("+$totalBonus")
+        if (totalBonus < 0) append(totalBonus)
+    }
+}
 
 private fun InventoryWeaponClass.label(): String =
     when (this) {

@@ -54,7 +54,11 @@ class MainActivity : ComponentActivity() {
                             getCharacterBundleUseCase = getCharacterBundleUseCase,
                             selectedCharacterHolder = selectedCharacterHolder
                         ),
-                        combatViewModel = CombatViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
+                        combatViewModel = CombatViewModel(
+                            characterRepository = characterRepository,
+                            getCharacterBundleUseCase = getCharacterBundleUseCase,
+                            selectedCharacterHolder = selectedCharacterHolder
+                        ),
                         inventoryViewModel = InventoryViewModel(
                             characterRepository = characterRepository,
                             inventoryCatalogRepository = inventoryCatalogRepository,
