@@ -127,6 +127,7 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                         currentRoute != AppScreen.Overview.route &&
                         currentRoute != AppScreen.Attributes.route &&
                         currentRoute != AppScreen.Inventory.route &&
+                        currentRoute != AppScreen.Features.route &&
                         currentRoute != AppScreen.Biography.route &&
                         currentRoute != AppScreen.Notes.route
                     ) {
