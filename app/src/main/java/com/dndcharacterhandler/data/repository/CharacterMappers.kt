@@ -28,7 +28,7 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
     CharacterBundle(
         character = character.toDomain(),
         skills = skills.map { Skill(it.id, it.name, it.isProficient, it.isExpertise, it.hasJackOfAllTrades) },
-        attacks = attacks.map { Attack(it.id, it.name, it.icon, it.range, it.attackBonusOrSaveDc, it.damage, it.damageType) },
+        attacks = attacks.map { Attack(it.id, it.name, it.icon, it.isProficient, it.ability, it.range, it.attackBonusOrSaveDc, it.damage, it.damageType) },
         combatResources = combatResources.map {
             CombatResource(
                 it.id,
@@ -246,7 +246,7 @@ fun Skill.toEntity(characterId: Long): SkillEntity =
     )
 
 fun Attack.toEntity(characterId: Long): AttackEntity =
-    AttackEntity(id = id, characterOwnerId = characterId, name = name, icon = icon, range = range, attackBonusOrSaveDc = attackBonusOrSaveDc, damage = damage, damageType = damageType)
+    AttackEntity(id = id, characterOwnerId = characterId, name = name, icon = icon, isProficient = isProficient, ability = ability, range = range, attackBonusOrSaveDc = attackBonusOrSaveDc, damage = damage, damageType = damageType)
 
 fun CombatResource.toEntity(characterId: Long): CombatResourceEntity =
     CombatResourceEntity(

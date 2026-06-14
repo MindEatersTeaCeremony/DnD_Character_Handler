@@ -1487,6 +1487,7 @@ private val martialWeaponOptions = listOf(
     ProficiencyOption("longsword", "Longsword"),
     ProficiencyOption("maul", "Maul"),
     ProficiencyOption("morningstar", "Morningstar"),
+    ProficiencyOption("musket", "Musket"),
     ProficiencyOption("pike", "Pike"),
     ProficiencyOption("rapier", "Rapier"),
     ProficiencyOption("scimitar", "Scimitar"),

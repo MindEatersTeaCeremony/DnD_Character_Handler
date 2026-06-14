@@ -115,6 +115,8 @@ data class AttackEntity(
     val characterOwnerId: Long,
     val name: String,
     val icon: String,
+    val isProficient: Boolean,
+    val ability: SpellcastingAbility,
     val range: String,
     val attackBonusOrSaveDc: String,
     val damage: String,

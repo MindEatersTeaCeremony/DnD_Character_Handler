@@ -59,7 +59,10 @@ import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.InventoryArmorType
+import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryItem
+import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
+import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
@@ -70,6 +73,7 @@ import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
 import com.dndcharacterhandler.presentation.components.FloatingAddButton
 import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.components.ScreenTopActions
+import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
 import kotlinx.coroutines.launch
@@ -211,9 +215,12 @@ internal fun CombatContent(
     onUpdateCombatResource: (CharacterBundle, CombatResource) -> Unit = { _, _ -> },
     onDeleteCombatResource: (CharacterBundle, CombatResource) -> Unit = { _, _ -> }
 ) {
+    val strings = LocalStrings.current
     val character = characterBundle?.character
     var editingAttack by remember { mutableStateOf<Attack?>(null) }
     var editingCombatResource by remember { mutableStateOf<CombatResource?>(null) }
+    var isAddEntryDialogOpen by remember { mutableStateOf(false) }
+    var isWeaponAttackPickerOpen by remember { mutableStateOf(false) }
     var isArmorClassDialogOpen by remember { mutableStateOf(false) }
     var isSpellcastingAbilityDialogOpen by remember { mutableStateOf(false) }
     var armorClassBaseDraft by remember(character?.id, character?.baseArmorClass) { mutableStateOf(character?.baseArmorClass?.toString().orEmpty()) }
@@ -250,6 +257,11 @@ internal fun CombatContent(
     val resolvedBundle = characterBundle
     val spellModifier = abilityModifier(scoreForSpellcastingAbility(character, character.spellcastingAbility))
     val proficiencyBonus = proficiencyBonusForLevel(character.level)
+    val weaponProficiencyIds = remember(character.weaponProficiencies) {
+        decodeProficiencyIds(character.weaponProficiencies)
+    }
+    val meleeRangeLabel = text("inventory_weapon_range_melee")
+    val feetUnitLabel = text("inventory_unit_feet")
     val spellAttackBonus = signedNumber(proficiencyBonus + spellModifier)
     val spellSaveDc = (8 + proficiencyBonus + spellModifier).toString()
     val resourceRows = remember(resolvedBundle.combatResources) {
@@ -348,7 +360,7 @@ internal fun CombatContent(
             }
 
             FloatingAddButton(
-                onClick = { editingAttack = newDraftAttack() },
+                onClick = { isAddEntryDialogOpen = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 24.dp, bottom = 15.dp)
@@ -356,9 +368,51 @@ internal fun CombatContent(
         }
     }
 
+    if (isAddEntryDialogOpen) {
+        CombatAddEntryDialog(
+            onDismiss = { isAddEntryDialogOpen = false },
+            onCreateWeaponAttack = {
+                isAddEntryDialogOpen = false
+                isWeaponAttackPickerOpen = true
+            },
+            onCreateSpellAttack = {},
+            onCreateCustomAttack = {
+                isAddEntryDialogOpen = false
+                editingAttack = newDraftAttack()
+            },
+            onAddResource = {
+                isAddEntryDialogOpen = false
+                editingCombatResource = newDraftCombatResource()
+            }
+        )
+    }
+
+    if (isWeaponAttackPickerOpen) {
+        WeaponAttackPickerDialog(
+            weapons = resolvedBundle.inventoryItems.filter { it.category == InventoryCategory.WEAPON && it.weaponDetails != null },
+            onDismiss = { isWeaponAttackPickerOpen = false },
+            onSelect = { weapon ->
+                onUpdateAttack(
+                    resolvedBundle,
+                    weapon.toCombatAttack(
+                        strengthScore = resolvedBundle.character.strength,
+                        dexterityScore = resolvedBundle.character.dexterity,
+                        proficiencyBonus = proficiencyBonus,
+                        weaponProficiencyIds = weaponProficiencyIds,
+                        meleeLabel = meleeRangeLabel,
+                        feetLabel = feetUnitLabel
+                    )
+                )
+                isWeaponAttackPickerOpen = false
+            }
+        )
+    }
+
     editingAttack?.let { attack ->
         AttackEditDialog(
             attack = attack,
+            character = resolvedBundle.character,
+            proficiencyBonus = proficiencyBonus,
             onDismiss = { editingAttack = null },
             onSave = { updated ->
                 onUpdateAttack(resolvedBundle, updated)
@@ -490,6 +544,151 @@ internal fun CombatContent(
         )
     }
 }
+
+@Composable
+private fun CombatAddEntryDialog(
+    onDismiss: () -> Unit,
+    onCreateWeaponAttack: () -> Unit,
+    onCreateSpellAttack: () -> Unit,
+    onCreateCustomAttack: () -> Unit,
+    onAddResource: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text("combat_add_entry_title")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                DialogActionSection(
+                    title = text("combat_add_attacks_section"),
+                    actions = listOf(
+                        DialogActionItem(text("combat_create_weapon_attack"), onCreateWeaponAttack),
+                        DialogActionItem(text("combat_create_spell_attack"), onCreateSpellAttack),
+                        DialogActionItem(text("combat_create_custom_attack"), onCreateCustomAttack)
+                    )
+                )
+                DialogActionSection(
+                    title = text("combat_add_resources_section"),
+                    actions = listOf(
+                        DialogActionItem(text("combat_add_resource_action"), onAddResource)
+                    )
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+@Composable
+private fun DialogActionSection(
+    title: String,
+    actions: List<DialogActionItem>
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color(0xFFF7F2EA)
+        )
+        actions.forEach { action ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = action.onClick),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF1A171D),
+                border = BorderStroke(1.dp, Color(0x20FFFFFF))
+            ) {
+                Text(
+                    text = action.label,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFF7F2EA)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeaponAttackPickerDialog(
+    weapons: List<InventoryItem>,
+    onDismiss: () -> Unit,
+    onSelect: (InventoryItem) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text("combat_select_weapon")) },
+        text = {
+            if (weapons.isEmpty()) {
+                Text(
+                    text = text("combat_no_weapons_available"),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFD2CAC2)
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    weapons.forEach { weapon ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(weapon) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF1A171D),
+                            border = BorderStroke(1.dp, Color(0x20FFFFFF))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = weapon.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (weapon.isMagical) Color(0xFF7BB7FF) else Color(0xFFF7F2EA)
+                                )
+                                weapon.weaponDetails?.let { details ->
+                                    val previewRange = details.rangeLabel(
+                                        meleeLabel = text("inventory_weapon_range_melee"),
+                                        feetLabel = text("inventory_unit_feet")
+                                    )
+                                    val previewDamage = weapon.primaryDamageLabel()
+                                    Text(
+                                        text = buildString {
+                                            append(previewRange)
+                                            previewDamage?.let {
+                                                append(" • ")
+                                                append(it)
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFFD2CAC2),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+private data class DialogActionItem(
+    val label: String,
+    val onClick: () -> Unit
+)
 
 @Composable
 private fun CombatMiniStatCard(
@@ -722,7 +921,7 @@ private fun AttackCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = attack.damageType,
+                    text = text(damageTypeLocalizationKeyForCombat(attack.damageType)),
                     style = MaterialTheme.typography.bodyLarge,
                     color = damageTypeColor(attack.damageType),
                     maxLines = 1,
@@ -993,15 +1192,32 @@ private fun StepperButton(
 @Composable
 private fun AttackEditDialog(
     attack: Attack,
+    character: com.dndcharacterhandler.domain.model.Character,
+    proficiencyBonus: Int,
     onDismiss: () -> Unit,
     onSave: (Attack) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
+    val strings = LocalStrings.current
     var name by remember(attack) { mutableStateOf(attack.name) }
-    var range by remember(attack) { mutableStateOf(attack.range) }
+    val meleeLabel = text("inventory_weapon_range_melee")
+    val feetLabel = text("inventory_unit_feet")
+    val parsedRange = remember(attack.range, meleeLabel, feetLabel) {
+        parseAttackRange(attack.range, meleeLabel, feetLabel)
+    }
+    val parsedDamage = remember(attack.damage) { parseAttackDamage(attack.damage) }
+    var normalRange by remember(attack, parsedRange.first) { mutableStateOf(parsedRange.first) }
+    var longRange by remember(attack, parsedRange.second) { mutableStateOf(parsedRange.second) }
+    var ability by remember(attack) { mutableStateOf(attack.ability) }
     var attackBonusOrSaveDc by remember(attack) { mutableStateOf(attack.attackBonusOrSaveDc) }
-    var damage by remember(attack) { mutableStateOf(attack.damage) }
-    var damageType by remember(attack) { mutableStateOf(attack.damageType) }
+    var damageDiceCount by remember(attack, parsedDamage.diceCount) { mutableStateOf(parsedDamage.diceCount) }
+    var damageDieType by remember(attack, parsedDamage.dieType) { mutableStateOf(parsedDamage.dieType) }
+    var damageBonus by remember(attack, parsedDamage.bonus) { mutableStateOf(parsedDamage.bonus) }
+    var damageType by remember(attack) { mutableStateOf(attack.damageType.ifBlank { defaultDamageTypeForCombat() }) }
+    var isProficient by remember(attack) { mutableStateOf(attack.isProficient) }
+    var isAbilityDialogOpen by remember { mutableStateOf(false) }
+    var isDamageDieDialogOpen by remember { mutableStateOf(false) }
+    var isDamageTypeDialogOpen by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1014,29 +1230,71 @@ private fun AttackEditDialog(
                     label = { Text(text("features_name")) },
                     singleLine = true
                 )
-                OutlinedTextField(
-                    value = range,
-                    onValueChange = { range = it },
-                    label = { Text(text("combat_attack_range")) },
-                    singleLine = true
+                CombatDialogSection(text("combat_attack_section_attack"))
+                CombatCompactSelectionField(
+                    label = text("combat_attack_ability"),
+                    value = strings[ability.labelKey],
+                    onClick = { isAbilityDialogOpen = true }
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = normalRange,
+                        onValueChange = { normalRange = it.filter(Char::isDigit) },
+                        modifier = Modifier.weight(1f),
+                        label = { Text(text("combat_attack_range")) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    OutlinedTextField(
+                        value = longRange,
+                        onValueChange = { longRange = it.filter(Char::isDigit) },
+                        modifier = Modifier.weight(1f),
+                        label = { Text(text("combat_attack_long_range")) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
                 OutlinedTextField(
                     value = attackBonusOrSaveDc,
                     onValueChange = { attackBonusOrSaveDc = it },
                     label = { Text(text("combat_attack_bonus_or_dc")) },
                     singleLine = true
                 )
-                OutlinedTextField(
-                    value = damage,
-                    onValueChange = { damage = it },
-                    label = { Text(text("combat_attack_damage")) },
-                    singleLine = true
+                ResourceCheckboxRow(
+                    checked = isProficient,
+                    label = text("combat_attack_proficient"),
+                    onCheckedChange = { checked ->
+                        attackBonusOrSaveDc = applyAttackProficiencyDelta(
+                            current = attackBonusOrSaveDc,
+                            delta = if (checked) proficiencyBonus else -proficiencyBonus
+                        )
+                        isProficient = checked
+                    }
                 )
-                OutlinedTextField(
-                    value = damageType,
-                    onValueChange = { damageType = it },
-                    label = { Text(text("combat_attack_damage_type")) },
-                    singleLine = true
+                CombatDialogSection(text("combat_attack_section_damage"))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    CombatCompactNumberStepperField(
+                        label = text("inventory_field_damage_dice_count"),
+                        value = damageDiceCount,
+                        onValueChange = { damageDiceCount = it },
+                        minValue = 0,
+                        modifier = Modifier.weight(1.25f)
+                    )
+                    CombatCompactSelectionField(
+                        modifier = Modifier.weight(1f),
+                        label = text("inventory_field_damage_die_type"),
+                        value = damageDieType,
+                        onClick = { isDamageDieDialogOpen = true }
+                    )
+                }
+                CombatCompactSelectionField(
+                    label = text("combat_attack_damage_type"),
+                    value = strings[damageTypeLocalizationKeyForCombat(damageType)],
+                    onClick = { isDamageTypeDialogOpen = true }
                 )
             }
         },
@@ -1046,10 +1304,20 @@ private fun AttackEditDialog(
                     onSave(
                         attack.copy(
                             name = name.trim(),
-                            range = range.trim(),
+                            isProficient = isProficient,
+                            range = formatAttackRange(
+                                normalRange = normalRange,
+                                longRange = longRange,
+                                meleeLabel = meleeLabel,
+                                feetLabel = feetLabel
+                            ),
                             attackBonusOrSaveDc = attackBonusOrSaveDc.trim(),
-                            damage = damage.trim(),
-                            damageType = damageType.trim()
+                            damage = formatAttackDamage(
+                                diceCount = damageDiceCount,
+                                dieType = damageDieType,
+                                bonus = damageBonus
+                            ),
+                            damageType = damageType
                         )
                     )
                 }
@@ -1070,6 +1338,53 @@ private fun AttackEditDialog(
             }
         }
     )
+
+    if (isAbilityDialogOpen) {
+        SelectionDialog(
+            title = text("combat_attack_ability"),
+            options = spellcastingAbilityOptions,
+            selected = spellcastingAbilityOptions.firstOrNull { it.ability == ability } ?: spellcastingAbilityOptions.first(),
+            labelForOption = { strings[it.labelKey] },
+            onDismiss = { isAbilityDialogOpen = false },
+            onSelect = { option ->
+                val previousModifier = abilityModifier(scoreForSpellcastingAbility(character, ability))
+                val nextModifier = abilityModifier(scoreForSpellcastingAbility(character, option.ability))
+                val delta = nextModifier - previousModifier
+                attackBonusOrSaveDc = applyAttackProficiencyDelta(attackBonusOrSaveDc, delta)
+                damageBonus += delta
+                ability = option.ability
+                isAbilityDialogOpen = false
+            }
+        )
+    }
+
+    if (isDamageDieDialogOpen) {
+        SelectionDialog(
+            title = text("inventory_field_damage_die_type"),
+            options = weaponDieTypeOptionsForCombat(),
+            selected = damageDieType,
+            labelForOption = { it },
+            onDismiss = { isDamageDieDialogOpen = false },
+            onSelect = {
+                damageDieType = it
+                isDamageDieDialogOpen = false
+            }
+        )
+    }
+
+    if (isDamageTypeDialogOpen) {
+        SelectionDialog(
+            title = text("combat_attack_damage_type"),
+            options = damageTypeOptionsForCombat(),
+            selected = damageType,
+            labelForOption = { strings[damageTypeLocalizationKeyForCombat(it)] },
+            onDismiss = { isDamageTypeDialogOpen = false },
+            onSelect = {
+                damageType = it
+                isDamageTypeDialogOpen = false
+            }
+        )
+    }
 }
 
 private fun newDraftAttack(): Attack =
@@ -1077,15 +1392,65 @@ private fun newDraftAttack(): Attack =
         id = 0,
         name = "",
         icon = "",
+        isProficient = false,
+        ability = SpellcastingAbility.STRENGTH,
         range = "",
-        attackBonusOrSaveDc = "",
-        damage = "",
-        damageType = ""
+        attackBonusOrSaveDc = "+0 Attack",
+        damage = "1d4",
+        damageType = defaultDamageTypeForCombat()
+    )
+
+private fun newDraftCombatResource(): CombatResource =
+    CombatResource(
+        id = 0,
+        name = "",
+        currentUses = 0,
+        maximumUses = 0,
+        restoresOnShortRest = false,
+        restoresOnLongRest = false
     )
 
 private fun proficiencyBonusForLevel(level: Int): Int = 2 + ((level.coerceAtLeast(1) - 1) / 4)
 
 private fun signedNumber(value: Int): String = if (value >= 0) "+$value" else value.toString()
+
+private fun InventoryItem.toCombatAttack(
+    strengthScore: Int,
+    dexterityScore: Int,
+    proficiencyBonus: Int,
+    weaponProficiencyIds: Set<String>,
+    meleeLabel: String,
+    feetLabel: String
+): Attack {
+    val details = weaponDetails ?: return newDraftAttack().copy(name = name, icon = icon)
+    val strengthModifier = abilityModifier(strengthScore)
+    val dexterityModifier = abilityModifier(dexterityScore)
+    val abilityModifier = when {
+        details.rangeType == InventoryWeaponRangeType.RANGED -> dexterityModifier
+        InventoryWeaponProperty.FINESSE in details.properties -> max(strengthModifier, dexterityModifier)
+        else -> strengthModifier
+    }
+    val attackAbility = when {
+        details.rangeType == InventoryWeaponRangeType.RANGED -> SpellcastingAbility.DEXTERITY
+        InventoryWeaponProperty.FINESSE in details.properties && dexterityModifier > strengthModifier ->
+            SpellcastingAbility.DEXTERITY
+        else -> SpellcastingAbility.STRENGTH
+    }
+    val magicalModifier = if (isMagical) magicalBonus else 0
+    val isProficient = details.isCharacterProficient(weaponProficiencyIds)
+    val primaryDamage = details.damages.firstOrNull()
+    return Attack(
+        id = 0,
+        name = name,
+        icon = icon,
+        isProficient = isProficient,
+        ability = attackAbility,
+        range = details.rangeLabel(meleeLabel = meleeLabel, feetLabel = feetLabel),
+        attackBonusOrSaveDc = "${signedNumber((if (isProficient) proficiencyBonus else 0) + abilityModifier + magicalModifier)} Attack",
+        damage = primaryDamage?.toCombatDamageLabel(abilityModifier + magicalModifier).orEmpty(),
+        damageType = primaryDamage?.damageType.orEmpty()
+    )
+}
 
 private fun attackFallbackIcon(attack: Attack): ImageVector {
     val description = "${attack.name} ${attack.damageType} ${attack.range}".lowercase()
@@ -1162,3 +1527,355 @@ private val spellcastingAbilityOptions = listOf(
     SpellcastingAbilityOptionItem(SpellcastingAbility.WISDOM, "ability_wisdom"),
     SpellcastingAbilityOptionItem(SpellcastingAbility.CHARISMA, "ability_charisma")
 )
+
+@Composable
+private fun CombatDialogSection(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        color = Color(0xFFF7F2EA)
+    )
+}
+
+@Composable
+private fun CombatCompactSelectionField(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFD2CAC2)
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0x14FFFFFF),
+            border = BorderStroke(1.dp, Color(0x30FFFFFF))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFF7F2EA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CombatCompactNumberStepperField(
+    label: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    minValue: Int = 0,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFD2CAC2)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AttackDialogStepperButton(label = "-") {
+                onValueChange((value - 1).coerceAtLeast(minValue))
+            }
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0x14FFFFFF),
+                border = BorderStroke(1.dp, Color(0x30FFFFFF))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = value.toString(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            AttackDialogStepperButton(label = "+") {
+                onValueChange(value + 1)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttackDialogStepperButton(
+    label: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0x14FFFFFF),
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
+    ) {
+        Box(
+            modifier = Modifier
+                .height(46.dp)
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFFF7F2EA)
+            )
+        }
+    }
+}
+
+@Composable
+private fun <T> SelectionDialog(
+    title: String,
+    options: List<T>,
+    selected: T,
+    labelForOption: (T) -> String,
+    onDismiss: () -> Unit,
+    onSelect: (T) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(options) { option ->
+                    val isSelected = option == selected
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(option) },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) Color(0x22FFF6EA) else Color.Transparent,
+                        border = BorderStroke(1.dp, if (isSelected) Color(0x70FFFFFF) else Color(0x20FFFFFF))
+                    ) {
+                        Text(
+                            text = labelForOption(option),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFFF7F2EA)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+private fun decodeProficiencyIds(value: String): Set<String> =
+    value.split("|").mapNotNull { it.trim().takeIf(String::isNotEmpty) }.toSet()
+
+private fun com.dndcharacterhandler.domain.model.InventoryWeaponDetails.isCharacterProficient(
+    weaponProficiencyIds: Set<String>
+): Boolean {
+    val baseWeaponId = baseWeaponId
+    return when {
+        !baseWeaponId.isNullOrBlank() && baseWeaponId in weaponProficiencyIds -> true
+        weaponClass == com.dndcharacterhandler.domain.model.InventoryWeaponClass.SIMPLE &&
+            WeaponGroupSimpleId in weaponProficiencyIds -> true
+        weaponClass == com.dndcharacterhandler.domain.model.InventoryWeaponClass.MARTIAL &&
+            WeaponGroupMartialId in weaponProficiencyIds -> true
+        else -> false
+    }
+}
+
+private fun InventoryItem.primaryDamageLabel(): String? =
+    weaponDetails?.damages?.firstOrNull()?.toCombatDamageLabel(if (isMagical) magicalBonus else 0)
+
+private fun com.dndcharacterhandler.domain.model.InventoryWeaponDetails.rangeLabel(
+    meleeLabel: String,
+    feetLabel: String
+): String {
+    val normal = normalRange
+    val long = longRange
+    return when {
+        rangeType == InventoryWeaponRangeType.MELEE && (normal == null || normal <= 5) && long == null -> meleeLabel
+        normal != null && long != null -> "$normal/$long $feetLabel"
+        normal != null -> "$normal $feetLabel"
+        else -> meleeLabel
+    }
+}
+
+private fun com.dndcharacterhandler.domain.model.InventoryWeaponDamage.toCombatDamageLabel(modifier: Int): String {
+    val normalizedDice = dice.replace(" ", "")
+    val match = Regex("""^(\d+d\d+)([+-]\d+)?$""").matchEntire(normalizedDice)
+    if (match == null) return dice
+    val baseDice = match.groupValues[1]
+    val existingBonus = match.groupValues.getOrNull(2)?.toIntOrNull() ?: 0
+    val totalBonus = existingBonus + modifier
+    return buildString {
+        append(baseDice)
+        if (totalBonus > 0) append(" + $totalBonus")
+        if (totalBonus < 0) append(" - ${kotlin.math.abs(totalBonus)}")
+    }
+}
+
+private fun applyAttackProficiencyDelta(current: String, delta: Int): String {
+    if (delta == 0) return current
+    val match = Regex("""^\s*([+-]?\d+)(.*)$""").matchEntire(current) ?: return current
+    val value = match.groupValues[1].toIntOrNull() ?: return current
+    val suffix = match.groupValues[2]
+    return "${signedNumber(value + delta)}$suffix"
+}
+
+private fun parseAttackRange(
+    value: String,
+    meleeLabel: String,
+    feetLabel: String
+): Pair<String, String> {
+    val normalized = value.trim()
+    if (normalized.isBlank() || normalized.equals(meleeLabel, ignoreCase = true)) {
+        return "" to ""
+    }
+    val withoutFeet = normalized.removeSuffix(feetLabel).trim()
+    val split = withoutFeet.split("/")
+    return when (split.size) {
+        2 -> split[0].trim().filter(Char::isDigit) to split[1].trim().filter(Char::isDigit)
+        else -> withoutFeet.filter(Char::isDigit) to ""
+    }
+}
+
+private data class ParsedAttackDamage(
+    val diceCount: Int,
+    val dieType: String,
+    val bonus: Int
+)
+
+private fun parseAttackDamage(value: String): ParsedAttackDamage {
+    val match = Regex("""^\s*(\d+)d(4|6|8|10|12)(?:\s*([+-])\s*(\d+))?\s*$""").matchEntire(value.trim())
+    if (match == null) {
+        return ParsedAttackDamage(diceCount = 1, dieType = "d4", bonus = 0)
+    }
+    val sign = match.groupValues.getOrNull(3)
+    val bonusValue = match.groupValues.getOrNull(4)?.toIntOrNull() ?: 0
+    val normalizedBonus = when (sign) {
+        "-" -> -bonusValue
+        else -> bonusValue
+    }
+    return ParsedAttackDamage(
+        diceCount = match.groupValues[1].toIntOrNull() ?: 1,
+        dieType = "d${match.groupValues[2]}",
+        bonus = normalizedBonus
+    )
+}
+
+private fun formatAttackDamage(
+    diceCount: Int,
+    dieType: String,
+    bonus: Int
+): String {
+    val normalizedCount = diceCount.coerceAtLeast(0)
+    val base = "${normalizedCount}${dieType}"
+    return when {
+        bonus > 0 -> "$base + $bonus"
+        bonus < 0 -> "$base - ${kotlin.math.abs(bonus)}"
+        else -> base
+    }
+}
+
+private fun formatAttackRange(
+    normalRange: String,
+    longRange: String,
+    meleeLabel: String,
+    feetLabel: String
+): String {
+    val normal = normalRange.filter(Char::isDigit)
+    val long = longRange.filter(Char::isDigit)
+    return when {
+        normal.isBlank() && long.isBlank() -> meleeLabel
+        normal.isNotBlank() && long.isNotBlank() -> "$normal/$long $feetLabel"
+        normal.isNotBlank() -> "$normal $feetLabel"
+        else -> meleeLabel
+    }
+}
+
+private fun damageTypeLocalizationKeyForCombat(type: String): String =
+    when (type) {
+        "Acid" -> "inventory_damage_type_acid"
+        "Bludgeoning" -> "inventory_damage_type_bludgeoning"
+        "Cold" -> "inventory_damage_type_cold"
+        "Fire" -> "inventory_damage_type_fire"
+        "Force" -> "inventory_damage_type_force"
+        "Lightning" -> "inventory_damage_type_lightning"
+        "Necrotic" -> "inventory_damage_type_necrotic"
+        "Piercing" -> "inventory_damage_type_piercing"
+        "Poison" -> "inventory_damage_type_poison"
+        "Psychic" -> "inventory_damage_type_psychic"
+        "Radiant" -> "inventory_damage_type_radiant"
+        "Slashing" -> "inventory_damage_type_slashing"
+        "Thunder" -> "inventory_damage_type_thunder"
+        else -> type
+    }
+
+private fun weaponDieTypeOptionsForCombat(): List<String> = listOf("d4", "d6", "d8", "d10", "d12")
+
+private fun defaultDamageTypeForCombat(): String = "Slashing"
+
+private fun damageTypeOptionsForCombat(): List<String> = listOf(
+    "Acid",
+    "Bludgeoning",
+    "Cold",
+    "Fire",
+    "Force",
+    "Lightning",
+    "Necrotic",
+    "Piercing",
+    "Poison",
+    "Psychic",
+    "Radiant",
+    "Slashing",
+    "Thunder"
+)
+
+private val SpellcastingAbility.labelKey: String
+    get() = when (this) {
+        SpellcastingAbility.STRENGTH -> "ability_strength"
+        SpellcastingAbility.DEXTERITY -> "ability_dexterity"
+        SpellcastingAbility.CONSTITUTION -> "ability_constitution"
+        SpellcastingAbility.INTELLIGENCE -> "ability_intelligence"
+        SpellcastingAbility.WISDOM -> "ability_wisdom"
+        SpellcastingAbility.CHARISMA -> "ability_charisma"
+    }
+
+private const val WeaponGroupSimpleId = "simple_weapons"
+private const val WeaponGroupMartialId = "martial_weapons"

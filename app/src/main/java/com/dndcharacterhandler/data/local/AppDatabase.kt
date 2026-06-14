@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 26,
+    version = 28,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -70,7 +70,9 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_22_23,
                     MIGRATION_23_24,
                     MIGRATION_24_25,
-                    MIGRATION_25_26
+                    MIGRATION_25_26,
+                    MIGRATION_26_27,
+                    MIGRATION_27_28
                 ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
@@ -270,6 +272,18 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_25_26 = object : Migration(25, 26) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE inventory_items ADD COLUMN magicalBonus INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        private val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attacks ADD COLUMN isProficient INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attacks ADD COLUMN ability TEXT NOT NULL DEFAULT 'STRENGTH'")
             }
         }
     }

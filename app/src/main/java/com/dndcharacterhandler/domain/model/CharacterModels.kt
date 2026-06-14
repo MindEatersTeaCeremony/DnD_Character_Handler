@@ -87,6 +87,8 @@ data class Attack(
     val id: Long = 0,
     val name: String,
     val icon: String,
+    val isProficient: Boolean = false,
+    val ability: SpellcastingAbility = SpellcastingAbility.STRENGTH,
     val range: String,
     val attackBonusOrSaveDc: String,
     val damage: String,

@@ -1105,6 +1105,69 @@
     "fr": "Ajouter une attaque",
     "es": "A\u00f1adir ataque"
   },
+  "combat_add_entry_title": {
+    "en": "Add to Combat",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0432 \u0431\u043e\u0439",
+    "de": "Zum Kampf hinzuf\u00fcgen",
+    "fr": "Ajouter au combat",
+    "es": "A\u00f1adir al combate"
+  },
+  "combat_add_attacks_section": {
+    "en": "Attacks",
+    "ru": "\u0410\u0442\u0430\u043a\u0438",
+    "de": "Angriffe",
+    "fr": "Attaques",
+    "es": "Ataques"
+  },
+  "combat_create_weapon_attack": {
+    "en": "Create weapon attack",
+    "ru": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0430\u0442\u0430\u043a\u0443 \u043e\u0440\u0443\u0436\u0438\u044f",
+    "de": "Waffenangriff erstellen",
+    "fr": "Cr\u00e9er une attaque d'arme",
+    "es": "Crear ataque de arma"
+  },
+  "combat_create_spell_attack": {
+    "en": "Create spell attack",
+    "ru": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0430\u0442\u0430\u043a\u0443 \u0437\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u044f",
+    "de": "Zauberangriff erstellen",
+    "fr": "Cr\u00e9er une attaque de sort",
+    "es": "Crear ataque de conjuro"
+  },
+  "combat_create_custom_attack": {
+    "en": "Create custom attack",
+    "ru": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043a\u0430\u0441\u0442\u043e\u043c\u043d\u0443\u044e \u0430\u0442\u0430\u043a\u0443",
+    "de": "Benutzerdefinierten Angriff erstellen",
+    "fr": "Cr\u00e9er une attaque personnalis\u00e9e",
+    "es": "Crear ataque personalizada"
+  },
+  "combat_add_resources_section": {
+    "en": "Resources",
+    "ru": "\u0420\u0435\u0441\u0443\u0440\u0441\u044b",
+    "de": "Ressourcen",
+    "fr": "Ressources",
+    "es": "Recursos"
+  },
+  "combat_add_resource_action": {
+    "en": "Add resource",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0440\u0435\u0441\u0443\u0440\u0441",
+    "de": "Ressource hinzuf\u00fcgen",
+    "fr": "Ajouter une ressource",
+    "es": "A\u00f1adir recurso"
+  },
+  "combat_select_weapon": {
+    "en": "Select Weapon",
+    "ru": "\u0412\u044b\u0431\u043e\u0440 \u043e\u0440\u0443\u0436\u0438\u044f",
+    "de": "Waffe ausw\u00e4hlen",
+    "fr": "S\u00e9lectionner une arme",
+    "es": "Seleccionar arma"
+  },
+  "combat_no_weapons_available": {
+    "en": "No weapons in inventory.",
+    "ru": "\u0412 \u0438\u043d\u0432\u0435\u043d\u0442\u0430\u0440\u0435 \u043d\u0435\u0442 \u043e\u0440\u0443\u0436\u0438\u044f.",
+    "de": "Keine Waffen im Inventar.",
+    "fr": "Aucune arme dans l'inventaire.",
+    "es": "No hay armas en el inventario."
+  },
   "combat_edit_attack": {
     "en": "Edit Attack",
     "ru": "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0430\u0442\u0430\u043a\u0443",
@@ -1118,6 +1181,34 @@
     "de": "Reichweite",
     "fr": "Port\u00e9e",
     "es": "Alcance"
+  },
+  "combat_attack_long_range": {
+    "en": "Long range",
+    "ru": "\u0414\u0430\u043b\u044c\u043d\u044f\u044f \u0434\u0438\u0441\u0442\u0430\u043d\u0446\u0438\u044f",
+    "de": "Gro\u00dfe Reichweite",
+    "fr": "Port\u00e9e lointaine",
+    "es": "Alcance largo"
+  },
+  "combat_attack_ability": {
+    "en": "Ability",
+    "ru": "\u0425\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0430",
+    "de": "Attribut",
+    "fr": "Caract\u00e9ristique",
+    "es": "Caracter\u00edstica"
+  },
+  "combat_attack_section_attack": {
+    "en": "Attack",
+    "ru": "\u0410\u0442\u0430\u043a\u0430",
+    "de": "Angriff",
+    "fr": "Attaque",
+    "es": "Ataque"
+  },
+  "combat_attack_section_damage": {
+    "en": "Damage",
+    "ru": "\u0423\u0440\u043e\u043d",
+    "de": "Schaden",
+    "fr": "D\u00e9g\u00e2ts",
+    "es": "Da\u00f1o"
   },
   "combat_attack_bonus_or_dc": {
     "en": "Attack Bonus / DC",
@@ -1139,6 +1230,13 @@
     "de": "Schadensart",
     "fr": "Type de d\u00e9g\u00e2ts",
     "es": "Tipo de da\u00f1o"
+  },
+  "combat_attack_proficient": {
+    "en": "Proficient",
+    "ru": "\u0412\u043b\u0430\u0434\u0435\u0435\u0442",
+    "de": "Ge\u00fcbt",
+    "fr": "Ma\u00eetrise",
+    "es": "Competente"
   },
   "combat_empty_attacks": {
     "en": "No attacks yet.",

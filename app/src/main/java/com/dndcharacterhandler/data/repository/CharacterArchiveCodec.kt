@@ -20,11 +20,12 @@ import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 import com.dndcharacterhandler.domain.model.Note
 import com.dndcharacterhandler.domain.model.Skill
 import com.dndcharacterhandler.domain.model.Spell
+import com.dndcharacterhandler.domain.model.SpellcastingAbility
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-private const val SCHEMA_VERSION = 12
+private const val SCHEMA_VERSION = 14
 
 data class ImportedArchive(
     val characterBundle: CharacterBundle,
@@ -113,6 +114,8 @@ fun CharacterBundle.toArchiveManifest(
             JSONObject().apply {
                 put("name", attack.name)
                 put("icon", mapAssetReference(attack.icon, "attack_${index}_${slugify(attack.name)}"))
+                put("isProficient", attack.isProficient)
+                put("ability", attack.ability.name)
                 put("range", attack.range)
                 put("attackBonusOrSaveDc", attack.attackBonusOrSaveDc)
                 put("damage", attack.damage)
@@ -285,6 +288,11 @@ private fun JSONArray.toAttackList(resolveAssetReference: (String?) -> String?):
             Attack(
                 name = json.optString("name"),
                 icon = resolveAssetReference(json.optNullableString("icon")).orEmpty(),
+                isProficient = json.optBoolean("isProficient"),
+                ability = json.optString("ability")
+                    .takeIf(String::isNotBlank)
+                    ?.let { runCatching { SpellcastingAbility.valueOf(it) }.getOrDefault(SpellcastingAbility.STRENGTH) }
+                    ?: SpellcastingAbility.STRENGTH,
                 range = json.optString("range"),
                 attackBonusOrSaveDc = json.optString("attackBonusOrSaveDc"),
                 damage = json.optString("damage"),
