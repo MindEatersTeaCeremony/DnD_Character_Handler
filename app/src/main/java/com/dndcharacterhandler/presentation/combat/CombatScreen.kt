@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Bolt
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.domain.model.Attack
+import com.dndcharacterhandler.domain.model.AttackCalculationMode
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CombatResource
@@ -215,7 +219,6 @@ internal fun CombatContent(
     onUpdateCombatResource: (CharacterBundle, CombatResource) -> Unit = { _, _ -> },
     onDeleteCombatResource: (CharacterBundle, CombatResource) -> Unit = { _, _ -> }
 ) {
-    val strings = LocalStrings.current
     val character = characterBundle?.character
     var editingAttack by remember { mutableStateOf<Attack?>(null) }
     var editingCombatResource by remember { mutableStateOf<CombatResource?>(null) }
@@ -921,7 +924,7 @@ private fun AttackCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = text(damageTypeLocalizationKeyForCombat(attack.damageType)),
+                    text = attack.displayDamageTypeLabel(strings = LocalStrings.current),
                     style = MaterialTheme.typography.bodyLarge,
                     color = damageTypeColor(attack.damageType),
                     maxLines = 1,
@@ -1202,121 +1205,254 @@ private fun AttackEditDialog(
     var name by remember(attack) { mutableStateOf(attack.name) }
     val meleeLabel = text("inventory_weapon_range_melee")
     val feetLabel = text("inventory_unit_feet")
-    val parsedRange = remember(attack.range, meleeLabel, feetLabel) {
-        parseAttackRange(attack.range, meleeLabel, feetLabel)
+    val parsedRange = remember(attack.range, attack.normalRange, attack.longRange, meleeLabel, feetLabel) {
+        parseAttackRange(
+            value = attack.range,
+            meleeLabel = meleeLabel,
+            feetLabel = feetLabel,
+            fallbackNormal = attack.normalRange,
+            fallbackLong = attack.longRange
+        )
     }
-    val parsedDamage = remember(attack.damage) { parseAttackDamage(attack.damage) }
+    val parsedPrimaryDamage = remember(attack.damage, attack.damageDiceCount, attack.damageDieType) {
+        parseAttackDamage(
+            value = attack.damage,
+            fallbackDiceCount = attack.damageDiceCount,
+            fallbackDieType = attack.damageDieType
+        )
+    }
+    val parsedAlternateDamage = remember(attack.alternateDamageDiceCount, attack.alternateDamageDieType) {
+        if (attack.alternateDamageDiceCount != null && !attack.alternateDamageDieType.isNullOrBlank()) {
+            ParsedAttackDamage(
+                diceCount = attack.alternateDamageDiceCount,
+                dieType = attack.alternateDamageDieType
+            )
+        } else {
+            null
+        }
+    }
     var normalRange by remember(attack, parsedRange.first) { mutableStateOf(parsedRange.first) }
     var longRange by remember(attack, parsedRange.second) { mutableStateOf(parsedRange.second) }
+    var calculationMode by remember(attack) { mutableStateOf(attack.calculationMode) }
     var ability by remember(attack) { mutableStateOf(attack.ability) }
-    var attackBonusOrSaveDc by remember(attack) { mutableStateOf(attack.attackBonusOrSaveDc) }
-    var damageDiceCount by remember(attack, parsedDamage.diceCount) { mutableStateOf(parsedDamage.diceCount) }
-    var damageDieType by remember(attack, parsedDamage.dieType) { mutableStateOf(parsedDamage.dieType) }
-    var damageBonus by remember(attack, parsedDamage.bonus) { mutableStateOf(parsedDamage.bonus) }
+    var manualAttackBonusOrSaveDc by remember(attack) { mutableStateOf(attack.attackBonusOrSaveDc) }
+    var manualDamage by remember(attack) { mutableStateOf(attack.damage) }
+    var damageDiceCount by remember(attack, parsedPrimaryDamage.diceCount) { mutableStateOf(parsedPrimaryDamage.diceCount) }
+    var damageDieType by remember(attack, parsedPrimaryDamage.dieType) { mutableStateOf(parsedPrimaryDamage.dieType) }
     var damageType by remember(attack) { mutableStateOf(attack.damageType.ifBlank { defaultDamageTypeForCombat() }) }
     var isProficient by remember(attack) { mutableStateOf(attack.isProficient) }
+    var magicalBonus by remember(attack) { mutableStateOf(attack.magicalBonus.toString()) }
+    var applyAbilityModifierToDamage by remember(attack) { mutableStateOf(attack.applyAbilityModifierToDamage) }
+    var hasAlternateDamage by remember(attack) { mutableStateOf(parsedAlternateDamage != null) }
+    var alternateDamageDiceCount by remember(attack, parsedAlternateDamage?.diceCount) {
+        mutableStateOf(parsedAlternateDamage?.diceCount ?: 1)
+    }
+    var alternateDamageDieType by remember(attack, parsedAlternateDamage?.dieType) {
+        mutableStateOf(parsedAlternateDamage?.dieType ?: "d4")
+    }
+    var alternateDamageType by remember(attack) {
+        mutableStateOf(attack.alternateDamageType ?: damageType)
+    }
     var isAbilityDialogOpen by remember { mutableStateOf(false) }
     var isDamageDieDialogOpen by remember { mutableStateOf(false) }
     var isDamageTypeDialogOpen by remember { mutableStateOf(false) }
+    var isAlternateDamageDieDialogOpen by remember { mutableStateOf(false) }
+    var isAlternateDamageTypeDialogOpen by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text(if (attack.id == 0L) "combat_add_attack" else "combat_edit_attack")) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(text("features_name")) },
                     singleLine = true
                 )
-                CombatDialogSection(text("combat_attack_section_attack"))
                 CombatCompactSelectionField(
-                    label = text("combat_attack_ability"),
-                    value = strings[ability.labelKey],
-                    onClick = { isAbilityDialogOpen = true }
+                    label = text("combat_attack_calculation_mode"),
+                    value = text(calculationMode.localizationKey),
+                    onClick = { calculationMode = calculationMode.toggle() }
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = normalRange,
-                        onValueChange = { normalRange = it.filter(Char::isDigit) },
-                        modifier = Modifier.weight(1f),
-                        label = { Text(text("combat_attack_range")) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                if (calculationMode == AttackCalculationMode.AUTOMATIC) {
+                    CombatDialogSection(text("combat_attack_section_attack"))
+                    CombatCompactSelectionField(
+                        label = text("combat_attack_ability"),
+                        value = strings[ability.labelKey],
+                        onClick = { isAbilityDialogOpen = true }
                     )
-                    OutlinedTextField(
-                        value = longRange,
-                        onValueChange = { longRange = it.filter(Char::isDigit) },
-                        modifier = Modifier.weight(1f),
-                        label = { Text(text("combat_attack_long_range")) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-                OutlinedTextField(
-                    value = attackBonusOrSaveDc,
-                    onValueChange = { attackBonusOrSaveDc = it },
-                    label = { Text(text("combat_attack_bonus_or_dc")) },
-                    singleLine = true
-                )
-                ResourceCheckboxRow(
-                    checked = isProficient,
-                    label = text("combat_attack_proficient"),
-                    onCheckedChange = { checked ->
-                        attackBonusOrSaveDc = applyAttackProficiencyDelta(
-                            current = attackBonusOrSaveDc,
-                            delta = if (checked) proficiencyBonus else -proficiencyBonus
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CombatCompactTextField(
+                            modifier = Modifier.weight(1f),
+                            value = normalRange,
+                            onValueChange = { normalRange = it.filter(Char::isDigit) },
+                            label = text("combat_attack_range"),
+                            suffixText = feetLabel
                         )
-                        isProficient = checked
+                        CombatCompactTextField(
+                            modifier = Modifier.weight(1f),
+                            value = longRange,
+                            onValueChange = { longRange = it.filter(Char::isDigit) },
+                            label = text("combat_attack_long_range"),
+                            suffixText = feetLabel
+                        )
                     }
-                )
-                CombatDialogSection(text("combat_attack_section_damage"))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    CombatCompactNumberStepperField(
-                        label = text("inventory_field_damage_dice_count"),
-                        value = damageDiceCount,
-                        onValueChange = { damageDiceCount = it },
-                        minValue = 0,
-                        modifier = Modifier.weight(1.25f)
+                    ResourceCheckboxRow(
+                        checked = isProficient,
+                        label = text("combat_attack_proficient"),
+                        onCheckedChange = { checked -> isProficient = checked }
+                    )
+                    CombatDialogSection(text("combat_attack_section_damage"))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        CombatCompactNumberStepperField(
+                            label = text("inventory_field_damage_dice_count"),
+                            value = damageDiceCount,
+                            onValueChange = { damageDiceCount = it },
+                            minValue = 0,
+                            modifier = Modifier.weight(1.25f)
+                        )
+                        CombatCompactSelectionField(
+                            modifier = Modifier.weight(1f),
+                            label = text("inventory_field_damage_die_type"),
+                            value = damageDieType,
+                            onClick = { isDamageDieDialogOpen = true }
+                        )
+                        CombatCompactTextField(
+                            modifier = Modifier.weight(1f),
+                            value = magicalBonus,
+                            onValueChange = { magicalBonus = sanitizeSignedNumberInput(it) },
+                            label = text("combat_attack_magical_bonus"),
+                            prefixText = "+",
+                            keyboardType = KeyboardType.Number
+                        )
+                    }
+                    CombatCompactSelectionField(
+                        label = text("combat_attack_damage_type"),
+                        value = strings[damageTypeLocalizationKeyForCombat(damageType)],
+                        onClick = { isDamageTypeDialogOpen = true }
+                    )
+                    ResourceCheckboxRow(
+                        checked = applyAbilityModifierToDamage,
+                        label = text("combat_attack_main_hand"),
+                        onCheckedChange = { applyAbilityModifierToDamage = it }
+                    )
+                    CombatDialogSection(text("combat_attack_section_alternate_damage"))
+                    if (hasAlternateDamage) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            CombatCompactNumberStepperField(
+                                label = text("inventory_field_damage_dice_count"),
+                                value = alternateDamageDiceCount,
+                                onValueChange = { alternateDamageDiceCount = it },
+                                minValue = 0,
+                                modifier = Modifier.weight(1.25f)
+                            )
+                            CombatCompactSelectionField(
+                                modifier = Modifier.weight(1f),
+                                label = text("inventory_field_damage_die_type"),
+                                value = alternateDamageDieType,
+                                onClick = { isAlternateDamageDieDialogOpen = true }
+                            )
+                        }
+                        CombatCompactSelectionField(
+                            label = text("combat_attack_damage_type"),
+                            value = strings[damageTypeLocalizationKeyForCombat(alternateDamageType)],
+                            onClick = { isAlternateDamageTypeDialogOpen = true }
+                        )
+                        TextButton(onClick = { hasAlternateDamage = false }) {
+                            Text(text("combat_attack_remove_alternate_damage"))
+                        }
+                    } else {
+                        TextButton(
+                            onClick = {
+                                hasAlternateDamage = true
+                                alternateDamageType = damageType
+                            }
+                        ) {
+                            Text(text("combat_attack_add_alternate_damage"))
+                        }
+                    }
+                } else {
+                    CombatDialogSection(text("combat_attack_section_attack"))
+                    CombatCompactTextField(
+                        value = manualAttackBonusOrSaveDc,
+                        onValueChange = { manualAttackBonusOrSaveDc = it },
+                        label = text("combat_attack_bonus_or_dc")
+                    )
+                    CombatDialogSection(text("combat_attack_section_damage"))
+                    CombatCompactTextField(
+                        value = manualDamage,
+                        onValueChange = { manualDamage = it },
+                        label = text("combat_attack_damage")
                     )
                     CombatCompactSelectionField(
-                        modifier = Modifier.weight(1f),
-                        label = text("inventory_field_damage_die_type"),
-                        value = damageDieType,
-                        onClick = { isDamageDieDialogOpen = true }
+                        label = text("combat_attack_damage_type"),
+                        value = strings[damageTypeLocalizationKeyForCombat(damageType)],
+                        onClick = { isDamageTypeDialogOpen = true }
                     )
                 }
-                CombatCompactSelectionField(
-                    label = text("combat_attack_damage_type"),
-                    value = strings[damageTypeLocalizationKeyForCombat(damageType)],
-                    onClick = { isDamageTypeDialogOpen = true }
-                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
+                    val parsedMagicalBonus = magicalBonus.toIntOrNull() ?: 0
+                    val abilityModifierValue = abilityModifier(scoreForSpellcastingAbility(character, ability))
+                    val attackBonusValue = (if (isProficient) proficiencyBonus else 0) + abilityModifierValue + parsedMagicalBonus
+                    val primaryDamageBonus = parsedMagicalBonus + if (applyAbilityModifierToDamage) abilityModifierValue else 0
+                    val alternateDamageBonus = parsedMagicalBonus + if (applyAbilityModifierToDamage) abilityModifierValue else 0
                     onSave(
                         attack.copy(
                             name = name.trim(),
                             isProficient = isProficient,
+                            calculationMode = calculationMode,
+                            ability = ability,
+                            normalRange = normalRange.toIntOrNull(),
+                            longRange = longRange.toIntOrNull(),
+                            damageDiceCount = damageDiceCount,
+                            damageDieType = damageDieType,
+                            alternateDamageDiceCount = alternateDamageDiceCount.takeIf { hasAlternateDamage },
+                            alternateDamageDieType = alternateDamageDieType.takeIf { hasAlternateDamage },
+                            alternateDamageType = alternateDamageType.takeIf { hasAlternateDamage },
+                            magicalBonus = parsedMagicalBonus,
+                            applyAbilityModifierToDamage = applyAbilityModifierToDamage,
                             range = formatAttackRange(
                                 normalRange = normalRange,
                                 longRange = longRange,
                                 meleeLabel = meleeLabel,
                                 feetLabel = feetLabel
                             ),
-                            attackBonusOrSaveDc = attackBonusOrSaveDc.trim(),
-                            damage = formatAttackDamage(
-                                diceCount = damageDiceCount,
-                                dieType = damageDieType,
-                                bonus = damageBonus
-                            ),
+                            attackBonusOrSaveDc = if (calculationMode == AttackCalculationMode.AUTOMATIC) {
+                                "${signedNumber(attackBonusValue)} Attack"
+                            } else {
+                                manualAttackBonusOrSaveDc.trim()
+                            },
+                            damage = if (calculationMode == AttackCalculationMode.AUTOMATIC) {
+                                formatAttackDamage(
+                                    diceCount = damageDiceCount,
+                                    dieType = damageDieType,
+                                    bonus = primaryDamageBonus,
+                                    alternateDiceCount = alternateDamageDiceCount.takeIf { hasAlternateDamage },
+                                    alternateDieType = alternateDamageDieType.takeIf { hasAlternateDamage },
+                                    alternateBonus = alternateDamageBonus
+                                )
+                            } else {
+                                manualDamage.trim()
+                            },
                             damageType = damageType
                         )
                     )
@@ -1347,11 +1483,6 @@ private fun AttackEditDialog(
             labelForOption = { strings[it.labelKey] },
             onDismiss = { isAbilityDialogOpen = false },
             onSelect = { option ->
-                val previousModifier = abilityModifier(scoreForSpellcastingAbility(character, ability))
-                val nextModifier = abilityModifier(scoreForSpellcastingAbility(character, option.ability))
-                val delta = nextModifier - previousModifier
-                attackBonusOrSaveDc = applyAttackProficiencyDelta(attackBonusOrSaveDc, delta)
-                damageBonus += delta
                 ability = option.ability
                 isAbilityDialogOpen = false
             }
@@ -1385,6 +1516,34 @@ private fun AttackEditDialog(
             }
         )
     }
+
+    if (isAlternateDamageDieDialogOpen) {
+        SelectionDialog(
+            title = text("inventory_field_damage_die_type"),
+            options = weaponDieTypeOptionsForCombat(),
+            selected = alternateDamageDieType,
+            labelForOption = { it },
+            onDismiss = { isAlternateDamageDieDialogOpen = false },
+            onSelect = {
+                alternateDamageDieType = it
+                isAlternateDamageDieDialogOpen = false
+            }
+        )
+    }
+
+    if (isAlternateDamageTypeDialogOpen) {
+        SelectionDialog(
+            title = text("combat_attack_damage_type"),
+            options = damageTypeOptionsForCombat(),
+            selected = alternateDamageType,
+            labelForOption = { strings[damageTypeLocalizationKeyForCombat(it)] },
+            onDismiss = { isAlternateDamageTypeDialogOpen = false },
+            onSelect = {
+                alternateDamageType = it
+                isAlternateDamageTypeDialogOpen = false
+            }
+        )
+    }
 }
 
 private fun newDraftAttack(): Attack =
@@ -1393,7 +1552,17 @@ private fun newDraftAttack(): Attack =
         name = "",
         icon = "",
         isProficient = false,
+        calculationMode = AttackCalculationMode.AUTOMATIC,
         ability = SpellcastingAbility.STRENGTH,
+        normalRange = null,
+        longRange = null,
+        damageDiceCount = 1,
+        damageDieType = "d4",
+        alternateDamageDiceCount = null,
+        alternateDamageDieType = null,
+        alternateDamageType = null,
+        magicalBonus = 0,
+        applyAbilityModifierToDamage = true,
         range = "",
         attackBonusOrSaveDc = "+0 Attack",
         damage = "1d4",
@@ -1439,15 +1608,33 @@ private fun InventoryItem.toCombatAttack(
     val magicalModifier = if (isMagical) magicalBonus else 0
     val isProficient = details.isCharacterProficient(weaponProficiencyIds)
     val primaryDamage = details.damages.firstOrNull()
+    val alternateDamage = details.twoHandedDamage
     return Attack(
         id = 0,
         name = name,
         icon = icon,
         isProficient = isProficient,
+        calculationMode = AttackCalculationMode.AUTOMATIC,
         ability = attackAbility,
+        normalRange = details.normalRange,
+        longRange = details.longRange,
+        damageDiceCount = primaryDamage?.dice.toDiceCount() ?: 1,
+        damageDieType = primaryDamage?.dice.toDieType() ?: "d4",
+        alternateDamageDiceCount = alternateDamage?.dice?.toDiceCount(),
+        alternateDamageDieType = alternateDamage?.dice?.toDieType(),
+        alternateDamageType = alternateDamage?.damageType,
+        magicalBonus = magicalModifier,
+        applyAbilityModifierToDamage = true,
         range = details.rangeLabel(meleeLabel = meleeLabel, feetLabel = feetLabel),
         attackBonusOrSaveDc = "${signedNumber((if (isProficient) proficiencyBonus else 0) + abilityModifier + magicalModifier)} Attack",
-        damage = primaryDamage?.toCombatDamageLabel(abilityModifier + magicalModifier).orEmpty(),
+        damage = formatAttackDamage(
+            diceCount = primaryDamage?.dice.toDiceCount() ?: 1,
+            dieType = primaryDamage?.dice.toDieType() ?: "d4",
+            bonus = abilityModifier + magicalModifier,
+            alternateDiceCount = alternateDamage?.dice?.toDiceCount(),
+            alternateDieType = alternateDamage?.dice?.toDieType(),
+            alternateBonus = abilityModifier + magicalModifier
+        ),
         damageType = primaryDamage?.damageType.orEmpty()
     )
 }
@@ -1576,6 +1763,80 @@ private fun CombatCompactSelectionField(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun CombatCompactTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    suffixText: String? = null,
+    prefixText: String? = null,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFD2CAC2),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0x14FFFFFF),
+            border = BorderStroke(1.dp, Color(0x30FFFFFF))
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFFF7F2EA)),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { innerTextField ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (prefixText != null && !value.startsWith("-")) {
+                            Text(
+                                text = prefixText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color(0xFFF7F2EA),
+                                maxLines = 1
+                            )
+                        }
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            innerTextField()
+                        }
+                        if (suffixText != null) {
+                            Text(
+                                text = suffixText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color(0xFFD2CAC2),
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            )
         }
     }
 }
@@ -1750,19 +2011,16 @@ private fun com.dndcharacterhandler.domain.model.InventoryWeaponDamage.toCombatD
     }
 }
 
-private fun applyAttackProficiencyDelta(current: String, delta: Int): String {
-    if (delta == 0) return current
-    val match = Regex("""^\s*([+-]?\d+)(.*)$""").matchEntire(current) ?: return current
-    val value = match.groupValues[1].toIntOrNull() ?: return current
-    val suffix = match.groupValues[2]
-    return "${signedNumber(value + delta)}$suffix"
-}
-
 private fun parseAttackRange(
     value: String,
     meleeLabel: String,
-    feetLabel: String
+    feetLabel: String,
+    fallbackNormal: Int? = null,
+    fallbackLong: Int? = null
 ): Pair<String, String> {
+    if (fallbackNormal != null || fallbackLong != null) {
+        return (fallbackNormal?.toString().orEmpty()) to (fallbackLong?.toString().orEmpty())
+    }
     val normalized = value.trim()
     if (normalized.isBlank() || normalized.equals(meleeLabel, ignoreCase = true)) {
         return "" to ""
@@ -1777,25 +2035,22 @@ private fun parseAttackRange(
 
 private data class ParsedAttackDamage(
     val diceCount: Int,
-    val dieType: String,
-    val bonus: Int
+    val dieType: String
 )
 
-private fun parseAttackDamage(value: String): ParsedAttackDamage {
-    val match = Regex("""^\s*(\d+)d(4|6|8|10|12)(?:\s*([+-])\s*(\d+))?\s*$""").matchEntire(value.trim())
+private fun parseAttackDamage(
+    value: String,
+    fallbackDiceCount: Int = 1,
+    fallbackDieType: String = "d4"
+): ParsedAttackDamage {
+    val primaryPart = value.substringBefore("/").trim()
+    val match = Regex("""^\s*(\d+)d(4|6|8|10|12)(?:\s*([+-])\s*(\d+))?\s*$""").matchEntire(primaryPart)
     if (match == null) {
-        return ParsedAttackDamage(diceCount = 1, dieType = "d4", bonus = 0)
-    }
-    val sign = match.groupValues.getOrNull(3)
-    val bonusValue = match.groupValues.getOrNull(4)?.toIntOrNull() ?: 0
-    val normalizedBonus = when (sign) {
-        "-" -> -bonusValue
-        else -> bonusValue
+        return ParsedAttackDamage(diceCount = fallbackDiceCount.coerceAtLeast(0), dieType = fallbackDieType)
     }
     return ParsedAttackDamage(
         diceCount = match.groupValues[1].toIntOrNull() ?: 1,
-        dieType = "d${match.groupValues[2]}",
-        bonus = normalizedBonus
+        dieType = "d${match.groupValues[2]}"
     )
 }
 
@@ -1803,14 +2058,22 @@ private fun formatAttackDamage(
     diceCount: Int,
     dieType: String,
     bonus: Int
+): String =
+    formatSingleAttackDamage(diceCount = diceCount, dieType = dieType, bonus = bonus)
+
+private fun formatAttackDamage(
+    diceCount: Int,
+    dieType: String,
+    bonus: Int,
+    alternateDiceCount: Int?,
+    alternateDieType: String?,
+    alternateBonus: Int
 ): String {
-    val normalizedCount = diceCount.coerceAtLeast(0)
-    val base = "${normalizedCount}${dieType}"
-    return when {
-        bonus > 0 -> "$base + $bonus"
-        bonus < 0 -> "$base - ${kotlin.math.abs(bonus)}"
-        else -> base
-    }
+    val primary = formatSingleAttackDamage(diceCount = diceCount, dieType = dieType, bonus = bonus)
+    val alternate = if (alternateDiceCount != null && !alternateDieType.isNullOrBlank()) {
+        formatSingleAttackDamage(diceCount = alternateDiceCount, dieType = alternateDieType, bonus = alternateBonus)
+    } else null
+    return if (alternate != null) "$primary / $alternate" else primary
 }
 
 private fun formatAttackRange(
@@ -1851,6 +2114,18 @@ private fun weaponDieTypeOptionsForCombat(): List<String> = listOf("d4", "d6", "
 
 private fun defaultDamageTypeForCombat(): String = "Slashing"
 
+private val AttackCalculationMode.localizationKey: String
+    get() = when (this) {
+        AttackCalculationMode.AUTOMATIC -> "common_automatic"
+        AttackCalculationMode.MANUAL -> "common_manual"
+    }
+
+private fun AttackCalculationMode.toggle(): AttackCalculationMode =
+    when (this) {
+        AttackCalculationMode.AUTOMATIC -> AttackCalculationMode.MANUAL
+        AttackCalculationMode.MANUAL -> AttackCalculationMode.AUTOMATIC
+    }
+
 private fun damageTypeOptionsForCombat(): List<String> = listOf(
     "Acid",
     "Bludgeoning",
@@ -1876,6 +2151,41 @@ private val SpellcastingAbility.labelKey: String
         SpellcastingAbility.WISDOM -> "ability_wisdom"
         SpellcastingAbility.CHARISMA -> "ability_charisma"
     }
+
+private fun formatSingleAttackDamage(
+    diceCount: Int,
+    dieType: String,
+    bonus: Int
+): String {
+    val normalizedCount = diceCount.coerceAtLeast(0)
+    val base = "${normalizedCount}${dieType}"
+    return when {
+        bonus > 0 -> "$base + $bonus"
+        bonus < 0 -> "$base - ${kotlin.math.abs(bonus)}"
+        else -> base
+    }
+}
+
+private fun sanitizeSignedNumberInput(value: String): String {
+    val filtered = value.filterIndexed { index, char ->
+        char.isDigit() || (char == '-' && index == 0)
+    }
+    return if (filtered == "-") filtered else filtered.trimStart('+')
+}
+
+private fun String?.toDiceCount(): Int? =
+    this?.replace(" ", "")
+        ?.let { Regex("""^(\d+)d\d+.*$""").matchEntire(it)?.groupValues?.getOrNull(1)?.toIntOrNull() }
+
+private fun String?.toDieType(): String? =
+    this?.replace(" ", "")
+        ?.let { Regex("""^\d+(d\d+).*$""").matchEntire(it)?.groupValues?.getOrNull(1) }
+
+private fun Attack.displayDamageTypeLabel(strings: com.dndcharacterhandler.data.localization.LocalizedStrings): String {
+    val primary = strings[damageTypeLocalizationKeyForCombat(damageType)]
+    val alternate = alternateDamageType?.takeIf { it.isNotBlank() }?.let { strings[damageTypeLocalizationKeyForCombat(it)] }
+    return if (alternate != null && !alternate.equals(primary, ignoreCase = true)) "$primary / $alternate" else primary
+}
 
 private const val WeaponGroupSimpleId = "simple_weapons"
 private const val WeaponGroupMartialId = "martial_weapons"

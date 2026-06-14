@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 28,
+    version = 30,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -72,7 +72,9 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_24_25,
                     MIGRATION_25_26,
                     MIGRATION_26_27,
-                    MIGRATION_27_28
+                    MIGRATION_27_28,
+                    MIGRATION_28_29,
+                    MIGRATION_29_30
                 ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
@@ -284,6 +286,26 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_27_28 = object : Migration(27, 28) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE attacks ADD COLUMN ability TEXT NOT NULL DEFAULT 'STRENGTH'")
+            }
+        }
+
+        private val MIGRATION_28_29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attacks ADD COLUMN normalRange INTEGER")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN longRange INTEGER")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN damageDiceCount INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN damageDieType TEXT NOT NULL DEFAULT 'd4'")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN alternateDamageDiceCount INTEGER")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN alternateDamageDieType TEXT")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN alternateDamageType TEXT")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN magicalBonus INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN applyAbilityModifierToDamage INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        private val MIGRATION_29_30 = object : Migration(29, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attacks ADD COLUMN calculationMode TEXT NOT NULL DEFAULT 'AUTOMATIC'")
             }
         }
     }

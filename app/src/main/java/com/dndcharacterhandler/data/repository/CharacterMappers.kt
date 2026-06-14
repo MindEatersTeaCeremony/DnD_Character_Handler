@@ -28,7 +28,29 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
     CharacterBundle(
         character = character.toDomain(),
         skills = skills.map { Skill(it.id, it.name, it.isProficient, it.isExpertise, it.hasJackOfAllTrades) },
-        attacks = attacks.map { Attack(it.id, it.name, it.icon, it.isProficient, it.ability, it.range, it.attackBonusOrSaveDc, it.damage, it.damageType) },
+        attacks = attacks.map {
+            Attack(
+                id = it.id,
+                name = it.name,
+                icon = it.icon,
+                isProficient = it.isProficient,
+                calculationMode = it.calculationMode,
+                ability = it.ability,
+                normalRange = it.normalRange,
+                longRange = it.longRange,
+                damageDiceCount = it.damageDiceCount,
+                damageDieType = it.damageDieType,
+                alternateDamageDiceCount = it.alternateDamageDiceCount,
+                alternateDamageDieType = it.alternateDamageDieType,
+                alternateDamageType = it.alternateDamageType,
+                magicalBonus = it.magicalBonus,
+                applyAbilityModifierToDamage = it.applyAbilityModifierToDamage,
+                range = it.range,
+                attackBonusOrSaveDc = it.attackBonusOrSaveDc,
+                damage = it.damage,
+                damageType = it.damageType
+            )
+        },
         combatResources = combatResources.map {
             CombatResource(
                 it.id,
@@ -246,7 +268,28 @@ fun Skill.toEntity(characterId: Long): SkillEntity =
     )
 
 fun Attack.toEntity(characterId: Long): AttackEntity =
-    AttackEntity(id = id, characterOwnerId = characterId, name = name, icon = icon, isProficient = isProficient, ability = ability, range = range, attackBonusOrSaveDc = attackBonusOrSaveDc, damage = damage, damageType = damageType)
+    AttackEntity(
+        id = id,
+        characterOwnerId = characterId,
+        name = name,
+        icon = icon,
+        isProficient = isProficient,
+        calculationMode = calculationMode,
+        ability = ability,
+        normalRange = normalRange,
+        longRange = longRange,
+        damageDiceCount = damageDiceCount,
+        damageDieType = damageDieType,
+        alternateDamageDiceCount = alternateDamageDiceCount,
+        alternateDamageDieType = alternateDamageDieType,
+        alternateDamageType = alternateDamageType,
+        magicalBonus = magicalBonus,
+        applyAbilityModifierToDamage = applyAbilityModifierToDamage,
+        range = range,
+        attackBonusOrSaveDc = attackBonusOrSaveDc,
+        damage = damage,
+        damageType = damageType
+    )
 
 fun CombatResource.toEntity(characterId: Long): CombatResourceEntity =
     CombatResourceEntity(

@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import androidx.room.Embedded
 import com.dndcharacterhandler.domain.model.ArmorClassMode
+import com.dndcharacterhandler.domain.model.AttackCalculationMode
 import com.dndcharacterhandler.domain.model.FeatureSource
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
@@ -116,7 +117,17 @@ data class AttackEntity(
     val name: String,
     val icon: String,
     val isProficient: Boolean,
+    val calculationMode: AttackCalculationMode,
     val ability: SpellcastingAbility,
+    val normalRange: Int?,
+    val longRange: Int?,
+    val damageDiceCount: Int,
+    val damageDieType: String,
+    val alternateDamageDiceCount: Int?,
+    val alternateDamageDieType: String?,
+    val alternateDamageType: String?,
+    val magicalBonus: Int,
+    val applyAbilityModifierToDamage: Boolean,
     val range: String,
     val attackBonusOrSaveDc: String,
     val damage: String,

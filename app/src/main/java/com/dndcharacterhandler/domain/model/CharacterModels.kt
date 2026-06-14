@@ -1,6 +1,7 @@
 package com.dndcharacterhandler.domain.model
 
 enum class ArmorClassMode { AUTOMATIC, MANUAL }
+enum class AttackCalculationMode { AUTOMATIC, MANUAL }
 enum class SpellcastingAbility { STRENGTH, DEXTERITY, CONSTITUTION, INTELLIGENCE, WISDOM, CHARISMA }
 
 data class Character(
@@ -88,7 +89,17 @@ data class Attack(
     val name: String,
     val icon: String,
     val isProficient: Boolean = false,
+    val calculationMode: AttackCalculationMode = AttackCalculationMode.AUTOMATIC,
     val ability: SpellcastingAbility = SpellcastingAbility.STRENGTH,
+    val normalRange: Int? = null,
+    val longRange: Int? = null,
+    val damageDiceCount: Int = 1,
+    val damageDieType: String = "d4",
+    val alternateDamageDiceCount: Int? = null,
+    val alternateDamageDieType: String? = null,
+    val alternateDamageType: String? = null,
+    val magicalBonus: Int = 0,
+    val applyAbilityModifierToDamage: Boolean = true,
     val range: String,
     val attackBonusOrSaveDc: String,
     val damage: String,

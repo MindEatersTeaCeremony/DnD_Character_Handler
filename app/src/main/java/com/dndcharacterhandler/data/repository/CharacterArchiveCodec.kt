@@ -2,6 +2,7 @@ package com.dndcharacterhandler.data.repository
 
 import androidx.core.net.toUri
 import com.dndcharacterhandler.domain.model.Attack
+import com.dndcharacterhandler.domain.model.AttackCalculationMode
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
@@ -25,7 +26,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-private const val SCHEMA_VERSION = 14
+private const val SCHEMA_VERSION = 16
 
 data class ImportedArchive(
     val characterBundle: CharacterBundle,
@@ -115,7 +116,17 @@ fun CharacterBundle.toArchiveManifest(
                 put("name", attack.name)
                 put("icon", mapAssetReference(attack.icon, "attack_${index}_${slugify(attack.name)}"))
                 put("isProficient", attack.isProficient)
+                put("calculationMode", attack.calculationMode.name)
                 put("ability", attack.ability.name)
+                put("normalRange", attack.normalRange)
+                put("longRange", attack.longRange)
+                put("damageDiceCount", attack.damageDiceCount)
+                put("damageDieType", attack.damageDieType)
+                put("alternateDamageDiceCount", attack.alternateDamageDiceCount)
+                put("alternateDamageDieType", attack.alternateDamageDieType)
+                put("alternateDamageType", attack.alternateDamageType)
+                put("magicalBonus", attack.magicalBonus)
+                put("applyAbilityModifierToDamage", attack.applyAbilityModifierToDamage)
                 put("range", attack.range)
                 put("attackBonusOrSaveDc", attack.attackBonusOrSaveDc)
                 put("damage", attack.damage)
@@ -289,10 +300,23 @@ private fun JSONArray.toAttackList(resolveAssetReference: (String?) -> String?):
                 name = json.optString("name"),
                 icon = resolveAssetReference(json.optNullableString("icon")).orEmpty(),
                 isProficient = json.optBoolean("isProficient"),
+                calculationMode = json.optString("calculationMode")
+                    .takeIf(String::isNotBlank)
+                    ?.let { runCatching { AttackCalculationMode.valueOf(it) }.getOrDefault(AttackCalculationMode.AUTOMATIC) }
+                    ?: AttackCalculationMode.AUTOMATIC,
                 ability = json.optString("ability")
                     .takeIf(String::isNotBlank)
                     ?.let { runCatching { SpellcastingAbility.valueOf(it) }.getOrDefault(SpellcastingAbility.STRENGTH) }
                     ?: SpellcastingAbility.STRENGTH,
+                normalRange = json.optNullableInt("normalRange"),
+                longRange = json.optNullableInt("longRange"),
+                damageDiceCount = json.optInt("damageDiceCount", 1).coerceAtLeast(0),
+                damageDieType = json.optString("damageDieType").ifBlank { "d4" },
+                alternateDamageDiceCount = json.optNullableInt("alternateDamageDiceCount"),
+                alternateDamageDieType = json.optNullableString("alternateDamageDieType"),
+                alternateDamageType = json.optNullableString("alternateDamageType"),
+                magicalBonus = json.optInt("magicalBonus", 0),
+                applyAbilityModifierToDamage = json.optBoolean("applyAbilityModifierToDamage", true),
                 range = json.optString("range"),
                 attackBonusOrSaveDc = json.optString("attackBonusOrSaveDc"),
                 damage = json.optString("damage"),
