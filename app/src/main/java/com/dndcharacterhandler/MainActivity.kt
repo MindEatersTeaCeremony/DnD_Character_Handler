@@ -7,6 +7,7 @@ import com.dndcharacterhandler.data.local.AppDatabase
 import com.dndcharacterhandler.data.localization.LocalizationRepository
 import com.dndcharacterhandler.data.preferences.LanguagePreferencesRepository
 import com.dndcharacterhandler.data.repository.AssetInventoryCatalogRepository
+import com.dndcharacterhandler.data.repository.AssetSpellCatalogRepository
 import com.dndcharacterhandler.data.repository.CharacterFileRepositoryImpl
 import com.dndcharacterhandler.data.repository.CharacterRepositoryImpl
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity() {
         val languagePreferencesRepository = LanguagePreferencesRepository(applicationContext)
         val localizationRepository = LocalizationRepository(applicationContext)
         val inventoryCatalogRepository = AssetInventoryCatalogRepository(applicationContext)
+        val spellCatalogRepository = AssetSpellCatalogRepository(applicationContext)
         val getCharacterBundleUseCase = GetCharacterBundleUseCase(characterRepository)
         val selectedCharacterHolder = SelectedCharacterHolder()
 
@@ -65,7 +67,12 @@ class MainActivity : ComponentActivity() {
                             getCharacterBundleUseCase = getCharacterBundleUseCase,
                             selectedCharacterHolder = selectedCharacterHolder
                         ),
-                        spellsViewModel = SpellsViewModel(getCharacterBundleUseCase, selectedCharacterHolder),
+                        spellsViewModel = SpellsViewModel(
+                            characterRepository = characterRepository,
+                            spellCatalogRepository = spellCatalogRepository,
+                            getCharacterBundleUseCase = getCharacterBundleUseCase,
+                            selectedCharacterHolder = selectedCharacterHolder
+                        ),
                         featuresViewModel = FeaturesViewModel(
                             characterRepository = characterRepository,
                             getCharacterBundleUseCase = getCharacterBundleUseCase,

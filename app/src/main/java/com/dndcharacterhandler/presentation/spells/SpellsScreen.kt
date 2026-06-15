@@ -1,25 +1,1440 @@
 package com.dndcharacterhandler.presentation.spells
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.dndcharacterhandler.data.localization.LocalizedStrings
+import com.dndcharacterhandler.domain.model.Character
+import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.Spell
+import com.dndcharacterhandler.domain.model.SpellCatalogItem
+import com.dndcharacterhandler.domain.model.SpellcastingAbility
+import com.dndcharacterhandler.domain.repository.CharacterRepository
+import com.dndcharacterhandler.domain.repository.SpellCatalogRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
-import com.dndcharacterhandler.presentation.components.PlaceholderScreen
+import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
+import com.dndcharacterhandler.presentation.components.FloatingAddButton
+import com.dndcharacterhandler.presentation.components.ScreenBackground
+import com.dndcharacterhandler.presentation.components.ScreenTopActions
+import com.dndcharacterhandler.presentation.localization.LocalStrings
+import com.dndcharacterhandler.presentation.localization.text
+import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class SpellCatalogUiState(
+    val items: List<SpellCatalogItem> = emptyList(),
+    val isLoading: Boolean = true
+)
 
 class SpellsViewModel(
+    private val characterRepository: CharacterRepository,
+    private val spellCatalogRepository: SpellCatalogRepository,
     getCharacterBundleUseCase: GetCharacterBundleUseCase,
     selectedCharacterHolder: SelectedCharacterHolder
-) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder)
+) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
+    private val _catalogUiState = MutableStateFlow(SpellCatalogUiState())
+    val catalogUiState: StateFlow<SpellCatalogUiState> = _catalogUiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val items = spellCatalogRepository.getItems()
+            _catalogUiState.value = SpellCatalogUiState(items = items, isLoading = false)
+        }
+    }
+
+    fun updateSpell(characterBundle: CharacterBundle, spell: Spell) {
+        val sanitizedSpell = spell.copy(
+            name = spell.name.trim(),
+            description = spell.description.trim(),
+            higherLevelDescription = spell.higherLevelDescription.trim(),
+            range = spell.range.trim(),
+            castingTime = spell.castingTime.trim(),
+            duration = spell.duration.trim(),
+            components = spell.components.trim(),
+            material = spell.material.trim(),
+            availableClasses = spell.availableClasses.trim(),
+            isPrepared = if (spell.level == 0) true else spell.isPrepared
+        )
+        val updatedSpells = if (sanitizedSpell.id == 0L) {
+            characterBundle.spells + sanitizedSpell.copy(id = 0)
+        } else {
+            characterBundle.spells.map { if (it.id == sanitizedSpell.id) sanitizedSpell else it }
+        }
+        saveBundle(characterBundle.copy(spells = updatedSpells))
+    }
+
+    fun addCatalogSpell(characterBundle: CharacterBundle, item: SpellCatalogItem) {
+        updateSpell(characterBundle, item.toSpell())
+    }
+
+    fun deleteSpell(characterBundle: CharacterBundle, spell: Spell) {
+        saveBundle(characterBundle.copy(spells = characterBundle.spells.filterNot { it.id == spell.id }))
+    }
+
+    fun togglePrepared(characterBundle: CharacterBundle, spell: Spell) {
+        updateSpell(
+            characterBundle,
+            spell.copy(isPrepared = if (spell.level == 0) true else !spell.isPrepared)
+        )
+    }
+
+    fun updateSpellSlots(
+        characterBundle: CharacterBundle,
+        level: Int,
+        maximum: Int,
+        remaining: Int,
+        restoresOnShortRest: Boolean,
+        restoresOnLongRest: Boolean
+    ) {
+        if (level !in 1..9) return
+        val maximums = characterBundle.character.spellSlotMaximums.toSpellSlotList()
+        val remainings = characterBundle.character.spellSlotRemaining.toSpellSlotList()
+        val index = level - 1
+        val sanitizedMaximum = maximum.coerceAtLeast(0)
+        val sanitizedRemaining = remaining.coerceIn(0, sanitizedMaximum)
+        maximums[index] = sanitizedMaximum
+        remainings[index] = sanitizedRemaining
+        saveBundle(
+            characterBundle.copy(
+                character = characterBundle.character.copy(
+                    spellSlotMaximums = maximums.encodeSpellSlotList(),
+                    spellSlotRemaining = remainings.encodeSpellSlotList(),
+                    spellSlotsRestoreOnShortRest = restoresOnShortRest,
+                    spellSlotsRestoreOnLongRest = restoresOnLongRest,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        )
+    }
+
+    fun updateSpellSlotRemaining(characterBundle: CharacterBundle, level: Int, remaining: Int) {
+        if (level !in 1..9) return
+        val maximums = characterBundle.character.spellSlotMaximums.toSpellSlotList()
+        val remainings = characterBundle.character.spellSlotRemaining.toSpellSlotList()
+        val index = level - 1
+        val maximum = maximums[index].coerceAtLeast(0)
+        remainings[index] = remaining.coerceIn(0, maximum)
+        saveBundle(
+            characterBundle.copy(
+                character = characterBundle.character.copy(
+                    spellSlotRemaining = remainings.encodeSpellSlotList(),
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        )
+    }
+
+    fun updateSpellcastingAbility(characterBundle: CharacterBundle, ability: SpellcastingAbility) {
+        if (characterBundle.character.spellcastingAbility == ability) return
+        saveBundle(
+            characterBundle.copy(
+                character = characterBundle.character.copy(
+                    spellcastingAbility = ability,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        )
+    }
+
+    private fun saveBundle(characterBundle: CharacterBundle) {
+        viewModelScope.launch {
+            characterRepository.upsertCharacter(
+                characterBundle.copy(
+                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis())
+                )
+            )
+        }
+    }
+}
 
 @Composable
-fun SpellsScreen(viewModel: SpellsViewModel) {
-    val state = viewModel.uiState.collectAsStateWithLifecycle()
-    PlaceholderScreen(
-        state = state.value,
-        sections = listOf(
-            "spells_section_spellbook_title" to "spells_section_spellbook_body",
-            "spells_section_casting_title" to "spells_section_casting_body"
-        )
+fun SpellsScreen(
+    viewModel: SpellsViewModel,
+    onOpenDrawer: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val catalogState by viewModel.catalogUiState.collectAsStateWithLifecycle()
+    SpellsContent(
+        characterBundle = state.character,
+        catalogState = catalogState,
+        onOpenDrawer = onOpenDrawer,
+        onOpenSettings = onOpenSettings,
+        onUpdateSpell = viewModel::updateSpell,
+        onAddCatalogSpell = viewModel::addCatalogSpell,
+        onDeleteSpell = viewModel::deleteSpell,
+        onTogglePrepared = viewModel::togglePrepared,
+        onUpdateSpellSlots = viewModel::updateSpellSlots,
+        onUpdateSpellSlotRemaining = viewModel::updateSpellSlotRemaining,
+        onUpdateSpellcastingAbility = viewModel::updateSpellcastingAbility
     )
 }
+
+@Composable
+internal fun SpellsContent(
+    characterBundle: CharacterBundle?,
+    catalogState: SpellCatalogUiState = SpellCatalogUiState(),
+    onOpenDrawer: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onUpdateSpell: (CharacterBundle, Spell) -> Unit = { _, _ -> },
+    onAddCatalogSpell: (CharacterBundle, SpellCatalogItem) -> Unit = { _, _ -> },
+    onDeleteSpell: (CharacterBundle, Spell) -> Unit = { _, _ -> },
+    onTogglePrepared: (CharacterBundle, Spell) -> Unit = { _, _ -> },
+    onUpdateSpellSlots: (CharacterBundle, Int, Int, Int, Boolean, Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onUpdateSpellSlotRemaining: (CharacterBundle, Int, Int) -> Unit = { _, _, _ -> },
+    onUpdateSpellcastingAbility: (CharacterBundle, SpellcastingAbility) -> Unit = { _, _ -> }
+) {
+    val character = characterBundle?.character
+    val strings = LocalStrings.current
+    var query by remember { mutableStateOf("") }
+    var editingSpell by remember { mutableStateOf<Spell?>(null) }
+    var editingSlotLevel by remember { mutableStateOf<Int?>(null) }
+    var isAddEntryDialogOpen by remember { mutableStateOf(false) }
+    var isSpellcastingAbilityDialogOpen by remember { mutableStateOf(false) }
+
+    if (character == null) {
+        ScreenBackground {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 24.dp, end = 24.dp, top = 4.dp)
+            ) {
+                ScreenTopActions(
+                    onOpenDrawer = onOpenDrawer,
+                    onOpenSettings = onOpenSettings,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
+                Text(
+                    text = text("placeholder_loading_character"),
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFD7D1CC)
+                )
+            }
+        }
+        return
+    }
+
+    val resolvedBundle = characterBundle
+    val spellModifier = abilityModifier(scoreForSpellcastingAbility(character, character.spellcastingAbility))
+    val proficiencyBonus = proficiencyBonusForLevel(character.level)
+    val spellAttackBonus = signedNumber(proficiencyBonus + spellModifier)
+    val spellSaveDc = (8 + proficiencyBonus + spellModifier).toString()
+    val slotMaximums = remember(character.spellSlotMaximums) { character.spellSlotMaximums.toSpellSlotList() }
+    val slotRemainings = remember(character.spellSlotRemaining) { character.spellSlotRemaining.toSpellSlotList() }
+    val filteredSpells = remember(resolvedBundle.spells, query) {
+        val needle = query.trim()
+        resolvedBundle.spells.filter { spell ->
+            needle.isBlank() ||
+                spell.name.contains(needle, ignoreCase = true) ||
+                spell.description.contains(needle, ignoreCase = true) ||
+                spell.school.contains(needle, ignoreCase = true)
+        }
+    }
+
+    ScreenBackground {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 110.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    CharacterScreenHeader(
+                        character = character,
+                        onOpenDrawer = onOpenDrawer,
+                        onOpenSettings = onOpenSettings
+                    )
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        SpellStatCard(
+                            modifier = Modifier.weight(1f),
+                            label = text("spells_spellcasting_class"),
+                            value = character.characterClass.ifBlank { "-" },
+                            icon = Icons.AutoMirrored.Outlined.MenuBook
+                        )
+                        SpellStatCard(
+                            modifier = Modifier.weight(1f),
+                            label = text("combat_spell_bonus"),
+                            value = spellAttackBonus,
+                            icon = Icons.Outlined.FlashOn,
+                            onClick = { isSpellcastingAbilityDialogOpen = true }
+                        )
+                        SpellStatCard(
+                            modifier = Modifier.weight(1f),
+                            label = text("combat_spell_dc"),
+                            value = spellSaveDc,
+                            icon = Icons.Outlined.Bolt,
+                            onClick = { isSpellcastingAbilityDialogOpen = true }
+                        )
+                    }
+                }
+
+                item {
+                    SpellsSearchField(
+                        value = query,
+                        onValueChange = { query = it }
+                    )
+                }
+
+                spellLevelOrder.forEach { level ->
+                    val spellsAtLevel = filteredSpells.filter { it.level == level }
+                    item(key = "section_$level") {
+                        SpellLevelSectionTitle(
+                            level = level,
+                            maximumSlots = if (level == 0) 0 else slotMaximums[level - 1],
+                            remainingSlots = if (level == 0) 0 else slotRemainings[level - 1],
+                            onTitleClick = if (level == 0) null else ({ editingSlotLevel = level }),
+                            onSlotClick = if (level == 0) {
+                                null
+                            } else {
+                                { slotIndex ->
+                                    val currentRemaining = slotRemainings[level - 1]
+                                    val nextRemaining = if (slotIndex < currentRemaining) {
+                                        slotIndex
+                                    } else {
+                                        slotIndex + 1
+                                    }
+                                    onUpdateSpellSlotRemaining(resolvedBundle, level, nextRemaining)
+                                }
+                            }
+                        )
+                    }
+
+                    if (spellsAtLevel.isEmpty()) {
+                        item(key = "empty_$level") {
+                            SpellEmptyRow(level)
+                        }
+                    } else {
+                        items(spellsAtLevel, key = { "${level}_${it.id}_${it.name}" }) { spell ->
+                            SpellRow(
+                                spell = spell,
+                                onClick = { editingSpell = spell },
+                                onTogglePrepared = { onTogglePrepared(resolvedBundle, spell) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            FloatingAddButton(
+                onClick = { isAddEntryDialogOpen = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 24.dp, bottom = 15.dp)
+            )
+        }
+    }
+
+    if (isAddEntryDialogOpen) {
+        SpellsAddEntryDialog(
+            catalogItems = catalogState.items,
+            isLoading = catalogState.isLoading,
+            onDismiss = { isAddEntryDialogOpen = false },
+            onCreateSpell = {
+                isAddEntryDialogOpen = false
+                editingSpell = newDraftSpell()
+            },
+            onSelectCatalogItem = { item ->
+                onAddCatalogSpell(resolvedBundle, item)
+                isAddEntryDialogOpen = false
+            }
+        )
+    }
+
+    editingSpell?.let { spell ->
+        SpellEditDialog(
+            spell = spell,
+            onDismiss = { editingSpell = null },
+            onSave = { updated ->
+                onUpdateSpell(resolvedBundle, updated)
+                editingSpell = null
+            },
+            onDelete = if (spell.id != 0L) {
+                {
+                    onDeleteSpell(resolvedBundle, spell)
+                    editingSpell = null
+                }
+            } else {
+                null
+            }
+        )
+    }
+
+    editingSlotLevel?.let { level ->
+        val index = level - 1
+        SpellSlotConfigDialog(
+            level = level,
+            maximumSlots = slotMaximums[index],
+            remainingSlots = slotRemainings[index],
+            restoresOnShortRest = character.spellSlotsRestoreOnShortRest,
+            restoresOnLongRest = character.spellSlotsRestoreOnLongRest,
+            onDismiss = { editingSlotLevel = null },
+            onSave = { maximum, remaining, shortRest, longRest ->
+                onUpdateSpellSlots(resolvedBundle, level, maximum, remaining, shortRest, longRest)
+                editingSlotLevel = null
+            }
+        )
+    }
+
+    if (isSpellcastingAbilityDialogOpen) {
+        SelectionDialog(
+            title = text("combat_spellcasting_ability_title"),
+            options = SpellcastingAbility.entries,
+            selected = character.spellcastingAbility,
+            labelForOption = { option -> strings[option.labelKey] },
+            onDismiss = { isSpellcastingAbilityDialogOpen = false },
+            onSelect = { ability ->
+                onUpdateSpellcastingAbility(resolvedBundle, ability)
+                isSpellcastingAbilityDialogOpen = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun SpellStatCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    Surface(
+        modifier = modifier.then(
+            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+        ),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF17141B).copy(alpha = 0.62f),
+        border = BorderStroke(1.dp, Color(0x36FFFFFF))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFD2CAC2),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color(0xFFDCC7B1),
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color(0xFFF7F2EA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellsSearchField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF17141B).copy(alpha = 0.62f),
+        border = BorderStroke(1.dp, Color(0x36FFFFFF))
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = null,
+                    tint = Color(0xFFD2CAC2),
+                    modifier = Modifier.size(28.dp)
+                )
+            },
+            placeholder = {
+                Text(
+                    text = text("spells_search_placeholder"),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFD2CAC2).copy(alpha = 0.72f)
+                )
+            },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                cursorColor = Color(0xFFFFF6EA)
+            )
+        )
+    }
+}
+
+@Composable
+private fun SpellLevelSectionTitle(
+    level: Int,
+    maximumSlots: Int,
+    remainingSlots: Int,
+    onTitleClick: (() -> Unit)?,
+    onSlotClick: ((Int) -> Unit)?
+) {
+    val tokens = LocalDesignTokens.current.typography
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = spellLevelTitle(level),
+            modifier = if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier,
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize = tokens.headlineMedium.fontSizeSp.sp),
+            color = Color(0xFFF7F2EA),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Box(
+            modifier = Modifier
+                .padding(start = 12.dp, end = 12.dp)
+                .weight(1f)
+                .height(1.dp)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawLine(
+                    color = Color(0x33FFFFFF),
+                    start = androidx.compose.ui.geometry.Offset(0f, size.height / 2f),
+                    end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2f),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+        }
+        if (level != 0 && maximumSlots > 0) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(maximumSlots) { index ->
+                    SpellSlotDiamond(
+                        filled = index < remainingSlots,
+                        onClick = onSlotClick?.let { { it(index) } }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellSlotDiamond(
+    filled: Boolean,
+    onClick: (() -> Unit)? = null
+) {
+    Box(
+        modifier = Modifier
+            .size(14.dp)
+            .rotate(45f)
+            .background(if (filled) Color(0xFFF1E8DA) else Color.Transparent, RoundedCornerShape(2.dp))
+            .then(
+                if (onClick != null) {
+                    Modifier
+                        .clickable(onClick = onClick)
+                        .background(
+                            if (filled) Color(0xFFF1E8DA) else Color.Transparent,
+                            RoundedCornerShape(2.dp)
+                        )
+                } else {
+                    Modifier
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(2.dp),
+            color = if (filled) Color(0xFFF1E8DA) else Color.Transparent,
+            border = BorderStroke(1.dp, Color(0x80F1E8DA))
+        ) {}
+    }
+}
+
+@Composable
+private fun SpellRow(
+    spell: Spell,
+    onClick: () -> Unit,
+    onTogglePrepared: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF17141B).copy(alpha = 0.62f),
+        border = BorderStroke(1.dp, Color(0x36FFFFFF))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = spell.name.ifBlank { text("spells_untitled") },
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFF7F2EA),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Icon(
+                imageVector = if (spell.isPrepared) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (spell.isPrepared) Color(0xFFD9BD84) else Color(0xFFD2CAC2),
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(22.dp)
+                    .clickable(onClick = onTogglePrepared)
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = Color(0xFFD2CAC2),
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpellEmptyRow(level: Int) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0x0CFFFFFF),
+        border = BorderStroke(1.dp, Color(0x20FFFFFF))
+    ) {
+        Text(
+            text = if (level == 0) text("spells_empty_cantrips") else text("spells_empty_level"),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFD2CAC2)
+        )
+    }
+}
+
+@Composable
+private fun SpellsAddEntryDialog(
+    catalogItems: List<SpellCatalogItem>,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onCreateSpell: () -> Unit,
+    onSelectCatalogItem: (SpellCatalogItem) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    val filteredItems = remember(catalogItems, query) {
+        val needle = query.trim()
+        catalogItems.filter { item ->
+            needle.isBlank() ||
+                item.name.contains(needle, ignoreCase = true) ||
+                item.description.contains(needle, ignoreCase = true) ||
+                item.school.contains(needle, ignoreCase = true)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text("spells_add_spell")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DialogSection(text("spells_add_create_section"))
+                    TextButton(onClick = onCreateSpell) {
+                        Text(text("spells_create_action"))
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DialogSection(text("spells_add_catalog_section"))
+                    SpellsSearchField(
+                        value = query,
+                        onValueChange = { query = it }
+                    )
+                    when {
+                        isLoading -> {
+                            Text(
+                                text = text("spells_catalog_loading"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFD2CAC2)
+                            )
+                        }
+
+                        filteredItems.isEmpty() -> {
+                            Text(
+                                text = text("spells_catalog_empty"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFD2CAC2)
+                            )
+                        }
+
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 280.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(filteredItems, key = { it.id }) { item ->
+                                    SpellCatalogRow(
+                                        item = item,
+                                        onAdd = { onSelectCatalogItem(item) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+@Composable
+private fun SpellCatalogRow(
+    item: SpellCatalogItem,
+    onAdd: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0x14FFFFFF),
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFF7F2EA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${spellLevelTitle(item.level)} • ${spellSchoolLabel(item.school)}",
+                    modifier = Modifier.padding(top = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFD2CAC2),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            TextButton(onClick = onAdd) {
+                Text(text("common_add"))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellEditDialog(
+    spell: Spell,
+    onDismiss: () -> Unit,
+    onSave: (Spell) -> Unit,
+    onDelete: (() -> Unit)? = null
+) {
+    val strings = LocalStrings.current
+    var name by remember(spell) { mutableStateOf(spell.name) }
+    var level by remember(spell) { mutableStateOf(spell.level.coerceIn(0, 9)) }
+    var school by remember(spell) { mutableStateOf(spell.school.ifBlank { spellSchoolOptions.first() }) }
+    var isPrepared by remember(spell) { mutableStateOf(if (spell.level == 0) true else spell.isPrepared) }
+    var description by remember(spell) { mutableStateOf(spell.description) }
+    var higherLevelDescription by remember(spell) { mutableStateOf(spell.higherLevelDescription) }
+    var range by remember(spell) { mutableStateOf(spell.range) }
+    var castingTime by remember(spell) { mutableStateOf(spell.castingTime) }
+    var duration by remember(spell) { mutableStateOf(spell.duration) }
+    var components by remember(spell) { mutableStateOf(spell.components) }
+    var material by remember(spell) { mutableStateOf(spell.material) }
+    var isRitual by remember(spell) { mutableStateOf(spell.isRitual) }
+    var requiresConcentration by remember(spell) { mutableStateOf(spell.requiresConcentration) }
+    var selectingLevel by remember { mutableStateOf(false) }
+    var selectingSchool by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text(if (spell.id == 0L) "spells_create_spell" else "spells_edit_spell")) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                DialogSection(text("spells_section_description"))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(text("spells_name")) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CompactSelectionField(
+                        label = text("spells_level"),
+                        value = spellLevelTitle(level),
+                        onClick = { selectingLevel = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CompactSelectionField(
+                        label = text("spells_school"),
+                        value = spellSchoolLabel(school),
+                        onClick = { selectingSchool = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = if (level == 0) true else isPrepared,
+                        onCheckedChange = { if (level != 0) isPrepared = it }
+                    )
+                    Text(
+                        text = text("spells_prepared"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA)
+                    )
+                }
+
+                DialogSection(text("spells_section_casting"))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CompactTextField(
+                        value = range,
+                        onValueChange = { range = it },
+                        label = text("spells_range"),
+                        modifier = Modifier.weight(1f)
+                    )
+                    CompactTextField(
+                        value = castingTime,
+                        onValueChange = { castingTime = it },
+                        label = text("spells_casting_time"),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                CompactTextField(
+                    value = duration,
+                    onValueChange = { duration = it },
+                    label = text("spells_duration")
+                )
+                CompactTextField(
+                    value = components,
+                    onValueChange = { components = it },
+                    label = text("spells_components")
+                )
+                CompactTextField(
+                    value = material,
+                    onValueChange = { material = it },
+                    label = text("spells_material")
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = isRitual,
+                        onCheckedChange = { isRitual = it }
+                    )
+                    Text(
+                        text = text("spells_ritual"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA)
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = requiresConcentration,
+                        onCheckedChange = { requiresConcentration = it }
+                    )
+                    Text(
+                        text = text("spells_concentration"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA)
+                    )
+                }
+
+                DialogSection(text("spells_section_effect"))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text(text("spells_description")) },
+                    minLines = 4,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = higherLevelDescription,
+                    onValueChange = { higherLevelDescription = it },
+                    label = { Text(text("spells_higher_level")) },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(
+                        spell.copy(
+                            name = name.trim(),
+                            level = level,
+                            school = school,
+                            isPrepared = if (level == 0) true else isPrepared,
+                            description = description.trim(),
+                            higherLevelDescription = higherLevelDescription.trim(),
+                            range = range.trim(),
+                            castingTime = castingTime.trim(),
+                            duration = duration.trim(),
+                            components = components.trim(),
+                            material = material.trim(),
+                            isRitual = isRitual,
+                            requiresConcentration = requiresConcentration
+                        )
+                    )
+                }
+            ) {
+                Text(text(if (spell.id == 0L) "spells_create_action" else "common_save"))
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (onDelete != null) {
+                    TextButton(onClick = onDelete) {
+                        Text(text("inventory_delete_action"))
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(text("common_cancel"))
+                }
+            }
+        }
+    )
+
+    if (selectingLevel) {
+        SelectionDialog(
+            title = text("spells_level"),
+            options = spellLevelOrder,
+            selected = level,
+            labelForOption = { option -> spellLevelTitle(option, strings) },
+            onDismiss = { selectingLevel = false },
+            onSelect = { selected ->
+                level = selected
+                if (selected == 0) {
+                    isPrepared = true
+                }
+                selectingLevel = false
+            }
+        )
+    }
+
+    if (selectingSchool) {
+        SelectionDialog(
+            title = text("spells_school"),
+            options = spellSchoolOptions,
+            selected = school,
+            labelForOption = { option -> spellSchoolLabel(option, strings) },
+            onDismiss = { selectingSchool = false },
+            onSelect = { selected ->
+                school = selected
+                selectingSchool = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun SpellSlotConfigDialog(
+    level: Int,
+    maximumSlots: Int,
+    remainingSlots: Int,
+    restoresOnShortRest: Boolean,
+    restoresOnLongRest: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (Int, Int, Boolean, Boolean) -> Unit
+) {
+    var maximum by remember(level, maximumSlots) { mutableStateOf(maximumSlots) }
+    var remaining by remember(level, remainingSlots) { mutableStateOf(remainingSlots) }
+    var shortRest by remember(level, restoresOnShortRest) { mutableStateOf(restoresOnShortRest) }
+    var longRest by remember(level, restoresOnLongRest) { mutableStateOf(restoresOnLongRest) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text("spells_edit_slots")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = spellLevelTitle(level),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFFF7F2EA)
+                )
+                CompactNumberStepperField(
+                    label = text("spells_slot_count"),
+                    value = maximum,
+                    onValueChange = {
+                        maximum = it.coerceAtLeast(0)
+                        if (remaining > maximum) remaining = maximum
+                    }
+                )
+                CompactNumberStepperField(
+                    label = text("spells_slots_remaining"),
+                    value = remaining,
+                    maxValue = maximum,
+                    onValueChange = { remaining = it.coerceIn(0, maximum) }
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = shortRest,
+                        onCheckedChange = { shortRest = it }
+                    )
+                    Text(
+                        text = text("spells_restore_short_rest"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA)
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = longRest,
+                        onCheckedChange = { longRest = it }
+                    )
+                    Text(
+                        text = text("spells_restore_long_rest"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSave(maximum, remaining.coerceAtMost(maximum), shortRest, longRest) }) {
+                Text(text("common_save"))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+@Composable
+private fun DialogSection(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        color = Color(0xFFF7F2EA)
+    )
+}
+
+@Composable
+private fun CompactSelectionField(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFD2CAC2)
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0x14FFFFFF),
+            border = BorderStroke(1.dp, Color(0x30FFFFFF))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = value,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFF7F2EA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Icon(
+                    imageVector = Icons.Outlined.ArrowDropDown,
+                    contentDescription = null,
+                    tint = Color(0xFFD2CAC2)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFD2CAC2),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color(0xFFF7F2EA),
+                unfocusedTextColor = Color(0xFFF7F2EA),
+                focusedContainerColor = Color(0x14FFFFFF),
+                unfocusedContainerColor = Color(0x14FFFFFF),
+                focusedBorderColor = Color(0x50FFFFFF),
+                unfocusedBorderColor = Color(0x30FFFFFF),
+                cursorColor = Color(0xFFFFF6EA)
+            )
+        )
+    }
+}
+
+@Composable
+private fun CompactNumberStepperField(
+    label: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    minValue: Int = 0,
+    maxValue: Int = Int.MAX_VALUE,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFD2CAC2)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StepperButton(icon = Icons.Outlined.Remove) {
+                onValueChange((value - 1).coerceAtLeast(minValue))
+            }
+            Surface(
+                modifier = Modifier.width(72.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0x14FFFFFF),
+                border = BorderStroke(1.dp, Color(0x30FFFFFF))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = value.toString(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFF7F2EA),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            StepperButton(icon = Icons.Outlined.Add) {
+                onValueChange((value + 1).coerceAtMost(maxValue))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepperButton(
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0x14FFFFFF),
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
+    ) {
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(46.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFFF7F2EA),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun <T> SelectionDialog(
+    title: String,
+    options: List<T>,
+    selected: T,
+    labelForOption: (T) -> String,
+    onDismiss: () -> Unit,
+    onSelect: (T) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(options) { option ->
+                    val isSelected = option == selected
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(option) },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) Color(0x22FFF6EA) else Color.Transparent,
+                        border = BorderStroke(1.dp, if (isSelected) Color(0x70FFFFFF) else Color(0x20FFFFFF))
+                    ) {
+                        Text(
+                            text = labelForOption(option),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFFF7F2EA)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+private fun newDraftSpell(): Spell =
+    Spell(
+        id = 0,
+        name = "",
+        level = 0,
+        school = spellSchoolOptions.first(),
+        isPrepared = true,
+        description = ""
+    )
+
+@Composable
+private fun spellLevelTitle(level: Int): String =
+    spellLevelTitle(level, LocalStrings.current)
+
+private fun spellLevelTitle(level: Int, strings: LocalizedStrings): String =
+    when (level) {
+        0 -> strings["spells_level_cantrips"]
+        1 -> strings["spells_level_1"]
+        2 -> strings["spells_level_2"]
+        3 -> strings["spells_level_3"]
+        4 -> strings["spells_level_4"]
+        5 -> strings["spells_level_5"]
+        6 -> strings["spells_level_6"]
+        7 -> strings["spells_level_7"]
+        8 -> strings["spells_level_8"]
+        9 -> strings["spells_level_9"]
+        else -> level.toString()
+    }
+
+@Composable
+private fun spellSchoolLabel(value: String): String =
+    spellSchoolLabel(value, LocalStrings.current)
+
+private fun spellSchoolLabel(value: String, strings: LocalizedStrings): String =
+    when (value.lowercase()) {
+        "abjuration" -> strings["spells_school_abjuration"]
+        "conjuration" -> strings["spells_school_conjuration"]
+        "divination" -> strings["spells_school_divination"]
+        "enchantment" -> strings["spells_school_enchantment"]
+        "evocation" -> strings["spells_school_evocation"]
+        "illusion" -> strings["spells_school_illusion"]
+        "necromancy" -> strings["spells_school_necromancy"]
+        "transmutation" -> strings["spells_school_transmutation"]
+        else -> value.ifBlank { strings["spells_school_abjuration"] }
+    }
+
+private fun String.toSpellSlotList(): MutableList<Int> {
+    val values = split(',')
+        .mapNotNull { it.trim().toIntOrNull() }
+        .take(9)
+        .toMutableList()
+    while (values.size < 9) values += 0
+    return values
+}
+
+private fun List<Int>.encodeSpellSlotList(): String =
+    take(9).joinToString(",") { it.coerceAtLeast(0).toString() }
+
+private fun proficiencyBonusForLevel(level: Int): Int =
+    when {
+        level >= 17 -> 6
+        level >= 13 -> 5
+        level >= 9 -> 4
+        level >= 5 -> 3
+        else -> 2
+    }
+
+private fun abilityModifier(score: Int): Int = Math.floorDiv(score - 10, 2)
+
+private fun scoreForSpellcastingAbility(character: Character, ability: SpellcastingAbility): Int =
+    when (ability) {
+        SpellcastingAbility.STRENGTH -> character.strength
+        SpellcastingAbility.DEXTERITY -> character.dexterity
+        SpellcastingAbility.CONSTITUTION -> character.constitution
+        SpellcastingAbility.INTELLIGENCE -> character.intelligence
+        SpellcastingAbility.WISDOM -> character.wisdom
+        SpellcastingAbility.CHARISMA -> character.charisma
+    }
+
+private fun signedNumber(value: Int): String = if (value >= 0) "+$value" else value.toString()
+
+private val spellLevelOrder = (0..9).toList()
+
+private val spellSchoolOptions = listOf(
+    "Abjuration",
+    "Conjuration",
+    "Divination",
+    "Enchantment",
+    "Evocation",
+    "Illusion",
+    "Necromancy",
+    "Transmutation"
+)
+
+private val SpellcastingAbility.labelKey: String
+    get() = when (this) {
+        SpellcastingAbility.STRENGTH -> "ability_strength"
+        SpellcastingAbility.DEXTERITY -> "ability_dexterity"
+        SpellcastingAbility.CONSTITUTION -> "ability_constitution"
+        SpellcastingAbility.INTELLIGENCE -> "ability_intelligence"
+        SpellcastingAbility.WISDOM -> "ability_wisdom"
+        SpellcastingAbility.CHARISMA -> "ability_charisma"
+    }

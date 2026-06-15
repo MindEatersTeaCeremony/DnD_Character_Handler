@@ -128,6 +128,7 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                         currentRoute != AppScreen.Attributes.route &&
                         currentRoute != AppScreen.Combat.route &&
                         currentRoute != AppScreen.Inventory.route &&
+                        currentRoute != AppScreen.Spells.route &&
                         currentRoute != AppScreen.Features.route &&
                         currentRoute != AppScreen.Biography.route &&
                         currentRoute != AppScreen.Notes.route
@@ -201,7 +202,11 @@ fun DndCharacterApp(appState: DndCharacterAppState) {
                                 )
                             }
                             composable(AppScreen.Spells.route) {
-                                SpellsScreen(appState.spellsViewModel)
+                                SpellsScreen(
+                                    viewModel = appState.spellsViewModel,
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onOpenSettings = {}
+                                )
                             }
                             composable(AppScreen.Features.route) {
                                 FeaturesScreen(

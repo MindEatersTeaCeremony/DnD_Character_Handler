@@ -54,6 +54,39 @@ interface CharacterDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotes(notes: List<NoteEntity>)
 
+    @Transaction
+    suspend fun replaceCharacterBundle(
+        character: CharacterEntity,
+        skills: List<SkillEntity>,
+        attacks: List<AttackEntity>,
+        combatResources: List<CombatResourceEntity>,
+        inventoryItems: List<InventoryItemEntity>,
+        spells: List<SpellEntity>,
+        features: List<FeatureEntity>,
+        notes: List<NoteEntity>
+    ): Long {
+        val savedId = insertCharacter(character)
+        val characterId = if (character.id == 0L) savedId else character.id
+
+        deleteSkillsForCharacter(characterId)
+        deleteAttacksForCharacter(characterId)
+        deleteCombatResourcesForCharacter(characterId)
+        deleteInventoryItemsForCharacter(characterId)
+        deleteSpellsForCharacter(characterId)
+        deleteFeaturesForCharacter(characterId)
+        deleteNotesForCharacter(characterId)
+
+        insertSkills(skills.map { it.copy(characterOwnerId = characterId) })
+        insertAttacks(attacks.map { it.copy(characterOwnerId = characterId) })
+        insertCombatResources(combatResources.map { it.copy(characterOwnerId = characterId) })
+        insertInventoryItems(inventoryItems.map { it.copy(characterOwnerId = characterId) })
+        insertSpells(spells.map { it.copy(characterOwnerId = characterId) })
+        insertFeatures(features.map { it.copy(characterOwnerId = characterId) })
+        insertNotes(notes.map { it.copy(characterOwnerId = characterId) })
+
+        return characterId
+    }
+
     @Query("DELETE FROM skills WHERE characterOwnerId = :characterId")
     suspend fun deleteSkillsForCharacter(characterId: Long)
 
@@ -78,4 +111,3 @@ interface CharacterDao {
     @Query("DELETE FROM characters WHERE id = :characterId")
     suspend fun deleteCharacter(characterId: Long)
 }
-

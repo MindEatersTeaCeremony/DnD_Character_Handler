@@ -72,7 +72,6 @@ import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
-import com.dndcharacterhandler.presentation.components.AppImage
 import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
 import com.dndcharacterhandler.presentation.components.FloatingAddButton
 import com.dndcharacterhandler.presentation.components.ScreenBackground
@@ -855,33 +854,10 @@ private fun AttackCard(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                modifier = Modifier.size(82.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = Color(0x1AFFFFFF),
-                border = BorderStroke(1.dp, Color(0x20FFFFFF))
-            ) {
-                AppImage(
-                    imageRef = attack.icon,
-                    contentDescription = attack.name,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(10.dp),
-                    fallback = {
-                        Icon(
-                            imageVector = attackFallbackIcon(attack),
-                            contentDescription = null,
-                            tint = Color(0xFFD2CAC2),
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-                )
-            }
-
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 14.dp, end = 12.dp),
+                    .padding(end = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(

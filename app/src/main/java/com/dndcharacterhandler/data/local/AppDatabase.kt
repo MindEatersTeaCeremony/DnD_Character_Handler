@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 30,
+    version = 31,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -74,7 +74,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_26_27,
                     MIGRATION_27_28,
                     MIGRATION_28_29,
-                    MIGRATION_29_30
+                    MIGRATION_29_30,
+                    MIGRATION_30_31
                 ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
@@ -306,6 +307,26 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_29_30 = object : Migration(29, 30) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE attacks ADD COLUMN calculationMode TEXT NOT NULL DEFAULT 'AUTOMATIC'")
+            }
+        }
+
+        private val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE characters ADD COLUMN spellSlotMaximums TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE characters ADD COLUMN spellSlotRemaining TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE characters ADD COLUMN spellSlotsRestoreOnShortRest INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN spellSlotsRestoreOnLongRest INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE spells ADD COLUMN catalogId TEXT")
+                db.execSQL("ALTER TABLE spells ADD COLUMN higherLevelDescription TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN range TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN castingTime TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN duration TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN components TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN material TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN isRitual INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spells ADD COLUMN requiresConcentration INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spells ADD COLUMN attackType TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN availableClasses TEXT NOT NULL DEFAULT ''")
             }
         }
     }

@@ -26,7 +26,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-private const val SCHEMA_VERSION = 16
+private const val SCHEMA_VERSION = 17
 
 data class ImportedArchive(
     val characterBundle: CharacterBundle,
@@ -61,6 +61,10 @@ fun CharacterBundle.toArchiveManifest(
         put("initiative", character.initiative)
         put("initiativeBonus", character.initiativeBonus)
         put("spellcastingAbility", character.spellcastingAbility.name)
+        put("spellSlotMaximums", character.spellSlotMaximums)
+        put("spellSlotRemaining", character.spellSlotRemaining)
+        put("spellSlotsRestoreOnShortRest", character.spellSlotsRestoreOnShortRest)
+        put("spellSlotsRestoreOnLongRest", character.spellSlotsRestoreOnLongRest)
         put("experience", character.experience)
         put("strength", character.strength)
         put("dexterity", character.dexterity)
@@ -161,11 +165,22 @@ fun CharacterBundle.toArchiveManifest(
         }))
         put("spells", JSONArray(spells.map { spell ->
             JSONObject().apply {
+                put("catalogId", spell.catalogId)
                 put("name", spell.name)
                 put("level", spell.level)
                 put("school", spell.school)
                 put("isPrepared", spell.isPrepared)
                 put("description", spell.description)
+                put("higherLevelDescription", spell.higherLevelDescription)
+                put("range", spell.range)
+                put("castingTime", spell.castingTime)
+                put("duration", spell.duration)
+                put("components", spell.components)
+                put("material", spell.material)
+                put("isRitual", spell.isRitual)
+                put("requiresConcentration", spell.requiresConcentration)
+                put("attackType", spell.attackType)
+                put("availableClasses", spell.availableClasses)
             }
         }))
         put("features", JSONArray(features.map { feature ->
@@ -228,6 +243,10 @@ fun archiveManifestToCharacterBundle(
             .takeIf { it.isNotBlank() }
             ?.let { runCatching { com.dndcharacterhandler.domain.model.SpellcastingAbility.valueOf(it) }.getOrDefault(com.dndcharacterhandler.domain.model.SpellcastingAbility.WISDOM) }
             ?: com.dndcharacterhandler.domain.model.SpellcastingAbility.WISDOM,
+        spellSlotMaximums = characterJson.optString("spellSlotMaximums"),
+        spellSlotRemaining = characterJson.optString("spellSlotRemaining"),
+        spellSlotsRestoreOnShortRest = characterJson.optBoolean("spellSlotsRestoreOnShortRest", false),
+        spellSlotsRestoreOnLongRest = characterJson.optBoolean("spellSlotsRestoreOnLongRest", true),
         experience = characterJson.optInt("experience"),
         strength = characterJson.optInt("strength"),
         dexterity = characterJson.optInt("dexterity"),
@@ -434,11 +453,22 @@ private fun JSONArray.toSpellList(): List<Spell> =
     (0 until length()).map { index ->
         getJSONObject(index).let { json ->
             Spell(
+                catalogId = json.optNullableString("catalogId"),
                 name = json.optString("name"),
                 level = json.optInt("level"),
                 school = json.optString("school"),
                 isPrepared = json.optBoolean("isPrepared"),
-                description = json.optString("description")
+                description = json.optString("description"),
+                higherLevelDescription = json.optString("higherLevelDescription"),
+                range = json.optString("range"),
+                castingTime = json.optString("castingTime"),
+                duration = json.optString("duration"),
+                components = json.optString("components"),
+                material = json.optString("material"),
+                isRitual = json.optBoolean("isRitual", false),
+                requiresConcentration = json.optBoolean("requiresConcentration", false),
+                attackType = json.optString("attackType"),
+                availableClasses = json.optString("availableClasses")
             )
         }
     }

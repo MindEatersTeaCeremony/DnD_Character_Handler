@@ -40,6 +40,10 @@ data class CharacterEntity(
     val initiative: Int,
     val initiativeBonus: Int,
     val spellcastingAbility: SpellcastingAbility,
+    val spellSlotMaximums: String,
+    val spellSlotRemaining: String,
+    val spellSlotsRestoreOnShortRest: Boolean,
+    val spellSlotsRestoreOnLongRest: Boolean,
     val experience: Int,
     val strength: Int,
     val dexterity: Int,
@@ -215,11 +219,22 @@ data class InventoryItemEntity(
 data class SpellEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val characterOwnerId: Long,
+    val catalogId: String?,
     val name: String,
     val level: Int,
     val school: String,
     val isPrepared: Boolean,
-    val description: String
+    val description: String,
+    val higherLevelDescription: String,
+    val range: String,
+    val castingTime: String,
+    val duration: String,
+    val components: String,
+    val material: String,
+    val isRitual: Boolean,
+    val requiresConcentration: Boolean,
+    val attackType: String,
+    val availableClasses: String
 )
 
 @Entity(

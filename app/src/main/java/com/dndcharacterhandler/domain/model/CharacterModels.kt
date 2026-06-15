@@ -28,6 +28,10 @@ data class Character(
     val initiative: Int,
     val initiativeBonus: Int = 0,
     val spellcastingAbility: SpellcastingAbility = SpellcastingAbility.WISDOM,
+    val spellSlotMaximums: String = "",
+    val spellSlotRemaining: String = "",
+    val spellSlotsRestoreOnShortRest: Boolean = false,
+    val spellSlotsRestoreOnLongRest: Boolean = true,
     val experience: Int,
     val strength: Int,
     val dexterity: Int,
@@ -172,11 +176,22 @@ data class InventoryItem(
 )
 data class Spell(
     val id: Long = 0,
+    val catalogId: String? = null,
     val name: String,
     val level: Int,
     val school: String,
     val isPrepared: Boolean,
-    val description: String
+    val description: String,
+    val higherLevelDescription: String = "",
+    val range: String = "",
+    val castingTime: String = "",
+    val duration: String = "",
+    val components: String = "",
+    val material: String = "",
+    val isRitual: Boolean = false,
+    val requiresConcentration: Boolean = false,
+    val attackType: String = "",
+    val availableClasses: String = ""
 )
 enum class FeatureSource { RACE, BACKGROUND, CLASS, OTHER }
 data class Feature(

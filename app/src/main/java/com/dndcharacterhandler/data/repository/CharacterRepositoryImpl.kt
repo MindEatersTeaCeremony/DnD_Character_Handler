@@ -5,10 +5,14 @@ import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class CharacterRepositoryImpl(
     private val characterDao: CharacterDao
 ) : CharacterRepository {
+    private val writeMutex = Mutex()
+
     override fun observeCharacters(): Flow<List<CharacterBundle>> =
         characterDao.observeCharacters().map { characters -> characters.map { it.toDomain() } }
 
@@ -19,29 +23,24 @@ class CharacterRepositoryImpl(
         return upsertCharacter(character.copy(character = character.character.copy(id = 0)))
     }
 
-    override suspend fun upsertCharacter(character: CharacterBundle): Long {
-        val savedId = characterDao.insertCharacter(character.character.toEntity())
-        val characterId = if (character.character.id == 0L) savedId else character.character.id
-
-        characterDao.deleteSkillsForCharacter(characterId)
-        characterDao.deleteAttacksForCharacter(characterId)
-        characterDao.deleteCombatResourcesForCharacter(characterId)
-        characterDao.deleteInventoryItemsForCharacter(characterId)
-        characterDao.deleteSpellsForCharacter(characterId)
-        characterDao.deleteFeaturesForCharacter(characterId)
-        characterDao.deleteNotesForCharacter(characterId)
-
-        characterDao.insertSkills(character.skills.map { it.toEntity(characterId) })
-        characterDao.insertAttacks(character.attacks.map { it.toEntity(characterId) })
-        characterDao.insertCombatResources(character.combatResources.map { it.toEntity(characterId) })
-        characterDao.insertInventoryItems(character.inventoryItems.map { it.toEntity(characterId) })
-        characterDao.insertSpells(character.spells.map { it.toEntity(characterId) })
-        characterDao.insertFeatures(character.features.map { it.toEntity(characterId) })
-        characterDao.insertNotes(character.notes.map { it.toEntity(characterId) })
-        return characterId
-    }
+    override suspend fun upsertCharacter(character: CharacterBundle): Long =
+        writeMutex.withLock {
+            val characterEntity = character.character.toEntity()
+            characterDao.replaceCharacterBundle(
+                character = characterEntity,
+                skills = character.skills.map { it.toEntity(characterEntity.id) },
+                attacks = character.attacks.map { it.toEntity(characterEntity.id) },
+                combatResources = character.combatResources.map { it.toEntity(characterEntity.id) },
+                inventoryItems = character.inventoryItems.map { it.toEntity(characterEntity.id) },
+                spells = character.spells.map { it.toEntity(characterEntity.id) },
+                features = character.features.map { it.toEntity(characterEntity.id) },
+                notes = character.notes.map { it.toEntity(characterEntity.id) }
+            )
+        }
 
     override suspend fun deleteCharacter(characterId: Long) {
-        characterDao.deleteCharacter(characterId)
+        writeMutex.withLock {
+            characterDao.deleteCharacter(characterId)
+        }
     }
 }

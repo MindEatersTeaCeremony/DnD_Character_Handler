@@ -1099,6 +1099,13 @@
     "fr": "DD des sorts",
     "es": "CD de conjuro"
   },
+  "combat_spellcasting_ability_title": {
+    "en": "Spellcasting Ability",
+    "ru": "Заклинательная характеристика",
+    "de": "Zauberattribut",
+    "fr": "Caracteristique d'incantation",
+    "es": "Caracteristica de conjuro"
+  },
   "combat_combat_resources_title": {
     "en": "Combat Resources",
     "ru": "\u0411\u043e\u0435\u0432\u044b\u0435 \u0440\u0435\u0441\u0443\u0440\u0441\u044b",
@@ -2844,6 +2851,376 @@
     "de": "Geben Sie den RK-Wert selbst ein und deaktivieren Sie die automatische Neuberechnung.",
     "fr": "Saisissez vous-meme la valeur de CA et desactivez le recalcul automatique.",
     "es": "Introduce el valor de CA manualmente y desactiva el recálculo automatico."
+  },
+  "spells_search_placeholder": {
+    "en": "Search Spells",
+    "ru": "Поиск заклинаний",
+    "de": "Zauber suchen",
+    "fr": "Rechercher des sorts",
+    "es": "Buscar conjuros"
+  },
+  "spells_spellcasting_class": {
+    "en": "Spellcasting Class",
+    "ru": "Класс заклинаний",
+    "de": "Zauberklasse",
+    "fr": "Classe de lanceur",
+    "es": "Clase lanzadora"
+  },
+  "spells_add_spell": {
+    "en": "Add Spell",
+    "ru": "Добавление заклинания",
+    "de": "Zauber hinzufuegen",
+    "fr": "Ajouter un sort",
+    "es": "Agregar conjuro"
+  },
+  "spells_add_create_section": {
+    "en": "Create Spell",
+    "ru": "Создание заклинания",
+    "de": "Zauber erstellen",
+    "fr": "Creer un sort",
+    "es": "Crear conjuro"
+  },
+  "spells_create_action": {
+    "en": "Create Spell",
+    "ru": "Создать заклинание",
+    "de": "Zauber erstellen",
+    "fr": "Creer un sort",
+    "es": "Crear conjuro"
+  },
+  "spells_add_catalog_section": {
+    "en": "Add From Catalog",
+    "ru": "Добавление из каталога",
+    "de": "Aus Katalog hinzufuegen",
+    "fr": "Ajouter depuis le catalogue",
+    "es": "Agregar desde el catalogo"
+  },
+  "spells_catalog_loading": {
+    "en": "Loading spells from catalog...",
+    "ru": "Загрузка заклинаний из каталога...",
+    "de": "Zauber werden geladen...",
+    "fr": "Chargement des sorts...",
+    "es": "Cargando conjuros..."
+  },
+  "spells_catalog_empty": {
+    "en": "No spells found.",
+    "ru": "Заклинания не найдены.",
+    "de": "Keine Zauber gefunden.",
+    "fr": "Aucun sort trouve.",
+    "es": "No se encontraron conjuros."
+  },
+  "spells_untitled": {
+    "en": "Untitled Spell",
+    "ru": "Безымянное заклинание",
+    "de": "Unbenannter Zauber",
+    "fr": "Sort sans titre",
+    "es": "Conjuro sin titulo"
+  },
+  "spells_empty_cantrips": {
+    "en": "No cantrips yet.",
+    "ru": "Пока нет фокусов.",
+    "de": "Noch keine Zaubertricks.",
+    "fr": "Aucun tour de magie.",
+    "es": "Aun no hay trucos."
+  },
+  "spells_empty_level": {
+    "en": "No spells at this level yet.",
+    "ru": "На этом круге пока нет заклинаний.",
+    "de": "Noch keine Zauber dieses Grades.",
+    "fr": "Aucun sort a ce niveau.",
+    "es": "Aun no hay conjuros de este nivel."
+  },
+  "spells_create_spell": {
+    "en": "Create Spell",
+    "ru": "Создать заклинание",
+    "de": "Zauber erstellen",
+    "fr": "Creer un sort",
+    "es": "Crear conjuro"
+  },
+  "spells_edit_spell": {
+    "en": "Edit Spell",
+    "ru": "Изменить заклинание",
+    "de": "Zauber bearbeiten",
+    "fr": "Modifier le sort",
+    "es": "Editar conjuro"
+  },
+  "spells_section_description": {
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung",
+    "fr": "Description",
+    "es": "Descripcion"
+  },
+  "spells_name": {
+    "en": "Name",
+    "ru": "Название",
+    "de": "Name",
+    "fr": "Nom",
+    "es": "Nombre"
+  },
+  "spells_level": {
+    "en": "Level",
+    "ru": "Круг",
+    "de": "Grad",
+    "fr": "Niveau",
+    "es": "Nivel"
+  },
+  "spells_school": {
+    "en": "School",
+    "ru": "Школа",
+    "de": "Schule",
+    "fr": "Ecole",
+    "es": "Escuela"
+  },
+  "spells_prepared": {
+    "en": "Prepared",
+    "ru": "Подготовлено",
+    "de": "Vorbereitet",
+    "fr": "Prepare",
+    "es": "Preparado"
+  },
+  "spells_section_casting": {
+    "en": "Casting",
+    "ru": "Применение",
+    "de": "Wirken",
+    "fr": "Incantation",
+    "es": "Lanzamiento"
+  },
+  "spells_range": {
+    "en": "Range",
+    "ru": "Дистанция",
+    "de": "Reichweite",
+    "fr": "Portee",
+    "es": "Alcance"
+  },
+  "spells_casting_time": {
+    "en": "Casting Time",
+    "ru": "Время накладывания",
+    "de": "Zauberzeit",
+    "fr": "Temps d'incantation",
+    "es": "Tiempo de lanzamiento"
+  },
+  "spells_duration": {
+    "en": "Duration",
+    "ru": "Длительность",
+    "de": "Dauer",
+    "fr": "Duree",
+    "es": "Duracion"
+  },
+  "spells_components": {
+    "en": "Components",
+    "ru": "Компоненты",
+    "de": "Komponenten",
+    "fr": "Composants",
+    "es": "Componentes"
+  },
+  "spells_material": {
+    "en": "Material",
+    "ru": "Материалы",
+    "de": "Material",
+    "fr": "Materiel",
+    "es": "Material"
+  },
+  "spells_ritual": {
+    "en": "Ritual",
+    "ru": "Ритуал",
+    "de": "Ritual",
+    "fr": "Rituel",
+    "es": "Ritual"
+  },
+  "spells_concentration": {
+    "en": "Concentration",
+    "ru": "Концентрация",
+    "de": "Konzentration",
+    "fr": "Concentration",
+    "es": "Concentracion"
+  },
+  "spells_section_effect": {
+    "en": "Effect",
+    "ru": "Эффект",
+    "de": "Effekt",
+    "fr": "Effet",
+    "es": "Efecto"
+  },
+  "spells_description": {
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung",
+    "fr": "Description",
+    "es": "Descripcion"
+  },
+  "spells_higher_level": {
+    "en": "Higher Level",
+    "ru": "На более высоких кругах",
+    "de": "Hoehere Grade",
+    "fr": "Niveaux superieurs",
+    "es": "Nivel superior"
+  },
+  "spells_edit_slots": {
+    "en": "Edit Spell Slots",
+    "ru": "Изменить ячейки заклинаний",
+    "de": "Zauberplaetze bearbeiten",
+    "fr": "Modifier les emplacements",
+    "es": "Editar espacios de conjuro"
+  },
+  "spells_slot_count": {
+    "en": "Slot Count",
+    "ru": "Количество ячеек",
+    "de": "Anzahl Plaetze",
+    "fr": "Nombre d'emplacements",
+    "es": "Cantidad de espacios"
+  },
+  "spells_slots_remaining": {
+    "en": "Remaining",
+    "ru": "Осталось",
+    "de": "Verbleibend",
+    "fr": "Restants",
+    "es": "Restantes"
+  },
+  "spells_restore_short_rest": {
+    "en": "Restore on short rest",
+    "ru": "Восстанавливаются на коротком отдыхе",
+    "de": "Erholung bei kurzer Rast",
+    "fr": "Recupere au repos court",
+    "es": "Se recuperan en descanso corto"
+  },
+  "spells_restore_long_rest": {
+    "en": "Restore on long rest",
+    "ru": "Восстанавливаются на длинном отдыхе",
+    "de": "Erholung bei langer Rast",
+    "fr": "Recupere au repos long",
+    "es": "Se recuperan en descanso largo"
+  },
+  "spells_level_cantrips": {
+    "en": "Cantrips",
+    "ru": "Фокусы",
+    "de": "Zaubertricks",
+    "fr": "Tours de magie",
+    "es": "Trucos"
+  },
+  "spells_level_1": {
+    "en": "Level 1",
+    "ru": "1 круг",
+    "de": "Grad 1",
+    "fr": "Niveau 1",
+    "es": "Nivel 1"
+  },
+  "spells_level_2": {
+    "en": "Level 2",
+    "ru": "2 круг",
+    "de": "Grad 2",
+    "fr": "Niveau 2",
+    "es": "Nivel 2"
+  },
+  "spells_level_3": {
+    "en": "Level 3",
+    "ru": "3 круг",
+    "de": "Grad 3",
+    "fr": "Niveau 3",
+    "es": "Nivel 3"
+  },
+  "spells_level_4": {
+    "en": "Level 4",
+    "ru": "4 круг",
+    "de": "Grad 4",
+    "fr": "Niveau 4",
+    "es": "Nivel 4"
+  },
+  "spells_level_5": {
+    "en": "Level 5",
+    "ru": "5 круг",
+    "de": "Grad 5",
+    "fr": "Niveau 5",
+    "es": "Nivel 5"
+  },
+  "spells_level_6": {
+    "en": "Level 6",
+    "ru": "6 круг",
+    "de": "Grad 6",
+    "fr": "Niveau 6",
+    "es": "Nivel 6"
+  },
+  "spells_level_7": {
+    "en": "Level 7",
+    "ru": "7 круг",
+    "de": "Grad 7",
+    "fr": "Niveau 7",
+    "es": "Nivel 7"
+  },
+  "spells_level_8": {
+    "en": "Level 8",
+    "ru": "8 круг",
+    "de": "Grad 8",
+    "fr": "Niveau 8",
+    "es": "Nivel 8"
+  },
+  "spells_level_9": {
+    "en": "Level 9",
+    "ru": "9 круг",
+    "de": "Grad 9",
+    "fr": "Niveau 9",
+    "es": "Nivel 9"
+  },
+  "spells_school_abjuration": {
+    "en": "Abjuration",
+    "ru": "Ограждение",
+    "de": "Schutz",
+    "fr": "Abjuration",
+    "es": "Abjuracion"
+  },
+  "spells_school_conjuration": {
+    "en": "Conjuration",
+    "ru": "Вызов",
+    "de": "Beschwoerung",
+    "fr": "Invocation",
+    "es": "Conjuracion"
+  },
+  "spells_school_divination": {
+    "en": "Divination",
+    "ru": "Прорицание",
+    "de": "Weissagung",
+    "fr": "Divination",
+    "es": "Adivinacion"
+  },
+  "spells_school_enchantment": {
+    "en": "Enchantment",
+    "ru": "Очарование",
+    "de": "Verzauberung",
+    "fr": "Enchantement",
+    "es": "Encantamiento"
+  },
+  "spells_school_evocation": {
+    "en": "Evocation",
+    "ru": "Воплощение",
+    "de": "Hervorrufung",
+    "fr": "Evocation",
+    "es": "Evocacion"
+  },
+  "spells_school_illusion": {
+    "en": "Illusion",
+    "ru": "Иллюзия",
+    "de": "Illusion",
+    "fr": "Illusion",
+    "es": "Ilusion"
+  },
+  "spells_school_necromancy": {
+    "en": "Necromancy",
+    "ru": "Некромантия",
+    "de": "Nekromantie",
+    "fr": "Necromancie",
+    "es": "Nigromancia"
+  },
+  "spells_school_transmutation": {
+    "en": "Transmutation",
+    "ru": "Преобразование",
+    "de": "Verwandlung",
+    "fr": "Transmutation",
+    "es": "Transmutacion"
+  },
+  "common_add": {
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufuegen",
+    "fr": "Ajouter",
+    "es": "Agregar"
   }
-
 }

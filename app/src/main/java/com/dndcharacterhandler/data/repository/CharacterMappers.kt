@@ -126,7 +126,27 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
                 }
             )
         },
-        spells = spells.map { Spell(it.id, it.name, it.level, it.school, it.isPrepared, it.description) },
+        spells = spells.map {
+            Spell(
+                id = it.id,
+                catalogId = it.catalogId,
+                name = it.name,
+                level = it.level,
+                school = it.school,
+                isPrepared = it.isPrepared,
+                description = it.description,
+                higherLevelDescription = it.higherLevelDescription,
+                range = it.range,
+                castingTime = it.castingTime,
+                duration = it.duration,
+                components = it.components,
+                material = it.material,
+                isRitual = it.isRitual,
+                requiresConcentration = it.requiresConcentration,
+                attackType = it.attackType,
+                availableClasses = it.availableClasses
+            )
+        },
         features = features.map { Feature(it.id, it.name, it.description, it.level, it.source) },
         notes = notes.map { Note(it.id, it.title, it.createdDate, it.updatedDate, it.content, it.isPinned) }
     )
@@ -156,6 +176,10 @@ fun CharacterEntity.toDomain(): Character =
         initiative = initiative,
         initiativeBonus = initiativeBonus,
         spellcastingAbility = spellcastingAbility,
+        spellSlotMaximums = spellSlotMaximums,
+        spellSlotRemaining = spellSlotRemaining,
+        spellSlotsRestoreOnShortRest = spellSlotsRestoreOnShortRest,
+        spellSlotsRestoreOnLongRest = spellSlotsRestoreOnLongRest,
         experience = experience,
         strength = strength,
         dexterity = dexterity,
@@ -219,6 +243,10 @@ fun Character.toEntity(): CharacterEntity =
         initiative = initiative,
         initiativeBonus = initiativeBonus,
         spellcastingAbility = spellcastingAbility,
+        spellSlotMaximums = spellSlotMaximums,
+        spellSlotRemaining = spellSlotRemaining,
+        spellSlotsRestoreOnShortRest = spellSlotsRestoreOnShortRest,
+        spellSlotsRestoreOnLongRest = spellSlotsRestoreOnLongRest,
         experience = experience,
         strength = strength,
         dexterity = dexterity,
@@ -339,7 +367,26 @@ fun InventoryItem.toEntity(characterId: Long): InventoryItemEntity =
     )
 
 fun Spell.toEntity(characterId: Long): SpellEntity =
-    SpellEntity(id = id, characterOwnerId = characterId, name = name, level = level, school = school, isPrepared = isPrepared, description = description)
+    SpellEntity(
+        id = id,
+        characterOwnerId = characterId,
+        catalogId = catalogId,
+        name = name,
+        level = level,
+        school = school,
+        isPrepared = isPrepared,
+        description = description,
+        higherLevelDescription = higherLevelDescription,
+        range = range,
+        castingTime = castingTime,
+        duration = duration,
+        components = components,
+        material = material,
+        isRitual = isRitual,
+        requiresConcentration = requiresConcentration,
+        attackType = attackType,
+        availableClasses = availableClasses
+    )
 
 fun Feature.toEntity(characterId: Long): FeatureEntity =
     FeatureEntity(
