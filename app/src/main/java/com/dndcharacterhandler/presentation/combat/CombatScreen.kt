@@ -260,8 +260,6 @@ internal fun CombatContent(
     val weaponProficiencyIds = remember(character.weaponProficiencies) {
         decodeProficiencyIds(character.weaponProficiencies)
     }
-    val meleeRangeLabel = text("inventory_weapon_range_melee")
-    val feetUnitLabel = text("inventory_unit_feet")
     val spellAttackBonus = signedNumber(proficiencyBonus + spellModifier)
     val spellSaveDc = (8 + proficiencyBonus + spellModifier).toString()
     val resourceRows = remember(resolvedBundle.combatResources) {
@@ -333,6 +331,8 @@ internal fun CombatContent(
                     items(resolvedBundle.attacks, key = { it.id }) { attack ->
                         AttackCard(
                             attack = attack,
+                            character = character,
+                            proficiencyBonus = proficiencyBonus,
                             onClick = { editingAttack = attack }
                         )
                     }
@@ -397,10 +397,7 @@ internal fun CombatContent(
                     weapon.toCombatAttack(
                         strengthScore = resolvedBundle.character.strength,
                         dexterityScore = resolvedBundle.character.dexterity,
-                        proficiencyBonus = proficiencyBonus,
-                        weaponProficiencyIds = weaponProficiencyIds,
-                        meleeLabel = meleeRangeLabel,
-                        feetLabel = feetUnitLabel
+                        weaponProficiencyIds = weaponProficiencyIds
                     )
                 )
                 isWeaponAttackPickerOpen = false
@@ -411,8 +408,6 @@ internal fun CombatContent(
     editingAttack?.let { attack ->
         AttackEditDialog(
             attack = attack,
-            character = resolvedBundle.character,
-            proficiencyBonus = proficiencyBonus,
             onDismiss = { editingAttack = null },
             onSave = { updated ->
                 onUpdateAttack(resolvedBundle, updated)
@@ -838,8 +833,20 @@ private fun CombatSectionTitle(title: String) {
 @Composable
 private fun AttackCard(
     attack: Attack,
+    character: com.dndcharacterhandler.domain.model.Character,
+    proficiencyBonus: Int,
     onClick: () -> Unit
 ) {
+    val strings = LocalStrings.current
+    val rangeLabel = attack.displayRange(
+        meleeLabel = text("inventory_weapon_range_melee"),
+        feetLabel = text("inventory_unit_feet")
+    )
+    val attackBonusLabel = attack.displayAttackBonusOrSaveDc(
+        character = character,
+        proficiencyBonus = proficiencyBonus
+    )
+    val damageLabel = attack.displayDamage(character = character)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -865,7 +872,7 @@ private fun AttackCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                attack.range.takeIf { it.isNotBlank() }?.let { range ->
+                rangeLabel.takeIf { it.isNotBlank() }?.let { range ->
                     RangeTag(range)
                 }
             }
@@ -884,23 +891,23 @@ private fun AttackCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = attack.attackBonusOrSaveDc,
+                    text = attackBonusLabel,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color(0xFFF7F2EA),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = attack.damage,
+                    text = damageLabel,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color(0xFFE9DBC8),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = attack.displayDamageTypeLabel(strings = LocalStrings.current),
+                    text = attack.displayDamageTypeLabel(strings = strings),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = damageTypeColor(attack.damageType),
+                    color = damageTypeColor(attack.primaryDamageType),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1169,32 +1176,13 @@ private fun StepperButton(
 @Composable
 private fun AttackEditDialog(
     attack: Attack,
-    character: com.dndcharacterhandler.domain.model.Character,
-    proficiencyBonus: Int,
     onDismiss: () -> Unit,
     onSave: (Attack) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
     val strings = LocalStrings.current
     var name by remember(attack) { mutableStateOf(attack.name) }
-    val meleeLabel = text("inventory_weapon_range_melee")
     val feetLabel = text("inventory_unit_feet")
-    val parsedRange = remember(attack.range, attack.normalRange, attack.longRange, meleeLabel, feetLabel) {
-        parseAttackRange(
-            value = attack.range,
-            meleeLabel = meleeLabel,
-            feetLabel = feetLabel,
-            fallbackNormal = attack.normalRange,
-            fallbackLong = attack.longRange
-        )
-    }
-    val parsedPrimaryDamage = remember(attack.damage, attack.damageDiceCount, attack.damageDieType) {
-        parseAttackDamage(
-            value = attack.damage,
-            fallbackDiceCount = attack.damageDiceCount,
-            fallbackDieType = attack.damageDieType
-        )
-    }
     val parsedAlternateDamage = remember(attack.alternateDamageDiceCount, attack.alternateDamageDieType) {
         if (attack.alternateDamageDiceCount != null && !attack.alternateDamageDieType.isNullOrBlank()) {
             ParsedAttackDamage(
@@ -1205,15 +1193,15 @@ private fun AttackEditDialog(
             null
         }
     }
-    var normalRange by remember(attack, parsedRange.first) { mutableStateOf(parsedRange.first) }
-    var longRange by remember(attack, parsedRange.second) { mutableStateOf(parsedRange.second) }
+    var normalRange by remember(attack) { mutableStateOf(attack.normalRange?.toString().orEmpty()) }
+    var longRange by remember(attack) { mutableStateOf(attack.longRange?.toString().orEmpty()) }
     var calculationMode by remember(attack) { mutableStateOf(attack.calculationMode) }
     var ability by remember(attack) { mutableStateOf(attack.ability) }
-    var manualAttackBonusOrSaveDc by remember(attack) { mutableStateOf(attack.attackBonusOrSaveDc) }
-    var manualDamage by remember(attack) { mutableStateOf(attack.damage) }
-    var damageDiceCount by remember(attack, parsedPrimaryDamage.diceCount) { mutableStateOf(parsedPrimaryDamage.diceCount) }
-    var damageDieType by remember(attack, parsedPrimaryDamage.dieType) { mutableStateOf(parsedPrimaryDamage.dieType) }
-    var damageType by remember(attack) { mutableStateOf(attack.damageType.ifBlank { defaultDamageTypeForCombat() }) }
+    var manualAttackBonusOrSaveDc by remember(attack) { mutableStateOf(attack.manualAttackBonusOrSaveDc) }
+    var manualDamage by remember(attack) { mutableStateOf(attack.manualDamage) }
+    var damageDiceCount by remember(attack) { mutableStateOf(attack.damageDiceCount) }
+    var damageDieType by remember(attack) { mutableStateOf(attack.damageDieType) }
+    var damageType by remember(attack) { mutableStateOf(attack.primaryDamageType.ifBlank { defaultDamageTypeForCombat() }) }
     var isProficient by remember(attack) { mutableStateOf(attack.isProficient) }
     var magicalBonus by remember(attack) { mutableStateOf(attack.magicalBonus.toString()) }
     var applyAbilityModifierToDamage by remember(attack) { mutableStateOf(attack.applyAbilityModifierToDamage) }
@@ -1385,10 +1373,6 @@ private fun AttackEditDialog(
             Button(
                 onClick = {
                     val parsedMagicalBonus = magicalBonus.toIntOrNull() ?: 0
-                    val abilityModifierValue = abilityModifier(scoreForSpellcastingAbility(character, ability))
-                    val attackBonusValue = (if (isProficient) proficiencyBonus else 0) + abilityModifierValue + parsedMagicalBonus
-                    val primaryDamageBonus = parsedMagicalBonus + if (applyAbilityModifierToDamage) abilityModifierValue else 0
-                    val alternateDamageBonus = parsedMagicalBonus + if (applyAbilityModifierToDamage) abilityModifierValue else 0
                     onSave(
                         attack.copy(
                             name = name.trim(),
@@ -1404,30 +1388,17 @@ private fun AttackEditDialog(
                             alternateDamageType = alternateDamageType.takeIf { hasAlternateDamage },
                             magicalBonus = parsedMagicalBonus,
                             applyAbilityModifierToDamage = applyAbilityModifierToDamage,
-                            range = formatAttackRange(
-                                normalRange = normalRange,
-                                longRange = longRange,
-                                meleeLabel = meleeLabel,
-                                feetLabel = feetLabel
-                            ),
-                            attackBonusOrSaveDc = if (calculationMode == AttackCalculationMode.AUTOMATIC) {
-                                "${signedNumber(attackBonusValue)} Attack"
-                            } else {
+                            manualAttackBonusOrSaveDc = if (calculationMode == AttackCalculationMode.MANUAL) {
                                 manualAttackBonusOrSaveDc.trim()
-                            },
-                            damage = if (calculationMode == AttackCalculationMode.AUTOMATIC) {
-                                formatAttackDamage(
-                                    diceCount = damageDiceCount,
-                                    dieType = damageDieType,
-                                    bonus = primaryDamageBonus,
-                                    alternateDiceCount = alternateDamageDiceCount.takeIf { hasAlternateDamage },
-                                    alternateDieType = alternateDamageDieType.takeIf { hasAlternateDamage },
-                                    alternateBonus = alternateDamageBonus
-                                )
                             } else {
-                                manualDamage.trim()
+                                ""
                             },
-                            damageType = damageType
+                            manualDamage = if (calculationMode == AttackCalculationMode.MANUAL) {
+                                manualDamage.trim()
+                            } else {
+                                ""
+                            },
+                            primaryDamageType = damageType
                         )
                     )
                 }
@@ -1537,10 +1508,9 @@ private fun newDraftAttack(): Attack =
         alternateDamageType = null,
         magicalBonus = 0,
         applyAbilityModifierToDamage = true,
-        range = "",
-        attackBonusOrSaveDc = "+0 Attack",
-        damage = "1d4",
-        damageType = defaultDamageTypeForCombat()
+        manualAttackBonusOrSaveDc = "",
+        manualDamage = "",
+        primaryDamageType = defaultDamageTypeForCombat()
     )
 
 private fun newDraftCombatResource(): CombatResource =
@@ -1558,19 +1528,11 @@ private fun signedNumber(value: Int): String = if (value >= 0) "+$value" else va
 private fun InventoryItem.toCombatAttack(
     strengthScore: Int,
     dexterityScore: Int,
-    proficiencyBonus: Int,
-    weaponProficiencyIds: Set<String>,
-    meleeLabel: String,
-    feetLabel: String
+    weaponProficiencyIds: Set<String>
 ): Attack {
     val details = weaponDetails ?: return newDraftAttack().copy(name = name, icon = icon)
     val strengthModifier = abilityModifier(strengthScore)
     val dexterityModifier = abilityModifier(dexterityScore)
-    val abilityModifier = when {
-        details.rangeType == InventoryWeaponRangeType.RANGED -> dexterityModifier
-        InventoryWeaponProperty.FINESSE in details.properties -> max(strengthModifier, dexterityModifier)
-        else -> strengthModifier
-    }
     val attackAbility = when {
         details.rangeType == InventoryWeaponRangeType.RANGED -> SpellcastingAbility.DEXTERITY
         InventoryWeaponProperty.FINESSE in details.properties && dexterityModifier > strengthModifier ->
@@ -1597,22 +1559,14 @@ private fun InventoryItem.toCombatAttack(
         alternateDamageType = alternateDamage?.damageType,
         magicalBonus = magicalModifier,
         applyAbilityModifierToDamage = true,
-        range = details.rangeLabel(meleeLabel = meleeLabel, feetLabel = feetLabel),
-        attackBonusOrSaveDc = "${signedNumber((if (isProficient) proficiencyBonus else 0) + abilityModifier + magicalModifier)} Attack",
-        damage = formatAttackDamage(
-            diceCount = primaryDamage?.dice.toDiceCount() ?: 1,
-            dieType = primaryDamage?.dice.toDieType() ?: "d4",
-            bonus = abilityModifier + magicalModifier,
-            alternateDiceCount = alternateDamage?.dice?.toDiceCount(),
-            alternateDieType = alternateDamage?.dice?.toDieType(),
-            alternateBonus = abilityModifier + magicalModifier
-        ),
-        damageType = primaryDamage?.damageType.orEmpty()
+        manualAttackBonusOrSaveDc = "",
+        manualDamage = "",
+        primaryDamageType = primaryDamage?.damageType.orEmpty()
     )
 }
 
 private fun attackFallbackIcon(attack: Attack): ImageVector {
-    val description = "${attack.name} ${attack.damageType} ${attack.range}".lowercase()
+    val description = "${attack.name} ${attack.primaryDamageType}".lowercase()
     return when {
         "fire" in description || "bolt" in description -> Icons.Outlined.Bolt
         "cold" in description -> Icons.Outlined.FlashOn
@@ -2103,6 +2057,49 @@ private fun sanitizeSignedNumberInput(value: String): String {
     return if (filtered == "-") filtered else filtered.trimStart('+')
 }
 
+private fun Attack.displayRange(
+    meleeLabel: String,
+    feetLabel: String
+): String = formatAttackRange(
+    normalRange = normalRange?.toString().orEmpty(),
+    longRange = longRange?.toString().orEmpty(),
+    meleeLabel = meleeLabel,
+    feetLabel = feetLabel
+)
+
+private fun Attack.displayAttackBonusOrSaveDc(
+    character: com.dndcharacterhandler.domain.model.Character,
+    proficiencyBonus: Int
+): String {
+    return if (calculationMode == AttackCalculationMode.MANUAL) {
+        manualAttackBonusOrSaveDc.ifBlank { "+0 Attack" }
+    } else {
+        val abilityScore = scoreForSpellcastingAbility(character, ability)
+        val total = (if (isProficient) proficiencyBonus else 0) + abilityModifier(abilityScore) + magicalBonus
+        "${signedNumber(total)} Attack"
+    }
+}
+
+private fun Attack.displayDamage(
+    character: com.dndcharacterhandler.domain.model.Character
+): String {
+    return if (calculationMode == AttackCalculationMode.MANUAL) {
+        manualDamage.ifBlank { formatAttackDamage(damageDiceCount, damageDieType, 0) }
+    } else {
+        val abilityScore = scoreForSpellcastingAbility(character, ability)
+        val abilityDamageBonus = if (applyAbilityModifierToDamage) abilityModifier(abilityScore) else 0
+        val totalBonus = magicalBonus + abilityDamageBonus
+        formatAttackDamage(
+            diceCount = damageDiceCount,
+            dieType = damageDieType,
+            bonus = totalBonus,
+            alternateDiceCount = alternateDamageDiceCount,
+            alternateDieType = alternateDamageDieType,
+            alternateBonus = totalBonus
+        )
+    }
+}
+
 private fun String?.toDiceCount(): Int? =
     this?.replace(" ", "")
         ?.let { Regex("""^(\d+)d\d+.*$""").matchEntire(it)?.groupValues?.getOrNull(1)?.toIntOrNull() }
@@ -2112,7 +2109,7 @@ private fun String?.toDieType(): String? =
         ?.let { Regex("""^\d+(d\d+).*$""").matchEntire(it)?.groupValues?.getOrNull(1) }
 
 private fun Attack.displayDamageTypeLabel(strings: com.dndcharacterhandler.data.localization.LocalizedStrings): String {
-    val primary = strings[damageTypeLocalizationKeyForCombat(damageType)]
+    val primary = strings[damageTypeLocalizationKeyForCombat(primaryDamageType)]
     val alternate = alternateDamageType?.takeIf { it.isNotBlank() }?.let { strings[damageTypeLocalizationKeyForCombat(it)] }
     return if (alternate != null && !alternate.equals(primary, ignoreCase = true)) "$primary / $alternate" else primary
 }

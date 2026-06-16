@@ -37,10 +37,10 @@ class CharacterRepositoryImpl(
         characterDao.observeCharacter(characterId).map { it?.toDomain() }
 
     override suspend fun createCharacter(character: CharacterBundle): Long {
-        return upsertCharacter(character.copy(character = character.character.copy(id = 0)))
+        return replaceCharacterBundle(character.copy(character = character.character.copy(id = 0)))
     }
 
-    override suspend fun upsertCharacter(character: CharacterBundle): Long =
+    private suspend fun replaceCharacterBundle(character: CharacterBundle): Long =
         writeMutex.withLock {
             val characterEntity = character.character.toEntity()
             writeCoordinator.replaceCharacterBundle(

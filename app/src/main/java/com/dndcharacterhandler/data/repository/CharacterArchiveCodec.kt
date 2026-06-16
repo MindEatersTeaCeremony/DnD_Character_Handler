@@ -131,10 +131,9 @@ fun CharacterBundle.toArchiveManifest(
                 put("alternateDamageType", attack.alternateDamageType)
                 put("magicalBonus", attack.magicalBonus)
                 put("applyAbilityModifierToDamage", attack.applyAbilityModifierToDamage)
-                put("range", attack.range)
-                put("attackBonusOrSaveDc", attack.attackBonusOrSaveDc)
-                put("damage", attack.damage)
-                put("damageType", attack.damageType)
+                put("attackBonusOrSaveDc", attack.manualAttackBonusOrSaveDc)
+                put("damage", attack.manualDamage)
+                put("damageType", attack.primaryDamageType)
             }
         }))
         put("combatResources", JSONArray(combatResources.map { resource ->
@@ -336,10 +335,9 @@ private fun JSONArray.toAttackList(resolveAssetReference: (String?) -> String?):
                 alternateDamageType = json.optNullableString("alternateDamageType"),
                 magicalBonus = json.optInt("magicalBonus", 0),
                 applyAbilityModifierToDamage = json.optBoolean("applyAbilityModifierToDamage", true),
-                range = json.optString("range"),
-                attackBonusOrSaveDc = json.optString("attackBonusOrSaveDc"),
-                damage = json.optString("damage"),
-                damageType = json.optString("damageType")
+                manualAttackBonusOrSaveDc = json.optString("attackBonusOrSaveDc"),
+                manualDamage = json.optString("damage"),
+                primaryDamageType = json.optString("damageType")
             )
         }
     }

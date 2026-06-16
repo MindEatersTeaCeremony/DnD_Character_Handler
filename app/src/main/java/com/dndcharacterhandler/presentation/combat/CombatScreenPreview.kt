@@ -99,40 +99,42 @@ fun CombatScreenPreview() {
             name = "Quarterstaff",
             icon = "",
             isProficient = true,
-            range = "Melee",
-            attackBonusOrSaveDc = "+7 Attack",
-            damage = "1d8 + 4",
-            damageType = "Bludgeoning"
+            normalRange = 5,
+            damageDiceCount = 1,
+            damageDieType = "d8",
+            primaryDamageType = "Bludgeoning"
         ),
         Attack(
             id = 2,
             name = "Dagger",
             icon = "",
             isProficient = true,
-            range = "Melee",
-            attackBonusOrSaveDc = "+7 Attack",
-            damage = "1d4 + 4",
-            damageType = "Piercing"
+            normalRange = 5,
+            damageDiceCount = 1,
+            damageDieType = "d4",
+            primaryDamageType = "Piercing"
         ),
         Attack(
             id = 3,
             name = "Fire Bolt",
             icon = "",
             isProficient = true,
-            range = "120 ft",
-            attackBonusOrSaveDc = "+7 Attack",
-            damage = "2d10",
-            damageType = "Fire"
+            ability = com.dndcharacterhandler.domain.model.SpellcastingAbility.INTELLIGENCE,
+            normalRange = 120,
+            damageDiceCount = 2,
+            damageDieType = "d10",
+            primaryDamageType = "Fire"
         ),
         Attack(
             id = 4,
             name = "Ray of Frost",
             icon = "",
             isProficient = true,
-            range = "60 ft",
-            attackBonusOrSaveDc = "+7 Attack",
-            damage = "1d8",
-            damageType = "Cold"
+            ability = com.dndcharacterhandler.domain.model.SpellcastingAbility.INTELLIGENCE,
+            normalRange = 60,
+            damageDiceCount = 1,
+            damageDieType = "d8",
+            primaryDamageType = "Cold"
         )
     )
     val resources = listOf(

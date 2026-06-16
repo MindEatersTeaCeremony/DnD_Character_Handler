@@ -104,10 +104,9 @@ data class Attack(
     val alternateDamageType: String? = null,
     val magicalBonus: Int = 0,
     val applyAbilityModifierToDamage: Boolean = true,
-    val range: String,
-    val attackBonusOrSaveDc: String,
-    val damage: String,
-    val damageType: String
+    val manualAttackBonusOrSaveDc: String = "",
+    val manualDamage: String = "",
+    val primaryDamageType: String
 )
 data class CombatResource(
     val id: Long = 0,

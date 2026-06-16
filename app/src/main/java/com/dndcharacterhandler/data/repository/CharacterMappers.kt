@@ -45,10 +45,9 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
                 alternateDamageType = it.alternateDamageType,
                 magicalBonus = it.magicalBonus,
                 applyAbilityModifierToDamage = it.applyAbilityModifierToDamage,
-                range = it.range,
-                attackBonusOrSaveDc = it.attackBonusOrSaveDc,
-                damage = it.damage,
-                damageType = it.damageType
+                manualAttackBonusOrSaveDc = it.attackBonusOrSaveDc,
+                manualDamage = it.damage,
+                primaryDamageType = it.damageType
             )
         },
         combatResources = combatResources.map {
@@ -314,10 +313,10 @@ fun Attack.toEntity(characterId: Long): AttackEntity =
         alternateDamageType = alternateDamageType,
         magicalBonus = magicalBonus,
         applyAbilityModifierToDamage = applyAbilityModifierToDamage,
-        range = range,
-        attackBonusOrSaveDc = attackBonusOrSaveDc,
-        damage = damage,
-        damageType = damageType
+        range = "",
+        attackBonusOrSaveDc = manualAttackBonusOrSaveDc,
+        damage = manualDamage,
+        damageType = primaryDamageType
     )
 
 fun CombatResource.toEntity(characterId: Long): CombatResourceEntity =
