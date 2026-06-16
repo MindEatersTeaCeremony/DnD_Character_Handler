@@ -129,16 +129,13 @@ class OverviewViewModel(
                 return@launch
             }
 
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        name = newName,
-                        race = newRace,
-                        characterClass = newClass,
-                        level = newLevel,
-                        spentHitDice = current.spentHitDice.coerceAtMost(newLevel),
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    name = newName,
+                    race = newRace,
+                    characterClass = newClass,
+                    level = newLevel,
+                    spentHitDice = current.spentHitDice.coerceAtMost(newLevel)
                 )
             )
         }
@@ -149,12 +146,9 @@ class OverviewViewModel(
         if (sanitized == characterBundle.character.experience) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = characterBundle.character.copy(
-                        experience = sanitized,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                characterBundle.character.copy(
+                    experience = sanitized
                 )
             )
         }
@@ -166,12 +160,9 @@ class OverviewViewModel(
         if (sanitized == current.portraitUri) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        portraitUri = sanitized,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    portraitUri = sanitized
                 )
             )
         }
@@ -209,13 +200,10 @@ class OverviewViewModel(
         if (sanitized == current.maxHp) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        currentHp = current.currentHp.coerceAtMost(sanitized),
-                        maxHp = sanitized,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    currentHp = current.currentHp.coerceAtMost(sanitized),
+                    maxHp = sanitized
                 )
             )
         }
@@ -244,15 +232,11 @@ class OverviewViewModel(
         ) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        armorClass = sanitizedArmorClass,
-                        baseArmorClass = sanitizedBaseArmorClass,
-                        armorClassMode = armorClassMode,
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
+            characterRepository.updateArmorClassSettings(
+                characterId = characterBundle.character.id,
+                baseArmorClass = sanitizedBaseArmorClass,
+                armorClassMode = armorClassMode,
+                manualArmorClass = manualArmorClass
             )
         }
     }
@@ -269,12 +253,9 @@ class OverviewViewModel(
         if (recalculatedArmorClass == current.armorClass) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        armorClass = recalculatedArmorClass,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    armorClass = recalculatedArmorClass
                 )
             )
         }
@@ -286,13 +267,10 @@ class OverviewViewModel(
         if (initiativeBonus == current.initiativeBonus && recalculatedInitiative == current.initiative) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        initiative = recalculatedInitiative,
-                        initiativeBonus = initiativeBonus,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    initiative = recalculatedInitiative,
+                    initiativeBonus = initiativeBonus
                 )
             )
         }
@@ -304,12 +282,9 @@ class OverviewViewModel(
         if (sanitized == current.speed) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        speed = sanitized,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    speed = sanitized
                 )
             )
         }
@@ -321,12 +296,9 @@ class OverviewViewModel(
         if (sanitized == current.hitDieSides) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        hitDieSides = sanitized,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    hitDieSides = sanitized
                 )
             )
         }
@@ -340,12 +312,9 @@ class OverviewViewModel(
         if (spent == 0) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        spentHitDice = (current.spentHitDice + spent).coerceAtMost(level),
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    spentHitDice = (current.spentHitDice + spent).coerceAtMost(level)
                 )
             )
         }
@@ -354,12 +323,9 @@ class OverviewViewModel(
     fun toggleInspiration(characterBundle: CharacterBundle) {
         val current = characterBundle.character
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        hasInspiration = !current.hasInspiration,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    hasInspiration = !current.hasInspiration
                 )
             )
         }
@@ -368,14 +334,11 @@ class OverviewViewModel(
     fun longRest(characterBundle: CharacterBundle) {
         val current = characterBundle.character
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        currentHp = current.maxHp,
-                        temporaryHp = 0,
-                        spentHitDice = 0,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    currentHp = current.maxHp,
+                    temporaryHp = 0,
+                    spentHitDice = 0
                 )
             )
         }
@@ -390,13 +353,10 @@ class OverviewViewModel(
         if (currentHp == current.currentHp && temporaryHp == current.temporaryHp) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        currentHp = currentHp,
-                        temporaryHp = temporaryHp,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    currentHp = currentHp,
+                    temporaryHp = temporaryHp
                 )
             )
         }

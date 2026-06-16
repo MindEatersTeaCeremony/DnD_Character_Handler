@@ -68,37 +68,20 @@ class FeaturesViewModel(
     selectedCharacterHolder: SelectedCharacterHolder
 ) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
     fun updateFeature(characterBundle: CharacterBundle, feature: Feature) {
-        if (feature.id == 0L) {
-            createFeature(characterBundle, feature)
-        } else {
-            saveFeatures(
-                characterBundle = characterBundle,
-                features = characterBundle.features.map { if (it.id == feature.id) feature else it }
+        viewModelScope.launch {
+            characterRepository.upsertFeature(
+                characterId = characterBundle.character.id,
+                feature = if (feature.id == 0L) feature.copy(id = 0) else feature
             )
         }
     }
 
     fun deleteFeature(characterBundle: CharacterBundle, feature: Feature) {
-        saveFeatures(
-            characterBundle = characterBundle,
-            features = characterBundle.features.filterNot { it.id == feature.id }
-        )
-    }
-
-    private fun createFeature(characterBundle: CharacterBundle, feature: Feature) {
-        saveFeatures(
-            characterBundle = characterBundle,
-            features = characterBundle.features + feature.copy(id = 0)
-        )
-    }
-
-    private fun saveFeatures(characterBundle: CharacterBundle, features: List<Feature>) {
+        if (feature.id == 0L) return
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis()),
-                    features = features
-                )
+            characterRepository.deleteFeature(
+                characterId = characterBundle.character.id,
+                featureId = feature.id
             )
         }
     }

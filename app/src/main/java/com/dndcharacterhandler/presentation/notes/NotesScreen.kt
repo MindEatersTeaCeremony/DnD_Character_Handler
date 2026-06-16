@@ -62,41 +62,26 @@ class NotesViewModel(
     selectedCharacterHolder: SelectedCharacterHolder
 ) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
     fun updateNote(characterBundle: CharacterBundle, note: Note) {
-        if (note.id == 0L) {
-            createNote(characterBundle, note)
-        } else {
-            saveNotes(
-                characterBundle = characterBundle,
-                notes = characterBundle.notes.map { if (it.id == note.id) note else it }
-            )
-        }
-    }
-
-    private fun createNote(characterBundle: CharacterBundle, note: Note) {
         val now = System.currentTimeMillis()
-        saveNotes(
-            characterBundle = characterBundle,
-            notes = characterBundle.notes + note.copy(
+        val noteToSave = if (note.id == 0L) {
+            note.copy(
                 id = 0,
                 createdDate = now,
                 updatedDate = now
             )
-        )
+        } else {
+            note
+        }
+        viewModelScope.launch {
+            characterRepository.upsertNote(
+                characterId = characterBundle.character.id,
+                note = noteToSave
+            )
+        }
     }
 
     fun togglePinned(characterBundle: CharacterBundle, note: Note) {
         updateNote(characterBundle, note.copy(isPinned = !note.isPinned, updatedDate = System.currentTimeMillis()))
-    }
-
-    private fun saveNotes(characterBundle: CharacterBundle, notes: List<Note>) {
-        viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis()),
-                    notes = notes
-                )
-            )
-        }
     }
 }
 

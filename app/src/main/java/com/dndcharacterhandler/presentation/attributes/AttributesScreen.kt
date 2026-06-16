@@ -111,10 +111,8 @@ class AttributesViewModel(
             } else {
                 updated
             }
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = updatedCharacter.copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.updateCharacterDetails(
+                updatedCharacter
             )
         }
     }
@@ -124,12 +122,9 @@ class AttributesViewModel(
         if (bonus == current.passivePerceptionBonus) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        passivePerceptionBonus = bonus,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            characterRepository.updateCharacterDetails(
+                current.copy(
+                    passivePerceptionBonus = bonus
                 )
             )
         }
@@ -204,12 +199,11 @@ class AttributesViewModel(
             }
         }
 
+        val targetSkill = updatedSkills.firstOrNull { it.name == skillName } ?: return
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    skills = updatedSkills,
-                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.upsertSkill(
+                characterId = characterBundle.character.id,
+                skill = targetSkill
             )
         }
     }
@@ -223,10 +217,8 @@ class AttributesViewModel(
         if (nextValue == currentValue) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = applyValue(characterBundle.character).copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.updateCharacterDetails(
+                applyValue(characterBundle.character)
             )
         }
     }

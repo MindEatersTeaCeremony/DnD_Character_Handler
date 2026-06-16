@@ -73,13 +73,8 @@ class BiographyViewModel(
     fun updateBiography(characterBundle: CharacterBundle, value: String) {
         val current = characterBundle.character
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = current.copy(
-                        biography = value,
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
+            characterRepository.updateCharacterDetails(
+                current.copy(biography = value)
             )
         }
     }
@@ -107,10 +102,8 @@ class BiographyViewModel(
         if (updated == current) return
 
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = updated.copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.updateCharacterDetails(
+                updated
             )
         }
     }

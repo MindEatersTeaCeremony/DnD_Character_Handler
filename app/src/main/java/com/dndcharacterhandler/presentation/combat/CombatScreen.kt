@@ -109,76 +109,71 @@ class CombatViewModel(
             armorClassMode == current.armorClassMode
         ) return
 
-        saveBundle(
-            characterBundle.copy(
-                character = current.copy(
-                    armorClass = sanitizedArmorClass,
-                    baseArmorClass = sanitizedBaseArmorClass,
-                    armorClassMode = armorClassMode,
-                    updatedAt = System.currentTimeMillis()
-                )
+        viewModelScope.launch {
+            characterRepository.updateArmorClassSettings(
+                characterId = characterBundle.character.id,
+                baseArmorClass = sanitizedBaseArmorClass,
+                armorClassMode = armorClassMode,
+                manualArmorClass = manualArmorClass
             )
-        )
+        }
     }
 
     fun updateSpellcastingAbility(characterBundle: CharacterBundle, ability: SpellcastingAbility) {
         val current = characterBundle.character
         if (current.spellcastingAbility == ability) return
-        saveBundle(
-            characterBundle.copy(
-                character = current.copy(
-                    spellcastingAbility = ability,
-                    updatedAt = System.currentTimeMillis()
-                )
+        viewModelScope.launch {
+            characterRepository.updateSpellcastingAbility(
+                characterId = characterBundle.character.id,
+                ability = ability
             )
-        )
+        }
     }
 
     fun updateAttack(characterBundle: CharacterBundle, attack: Attack) {
-        val updatedAttacks = if (attack.id == 0L) {
-            characterBundle.attacks + attack.copy(id = 0)
-        } else {
-            characterBundle.attacks.map { if (it.id == attack.id) attack else it }
+        viewModelScope.launch {
+            characterRepository.upsertAttack(
+                characterId = characterBundle.character.id,
+                attack = attack
+            )
         }
-        saveBundle(characterBundle.copy(attacks = updatedAttacks))
     }
 
     fun deleteAttack(characterBundle: CharacterBundle, attack: Attack) {
-        saveBundle(characterBundle.copy(attacks = characterBundle.attacks.filterNot { it.id == attack.id }))
+        if (attack.id == 0L) return
+        viewModelScope.launch {
+            characterRepository.deleteAttack(
+                characterId = characterBundle.character.id,
+                attackId = attack.id
+            )
+        }
     }
 
     fun updateCombatResourceUses(characterBundle: CharacterBundle, resourceId: Long, delta: Int) {
-        val updatedResources = characterBundle.combatResources.map { resource ->
-            if (resource.id != resourceId) {
-                resource
-            } else {
-                resource.copy(
-                    currentUses = (resource.currentUses + delta).coerceIn(0, resource.maximumUses.coerceAtLeast(0))
-                )
-            }
+        viewModelScope.launch {
+            characterRepository.updateCombatResourceUses(
+                characterId = characterBundle.character.id,
+                resourceId = resourceId,
+                delta = delta
+            )
         }
-        saveBundle(characterBundle.copy(combatResources = updatedResources))
     }
 
     fun updateCombatResource(characterBundle: CharacterBundle, resource: CombatResource) {
-        val updatedResources = if (resource.id == 0L) {
-            characterBundle.combatResources + resource.copy(id = 0)
-        } else {
-            characterBundle.combatResources.map { if (it.id == resource.id) resource else it }
+        viewModelScope.launch {
+            characterRepository.upsertCombatResource(
+                characterId = characterBundle.character.id,
+                resource = resource
+            )
         }
-        saveBundle(characterBundle.copy(combatResources = updatedResources))
     }
 
     fun deleteCombatResource(characterBundle: CharacterBundle, resource: CombatResource) {
-        saveBundle(characterBundle.copy(combatResources = characterBundle.combatResources.filterNot { it.id == resource.id }))
-    }
-
-    private fun saveBundle(characterBundle: CharacterBundle) {
+        if (resource.id == 0L) return
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.deleteCombatResource(
+                characterId = characterBundle.character.id,
+                resourceId = resource.id
             )
         }
     }

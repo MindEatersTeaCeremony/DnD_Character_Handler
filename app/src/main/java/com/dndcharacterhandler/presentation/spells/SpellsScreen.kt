@@ -123,12 +123,12 @@ class SpellsViewModel(
             availableClasses = spell.availableClasses.trim(),
             isPrepared = if (spell.level == 0) true else spell.isPrepared
         )
-        val updatedSpells = if (sanitizedSpell.id == 0L) {
-            characterBundle.spells + sanitizedSpell.copy(id = 0)
-        } else {
-            characterBundle.spells.map { if (it.id == sanitizedSpell.id) sanitizedSpell else it }
+        viewModelScope.launch {
+            characterRepository.upsertSpell(
+                characterId = characterBundle.character.id,
+                spell = sanitizedSpell
+            )
         }
-        saveBundle(characterBundle.copy(spells = updatedSpells))
     }
 
     fun addCatalogSpell(characterBundle: CharacterBundle, item: SpellCatalogItem) {
@@ -136,7 +136,13 @@ class SpellsViewModel(
     }
 
     fun deleteSpell(characterBundle: CharacterBundle, spell: Spell) {
-        saveBundle(characterBundle.copy(spells = characterBundle.spells.filterNot { it.id == spell.id }))
+        if (spell.id == 0L) return
+        viewModelScope.launch {
+            characterRepository.deleteSpell(
+                characterId = characterBundle.character.id,
+                spellId = spell.id
+            )
+        }
     }
 
     fun togglePrepared(characterBundle: CharacterBundle, spell: Spell) {
@@ -162,17 +168,15 @@ class SpellsViewModel(
         val sanitizedRemaining = remaining.coerceIn(0, sanitizedMaximum)
         maximums[index] = sanitizedMaximum
         remainings[index] = sanitizedRemaining
-        saveBundle(
-            characterBundle.copy(
-                character = characterBundle.character.copy(
-                    spellSlotMaximums = maximums.encodeSpellSlotList(),
-                    spellSlotRemaining = remainings.encodeSpellSlotList(),
-                    spellSlotsRestoreOnShortRest = restoresOnShortRest,
-                    spellSlotsRestoreOnLongRest = restoresOnLongRest,
-                    updatedAt = System.currentTimeMillis()
-                )
+        viewModelScope.launch {
+            characterRepository.updateSpellSlots(
+                characterId = characterBundle.character.id,
+                spellSlotMaximums = maximums.encodeSpellSlotList(),
+                spellSlotRemaining = remainings.encodeSpellSlotList(),
+                restoresOnShortRest = restoresOnShortRest,
+                restoresOnLongRest = restoresOnLongRest
             )
-        )
+        }
     }
 
     fun updateSpellSlotRemaining(characterBundle: CharacterBundle, level: Int, remaining: Int) {
@@ -182,34 +186,20 @@ class SpellsViewModel(
         val index = level - 1
         val maximum = maximums[index].coerceAtLeast(0)
         remainings[index] = remaining.coerceIn(0, maximum)
-        saveBundle(
-            characterBundle.copy(
-                character = characterBundle.character.copy(
-                    spellSlotRemaining = remainings.encodeSpellSlotList(),
-                    updatedAt = System.currentTimeMillis()
-                )
+        viewModelScope.launch {
+            characterRepository.updateSpellSlotRemaining(
+                characterId = characterBundle.character.id,
+                spellSlotRemaining = remainings.encodeSpellSlotList()
             )
-        )
+        }
     }
 
     fun updateSpellcastingAbility(characterBundle: CharacterBundle, ability: SpellcastingAbility) {
         if (characterBundle.character.spellcastingAbility == ability) return
-        saveBundle(
-            characterBundle.copy(
-                character = characterBundle.character.copy(
-                    spellcastingAbility = ability,
-                    updatedAt = System.currentTimeMillis()
-                )
-            )
-        )
-    }
-
-    private fun saveBundle(characterBundle: CharacterBundle) {
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.updateSpellcastingAbility(
+                characterId = characterBundle.character.id,
+                ability = ability
             )
         }
     }

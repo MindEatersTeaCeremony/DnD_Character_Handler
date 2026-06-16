@@ -55,7 +55,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.dndcharacterhandler.data.localization.LocalizedStrings
-import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.InventoryArmorDetails
 import com.dndcharacterhandler.domain.model.InventoryArmorType
@@ -124,45 +123,28 @@ class InventoryViewModel(
 
     fun addCatalogItem(characterBundle: CharacterBundle, item: InventoryCatalogItem) {
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    inventoryItems = characterBundle.inventoryItems + item.toInventoryItem(),
-                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.upsertInventoryItem(
+                characterId = characterBundle.character.id,
+                item = item.toInventoryItem()
             )
         }
     }
 
     fun addInventoryItem(characterBundle: CharacterBundle, item: InventoryItem) {
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    inventoryItems = characterBundle.inventoryItems + item,
-                    character = characterBundle.character.copy(updatedAt = System.currentTimeMillis())
-                )
+            characterRepository.upsertInventoryItem(
+                characterId = characterBundle.character.id,
+                item = item
             )
         }
     }
 
     fun toggleItemEquipped(characterBundle: CharacterBundle, targetItem: InventoryItem) {
+        if (targetItem.id == 0L) return
         viewModelScope.launch {
-            val updatedItems = characterBundle.inventoryItems.toggleEquippedItem(targetItem)
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    inventoryItems = updatedItems,
-                    character = characterBundle.character.copy(
-                        armorClass = if (characterBundle.character.armorClassMode == ArmorClassMode.AUTOMATIC) {
-                            calculateArmorClass(
-                                baseArmorClass = characterBundle.character.baseArmorClass,
-                                dexterityScore = characterBundle.character.dexterity,
-                                inventoryItems = updatedItems
-                            )
-                        } else {
-                            characterBundle.character.armorClass
-                        },
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
+            characterRepository.toggleInventoryItemEquipped(
+                characterId = characterBundle.character.id,
+                itemId = targetItem.id
             )
         }
     }
@@ -172,49 +154,25 @@ class InventoryViewModel(
         originalItem: InventoryItem,
         updatedItem: InventoryItem
     ) {
+        val itemToSave = if (updatedItem.id != 0L || originalItem.id == 0L) {
+            updatedItem
+        } else {
+            updatedItem.copy(id = originalItem.id)
+        }
         viewModelScope.launch {
-            val updatedItems = characterBundle.inventoryItems.map { item ->
-                if (item.matchesInventoryItem(originalItem)) updatedItem else item
-            }
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    inventoryItems = updatedItems,
-                    character = characterBundle.character.copy(
-                        armorClass = if (characterBundle.character.armorClassMode == ArmorClassMode.AUTOMATIC) {
-                            calculateArmorClass(
-                                baseArmorClass = characterBundle.character.baseArmorClass,
-                                dexterityScore = characterBundle.character.dexterity,
-                                inventoryItems = updatedItems
-                            )
-                        } else {
-                            characterBundle.character.armorClass
-                        },
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
+            characterRepository.upsertInventoryItem(
+                characterId = characterBundle.character.id,
+                item = itemToSave
             )
         }
     }
 
     fun deleteInventoryItem(characterBundle: CharacterBundle, item: InventoryItem) {
+        if (item.id == 0L) return
         viewModelScope.launch {
-            val updatedItems = characterBundle.inventoryItems.filterNot { it.matchesInventoryItem(item) }
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    inventoryItems = updatedItems,
-                    character = characterBundle.character.copy(
-                        armorClass = if (characterBundle.character.armorClassMode == ArmorClassMode.AUTOMATIC) {
-                            calculateArmorClass(
-                                baseArmorClass = characterBundle.character.baseArmorClass,
-                                dexterityScore = characterBundle.character.dexterity,
-                                inventoryItems = updatedItems
-                            )
-                        } else {
-                            characterBundle.character.armorClass
-                        },
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
+            characterRepository.deleteInventoryItem(
+                characterId = characterBundle.character.id,
+                itemId = item.id
             )
         }
     }
@@ -226,15 +184,11 @@ class InventoryViewModel(
         goldPieces: Int
     ) {
         viewModelScope.launch {
-            characterRepository.upsertCharacter(
-                characterBundle.copy(
-                    character = characterBundle.character.copy(
-                        copperPieces = copperPieces.coerceAtLeast(0),
-                        silverPieces = silverPieces.coerceAtLeast(0),
-                        goldPieces = goldPieces.coerceAtLeast(0),
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
+            characterRepository.updateCurrency(
+                characterId = characterBundle.character.id,
+                copperPieces = copperPieces,
+                silverPieces = silverPieces,
+                goldPieces = goldPieces
             )
         }
     }
@@ -2596,64 +2550,12 @@ private fun Int.signedValue(): String = if (this >= 0) "+$this" else toString()
 private fun <T> Set<T>.toggled(value: T, isChecked: Boolean): Set<T> =
     if (isChecked) this + value else this - value
 
-private fun List<InventoryItem>.toggleEquippedItem(targetItem: InventoryItem): List<InventoryItem> {
-    val targetArmorType = targetItem.armorDetails?.armorType
-    val shouldEquip = !targetItem.isEquipped
-
-    return map { currentItem ->
-        val isTarget = currentItem.matchesInventoryItem(targetItem)
-        val currentArmorType = currentItem.armorDetails?.armorType
-
-        when {
-            isTarget -> currentItem.copy(isEquipped = shouldEquip)
-            !shouldEquip -> currentItem
-            targetArmorType == InventoryArmorType.SHIELD && currentArmorType == InventoryArmorType.SHIELD ->
-                currentItem.copy(isEquipped = false)
-            targetArmorType != null && targetArmorType != InventoryArmorType.SHIELD &&
-                currentArmorType != null && currentArmorType != InventoryArmorType.SHIELD ->
-                currentItem.copy(isEquipped = false)
-            else -> currentItem
-        }
-    }
-}
-
-private fun InventoryItem.matchesInventoryItem(other: InventoryItem): Boolean {
-    return if (id != 0L && other.id != 0L) {
-        id == other.id
-    } else {
-        this == other
-    }
-}
-
 private fun InventoryItem.renderKey(): Any =
     if (id != 0L) {
         id
     } else {
         listOf(category.name, name, icon, weight, costQuantity, costUnit)
     }
-
-private fun calculateArmorClass(
-    baseArmorClass: Int,
-    dexterityScore: Int,
-    inventoryItems: List<InventoryItem>
-): Int {
-    val dexterityModifier = abilityModifier(dexterityScore)
-    val equippedArmor = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorDetails?.armorType != null && it.armorDetails.armorType != InventoryArmorType.SHIELD
-    }?.armorDetails
-    val equippedShield = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorDetails?.armorType == InventoryArmorType.SHIELD
-    }?.armorDetails
-
-    val effectiveArmorClass = if (equippedArmor != null) {
-        equippedArmor.armorClass + equippedArmor.appliedDexterityModifier(dexterityModifier)
-    } else {
-        baseArmorClass + dexterityModifier
-    }
-
-    val shieldBonus = equippedShield?.armorClass ?: 0
-    return (effectiveArmorClass + shieldBonus).coerceAtLeast(1)
-}
 
 private fun InventoryArmorDetails.appliedDexterityModifier(dexterityModifier: Int): Int {
     if (!appliesDexterityBonus) return 0
