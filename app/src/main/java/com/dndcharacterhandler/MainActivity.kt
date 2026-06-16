@@ -29,7 +29,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val database = AppDatabase.getInstance(applicationContext)
-        val characterRepository = CharacterRepositoryImpl(database.characterDao())
+        val characterRepository = CharacterRepositoryImpl(
+            database = database,
+            characterDao = database.characterDao()
+        )
         val fileRepository = CharacterFileRepositoryImpl(
             context = applicationContext,
             characterDao = database.characterDao(),

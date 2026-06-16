@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import com.dndcharacterhandler.data.local.entity.AttackEntity
 import com.dndcharacterhandler.data.local.entity.CharacterEntity
 import com.dndcharacterhandler.data.local.entity.CharacterWithDetails
@@ -15,7 +16,6 @@ import com.dndcharacterhandler.data.local.entity.NoteEntity
 import com.dndcharacterhandler.data.local.entity.SkillEntity
 import com.dndcharacterhandler.data.local.entity.SpellEntity
 import com.dndcharacterhandler.domain.model.ArmorClassMode
-import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
 import kotlinx.coroutines.flow.Flow
 
@@ -39,7 +39,7 @@ interface CharacterDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharacter(character: CharacterEntity): Long
 
-    @androidx.room.Update
+    @Update
     suspend fun updateCharacterEntity(character: CharacterEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -83,39 +83,6 @@ interface CharacterDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertNoteEntity(note: NoteEntity): Long
-
-    @Transaction
-    suspend fun replaceCharacterBundle(
-        character: CharacterEntity,
-        skills: List<SkillEntity>,
-        attacks: List<AttackEntity>,
-        combatResources: List<CombatResourceEntity>,
-        inventoryItems: List<InventoryItemEntity>,
-        spells: List<SpellEntity>,
-        features: List<FeatureEntity>,
-        notes: List<NoteEntity>
-    ): Long {
-        val savedId = insertCharacter(character)
-        val characterId = if (character.id == 0L) savedId else character.id
-
-        deleteSkillsForCharacter(characterId)
-        deleteAttacksForCharacter(characterId)
-        deleteCombatResourcesForCharacter(characterId)
-        deleteInventoryItemsForCharacter(characterId)
-        deleteSpellsForCharacter(characterId)
-        deleteFeaturesForCharacter(characterId)
-        deleteNotesForCharacter(characterId)
-
-        insertSkills(skills.map { it.copy(characterOwnerId = characterId) })
-        insertAttacks(attacks.map { it.copy(characterOwnerId = characterId) })
-        insertCombatResources(combatResources.map { it.copy(characterOwnerId = characterId) })
-        insertInventoryItems(inventoryItems.map { it.copy(characterOwnerId = characterId) })
-        insertSpells(spells.map { it.copy(characterOwnerId = characterId) })
-        insertFeatures(features.map { it.copy(characterOwnerId = characterId) })
-        insertNotes(notes.map { it.copy(characterOwnerId = characterId) })
-
-        return characterId
-    }
 
     @Query("DELETE FROM skills WHERE characterOwnerId = :characterId")
     suspend fun deleteSkillsForCharacter(characterId: Long)
@@ -271,209 +238,4 @@ interface CharacterDao {
 
     @Query("DELETE FROM characters WHERE id = :characterId")
     suspend fun deleteCharacter(characterId: Long)
-
-    @Transaction
-    suspend fun upsertInventoryItemForCharacter(characterId: Long, item: InventoryItemEntity, updatedAt: Long): Long {
-        val savedId = upsertInventoryItem(item.copy(characterOwnerId = characterId))
-        refreshInventoryDerivedCharacterState(characterId, updatedAt)
-        return savedId
-    }
-
-    @Transaction
-    suspend fun deleteInventoryItemForCharacter(characterId: Long, itemId: Long, updatedAt: Long) {
-        deleteInventoryItemById(itemId)
-        refreshInventoryDerivedCharacterState(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun toggleInventoryItemEquippedForCharacter(characterId: Long, itemId: Long, updatedAt: Long) {
-        val targetItem = getInventoryItemById(itemId) ?: return
-        if (targetItem.characterOwnerId != characterId) return
-
-        val shouldEquip = !targetItem.isEquipped
-        val targetArmorType = targetItem.armorType
-        val items = getInventoryItemsForCharacter(characterId)
-
-        items.forEach { currentItem ->
-            val nextEquipped = when {
-                currentItem.id == itemId -> shouldEquip
-                !shouldEquip -> currentItem.isEquipped
-                targetArmorType == InventoryArmorType.SHIELD && currentItem.armorType == InventoryArmorType.SHIELD ->
-                    false
-                targetArmorType != null && targetArmorType != InventoryArmorType.SHIELD &&
-                    currentItem.armorType != null && currentItem.armorType != InventoryArmorType.SHIELD ->
-                    false
-                else -> currentItem.isEquipped
-            }
-
-            if (nextEquipped != currentItem.isEquipped) {
-                updateInventoryItemEquipped(currentItem.id, nextEquipped)
-            }
-        }
-
-        refreshInventoryDerivedCharacterState(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun refreshInventoryDerivedCharacterState(characterId: Long, updatedAt: Long) {
-        val character = getCharacterEntity(characterId) ?: return
-        if (character.armorClassMode == ArmorClassMode.AUTOMATIC) {
-            val armorClass = calculateArmorClass(
-                baseArmorClass = character.baseArmorClass,
-                dexterityScore = character.dexterity,
-                inventoryItems = getInventoryItemsForCharacter(characterId)
-            )
-            updateArmorClass(characterId, armorClass, updatedAt)
-        } else {
-            updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    @Transaction
-    suspend fun upsertSpellForCharacter(characterId: Long, spell: SpellEntity, updatedAt: Long): Long {
-        val savedId = upsertSpellEntity(spell.copy(characterOwnerId = characterId))
-        updateCharacterUpdatedAt(characterId, updatedAt)
-        return savedId
-    }
-
-    @Transaction
-    suspend fun deleteSpellForCharacter(characterId: Long, spellId: Long, updatedAt: Long) {
-        deleteSpellById(spellId)
-        updateCharacterUpdatedAt(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun updateArmorClassSettingsForCharacter(
-        characterId: Long,
-        baseArmorClass: Int,
-        armorClassMode: ArmorClassMode,
-        manualArmorClass: Int?,
-        updatedAt: Long
-    ) {
-        val character = getCharacterEntity(characterId) ?: return
-        val sanitizedBaseArmorClass = baseArmorClass.coerceAtLeast(1)
-        val sanitizedArmorClass = when (armorClassMode) {
-            ArmorClassMode.AUTOMATIC -> calculateArmorClass(
-                baseArmorClass = sanitizedBaseArmorClass,
-                dexterityScore = character.dexterity,
-                inventoryItems = getInventoryItemsForCharacter(characterId)
-            )
-            ArmorClassMode.MANUAL -> manualArmorClass?.coerceAtLeast(1) ?: character.armorClass
-        }
-        updateArmorClassSettings(
-            characterId = characterId,
-            armorClass = sanitizedArmorClass,
-            baseArmorClass = sanitizedBaseArmorClass,
-            armorClassMode = armorClassMode,
-            updatedAt = updatedAt
-        )
-    }
-
-    @Transaction
-    suspend fun upsertAttackForCharacter(characterId: Long, attack: AttackEntity, updatedAt: Long): Long {
-        val savedId = upsertAttackEntity(attack.copy(characterOwnerId = characterId))
-        updateCharacterUpdatedAt(characterId, updatedAt)
-        return savedId
-    }
-
-    @Transaction
-    suspend fun deleteAttackForCharacter(characterId: Long, attackId: Long, updatedAt: Long) {
-        deleteAttackById(attackId)
-        updateCharacterUpdatedAt(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun upsertCombatResourceForCharacter(
-        characterId: Long,
-        resource: CombatResourceEntity,
-        updatedAt: Long
-    ): Long {
-        val savedId = upsertCombatResourceEntity(resource.copy(characterOwnerId = characterId))
-        updateCharacterUpdatedAt(characterId, updatedAt)
-        return savedId
-    }
-
-    @Transaction
-    suspend fun deleteCombatResourceForCharacter(characterId: Long, resourceId: Long, updatedAt: Long) {
-        deleteCombatResourceById(resourceId)
-        updateCharacterUpdatedAt(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun updateCombatResourceUsesForCharacter(characterId: Long, resourceId: Long, delta: Int, updatedAt: Long) {
-        val current = getCombatResourceById(resourceId) ?: return
-        if (current.characterOwnerId != characterId) return
-        val nextUses = (current.currentUses + delta).coerceIn(0, current.maximumUses.coerceAtLeast(0))
-        updateCombatResourceCurrentUses(resourceId, nextUses)
-        updateCharacterUpdatedAt(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun upsertFeatureForCharacter(characterId: Long, feature: FeatureEntity, updatedAt: Long): Long {
-        val savedId = upsertFeatureEntity(feature.copy(characterOwnerId = characterId))
-        updateCharacterUpdatedAt(characterId, updatedAt)
-        return savedId
-    }
-
-    @Transaction
-    suspend fun deleteFeatureForCharacter(characterId: Long, featureId: Long, updatedAt: Long) {
-        deleteFeatureById(featureId)
-        updateCharacterUpdatedAt(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun upsertNoteForCharacter(characterId: Long, note: NoteEntity, updatedAt: Long): Long {
-        val savedId = upsertNoteEntity(note.copy(characterOwnerId = characterId))
-        updateCharacterUpdatedAt(characterId, updatedAt)
-        return savedId
-    }
-
-    @Transaction
-    suspend fun deleteNoteForCharacter(characterId: Long, noteId: Long, updatedAt: Long) {
-        deleteNoteById(noteId)
-        updateCharacterUpdatedAt(characterId, updatedAt)
-    }
-
-    @Transaction
-    suspend fun upsertSkillForCharacter(characterId: Long, skill: SkillEntity, updatedAt: Long) {
-        val existing = getSkillForCharacter(characterId, skill.name)
-        upsertSkillEntity(
-            skill.copy(
-                id = existing?.id ?: skill.id,
-                characterOwnerId = characterId
-            )
-        )
-        updateCharacterUpdatedAt(characterId, updatedAt)
-    }
 }
-
-private fun calculateArmorClass(
-    baseArmorClass: Int,
-    dexterityScore: Int,
-    inventoryItems: List<InventoryItemEntity>
-): Int {
-    val dexterityModifier = abilityModifier(dexterityScore)
-    val equippedArmor = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorType != null && it.armorType != InventoryArmorType.SHIELD
-    }
-    val equippedShield = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorType == InventoryArmorType.SHIELD
-    }
-
-    val effectiveArmorClass = if (equippedArmor != null) {
-        val armorClass = equippedArmor.armorClass ?: baseArmorClass
-        armorClass + equippedArmor.appliedDexterityModifier(dexterityModifier)
-    } else {
-        baseArmorClass + dexterityModifier
-    }
-
-    val shieldBonus = equippedShield?.armorClass ?: 0
-    return (effectiveArmorClass + shieldBonus).coerceAtLeast(1)
-}
-
-private fun InventoryItemEntity.appliedDexterityModifier(dexterityModifier: Int): Int {
-    if (appliesDexterityBonus != true) return 0
-    return maxDexterityBonus?.let { dexterityModifier.coerceAtMost(it) } ?: dexterityModifier
-}
-
-private fun abilityModifier(score: Int): Int = Math.floorDiv(score - 10, 2)
