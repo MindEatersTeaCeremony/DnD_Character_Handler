@@ -33,7 +33,6 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FlashOn
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Search
@@ -72,6 +71,9 @@ import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.Spell
 import com.dndcharacterhandler.domain.model.SpellCatalogItem
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
+import com.dndcharacterhandler.domain.rules.abilityModifier
+import com.dndcharacterhandler.domain.rules.proficiencyBonusForLevel
+import com.dndcharacterhandler.domain.rules.scoreForSpellcastingAbility
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.repository.SpellCatalogRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
@@ -1382,27 +1384,6 @@ private fun String.toSpellSlotList(): MutableList<Int> {
 
 private fun List<Int>.encodeSpellSlotList(): String =
     take(9).joinToString(",") { it.coerceAtLeast(0).toString() }
-
-private fun proficiencyBonusForLevel(level: Int): Int =
-    when {
-        level >= 17 -> 6
-        level >= 13 -> 5
-        level >= 9 -> 4
-        level >= 5 -> 3
-        else -> 2
-    }
-
-private fun abilityModifier(score: Int): Int = Math.floorDiv(score - 10, 2)
-
-private fun scoreForSpellcastingAbility(character: Character, ability: SpellcastingAbility): Int =
-    when (ability) {
-        SpellcastingAbility.STRENGTH -> character.strength
-        SpellcastingAbility.DEXTERITY -> character.dexterity
-        SpellcastingAbility.CONSTITUTION -> character.constitution
-        SpellcastingAbility.INTELLIGENCE -> character.intelligence
-        SpellcastingAbility.WISDOM -> character.wisdom
-        SpellcastingAbility.CHARISMA -> character.charisma
-    }
 
 private fun signedNumber(value: Int): String = if (value >= 0) "+$value" else value.toString()
 

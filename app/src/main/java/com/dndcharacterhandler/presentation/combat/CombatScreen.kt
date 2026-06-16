@@ -62,12 +62,15 @@ import com.dndcharacterhandler.domain.model.AttackCalculationMode
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CombatResource
-import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
 import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
+import com.dndcharacterhandler.domain.rules.abilityModifier
+import com.dndcharacterhandler.domain.rules.calculateArmorClass
+import com.dndcharacterhandler.domain.rules.proficiencyBonusForLevel
+import com.dndcharacterhandler.domain.rules.scoreForSpellcastingAbility
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
@@ -1550,8 +1553,6 @@ private fun newDraftCombatResource(): CombatResource =
         restoresOnLongRest = false
     )
 
-private fun proficiencyBonusForLevel(level: Int): Int = 2 + ((level.coerceAtLeast(1) - 1) / 4)
-
 private fun signedNumber(value: Int): String = if (value >= 0) "+$value" else value.toString()
 
 private fun InventoryItem.toCombatAttack(
@@ -1628,48 +1629,6 @@ private fun damageTypeColor(value: String): Color {
         "poison" in key -> Color(0xFFA8D76F)
         else -> Color(0xFFD5C6B2)
     }
-}
-
-private fun abilityModifier(score: Int): Int = Math.floorDiv(score - 10, 2)
-
-private fun scoreForSpellcastingAbility(
-    character: com.dndcharacterhandler.domain.model.Character,
-    ability: SpellcastingAbility
-): Int =
-    when (ability) {
-        SpellcastingAbility.STRENGTH -> character.strength
-        SpellcastingAbility.DEXTERITY -> character.dexterity
-        SpellcastingAbility.CONSTITUTION -> character.constitution
-        SpellcastingAbility.INTELLIGENCE -> character.intelligence
-        SpellcastingAbility.WISDOM -> character.wisdom
-        SpellcastingAbility.CHARISMA -> character.charisma
-    }
-
-private fun calculateArmorClass(
-    baseArmorClass: Int,
-    dexterityScore: Int,
-    inventoryItems: List<InventoryItem>
-): Int {
-    val equippedArmor = inventoryItems.firstOrNull { item ->
-        item.isEquipped && item.armorDetails?.armorType != InventoryArmorType.SHIELD
-    }?.armorDetails
-    val equippedShield = inventoryItems.firstOrNull { item ->
-        item.isEquipped && item.armorDetails?.armorType == InventoryArmorType.SHIELD
-    }?.armorDetails
-    val dexterityModifier = abilityModifier(dexterityScore)
-
-    val armorClass = if (equippedArmor == null) {
-        baseArmorClass + dexterityModifier
-    } else {
-        val dexterityBonus = if (!equippedArmor.appliesDexterityBonus) {
-            0
-        } else {
-            equippedArmor.maxDexterityBonus?.let { dexterityModifier.coerceAtMost(it) } ?: dexterityModifier
-        }
-        equippedArmor.armorClass + dexterityBonus
-    }
-
-    return armorClass + (equippedShield?.armorClass ?: 0)
 }
 
 private data class SpellcastingAbilityOptionItem(

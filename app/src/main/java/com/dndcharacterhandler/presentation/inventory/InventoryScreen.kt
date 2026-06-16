@@ -66,6 +66,8 @@ import com.dndcharacterhandler.domain.model.InventoryWeaponDetails
 import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
 import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
 import com.dndcharacterhandler.domain.model.InventoryWeaponClass
+import com.dndcharacterhandler.domain.rules.abilityModifier
+import com.dndcharacterhandler.domain.rules.appliedDexterityModifier
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.repository.InventoryCatalogRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
@@ -2543,8 +2545,6 @@ private fun damageTypeLocalizationKey(type: String): String =
         else -> type
     }
 
-private fun abilityModifier(score: Int): Int = Math.floorDiv(score - 10, 2)
-
 private fun Int.signedValue(): String = if (this >= 0) "+$this" else toString()
 
 private fun <T> Set<T>.toggled(value: T, isChecked: Boolean): Set<T> =
@@ -2556,8 +2556,3 @@ private fun InventoryItem.renderKey(): Any =
     } else {
         listOf(category.name, name, icon, weight, costQuantity, costUnit)
     }
-
-private fun InventoryArmorDetails.appliedDexterityModifier(dexterityModifier: Int): Int {
-    if (!appliesDexterityBonus) return 0
-    return maxDexterityBonus?.let { dexterityModifier.coerceAtMost(it) } ?: dexterityModifier
-}

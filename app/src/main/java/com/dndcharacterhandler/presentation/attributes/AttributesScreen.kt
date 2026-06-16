@@ -60,10 +60,10 @@ import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
-import com.dndcharacterhandler.domain.model.InventoryArmorDetails
-import com.dndcharacterhandler.domain.model.InventoryArmorType
-import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.Skill
+import com.dndcharacterhandler.domain.rules.abilityModifier
+import com.dndcharacterhandler.domain.rules.calculateArmorClass
+import com.dndcharacterhandler.domain.rules.proficiencyBonusForLevel
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
@@ -1355,17 +1355,6 @@ private fun skillTrainingBonus(skill: Skill?, proficiencyBonus: Int): Int =
         else -> 0
     }
 
-private fun proficiencyBonusForLevel(level: Int): Int =
-    when (level.coerceIn(1, 20)) {
-        in 1..4 -> 2
-        in 5..8 -> 3
-        in 9..12 -> 4
-        in 13..16 -> 5
-        else -> 6
-    }
-
-private fun abilityModifier(value: Int): Int = Math.floorDiv(value - 10, 2)
-
 private fun signed(value: Int): String = if (value >= 0) "+$value" else value.toString()
 
 private fun encodeProficiencyIds(ids: Set<String>): String =
@@ -1664,30 +1653,3 @@ internal fun previewFallbackCharacter(): Character =
         createdAt = 0L,
         updatedAt = 0L
     )
-
-private fun calculateArmorClass(
-    baseArmorClass: Int,
-    dexterityScore: Int,
-    inventoryItems: List<InventoryItem>
-): Int {
-    val dexterityModifier = Math.floorDiv(dexterityScore - 10, 2)
-    val equippedArmor = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorDetails?.armorType != null && it.armorDetails.armorType != InventoryArmorType.SHIELD
-    }?.armorDetails
-    val equippedShield = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorDetails?.armorType == InventoryArmorType.SHIELD
-    }?.armorDetails
-
-    val effectiveArmorClass = if (equippedArmor != null) {
-        equippedArmor.armorClass + equippedArmor.appliedDexterityModifier(dexterityModifier)
-    } else {
-        baseArmorClass + dexterityModifier
-    }
-
-    return (effectiveArmorClass + (equippedShield?.armorClass ?: 0)).coerceAtLeast(1)
-}
-
-private fun InventoryArmorDetails.appliedDexterityModifier(dexterityModifier: Int): Int {
-    if (!appliesDexterityBonus) return 0
-    return maxDexterityBonus?.let { dexterityModifier.coerceAtMost(it) } ?: dexterityModifier
-}
