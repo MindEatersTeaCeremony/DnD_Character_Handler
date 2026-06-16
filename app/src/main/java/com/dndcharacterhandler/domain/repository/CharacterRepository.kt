@@ -5,11 +5,12 @@ import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Attack
+import com.dndcharacterhandler.domain.model.CharacterProficiencyField
+import com.dndcharacterhandler.domain.model.CharacterTextField
 import com.dndcharacterhandler.domain.model.Spell
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
 import com.dndcharacterhandler.domain.model.Feature
 import com.dndcharacterhandler.domain.model.Note
-import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.Skill
 import kotlinx.coroutines.flow.Flow
 
@@ -18,7 +19,25 @@ interface CharacterRepository {
     fun observeCharacter(characterId: Long): Flow<CharacterBundle?>
     suspend fun createCharacter(character: CharacterBundle): Long
     suspend fun upsertCharacter(character: CharacterBundle): Long
-    suspend fun updateCharacterDetails(character: Character)
+    suspend fun updateIdentity(characterId: Long, name: String, race: String, characterClass: String, level: Int)
+    suspend fun updateExperience(characterId: Long, experience: Int)
+    suspend fun updatePortrait(characterId: Long, portraitUri: String?)
+    suspend fun updateHitPoints(characterId: Long, currentHp: Int, temporaryHp: Int)
+    suspend fun updateMaxHitPoints(characterId: Long, currentHp: Int, maxHp: Int)
+    suspend fun updateInitiative(characterId: Long, initiative: Int, initiativeBonus: Int)
+    suspend fun updateSpeed(characterId: Long, speed: Int)
+    suspend fun updateHitDice(characterId: Long, hitDieSides: Int, spentHitDice: Int)
+    suspend fun updateInspiration(characterId: Long, hasInspiration: Boolean)
+    suspend fun updatePassivePerceptionBonus(characterId: Long, bonus: Int)
+    suspend fun updateAbilityScore(
+        characterId: Long,
+        ability: SpellcastingAbility,
+        value: Int,
+        saveProficient: Boolean,
+        armorClass: Int? = null
+    )
+    suspend fun updateProficiencyField(characterId: Long, field: CharacterProficiencyField, value: String)
+    suspend fun updateTextField(characterId: Long, field: CharacterTextField, value: String)
     suspend fun updateCurrency(characterId: Long, copperPieces: Int, silverPieces: Int, goldPieces: Int)
     suspend fun upsertInventoryItem(characterId: Long, item: InventoryItem): Long
     suspend fun deleteInventoryItem(characterId: Long, itemId: Long)

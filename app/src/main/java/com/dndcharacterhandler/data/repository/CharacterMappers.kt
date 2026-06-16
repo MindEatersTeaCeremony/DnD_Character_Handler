@@ -61,71 +61,7 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
                 it.restoresOnLongRest
             )
         },
-        inventoryItems = inventoryItems.sortedBy { it.id }.map {
-            InventoryItem(
-                id = it.id,
-                name = it.name,
-                description = it.description,
-                isMagical = it.isMagical,
-                magicalBonus = it.magicalBonus,
-                category = it.category,
-                weight = it.weight,
-                quantity = it.quantity,
-                isEquipped = it.isEquipped,
-                icon = it.icon,
-                costQuantity = it.costQuantity,
-                costUnit = it.costUnit,
-                armorDetails = if (it.armorType != null && it.armorClass != null && it.appliesDexterityBonus != null && it.strengthMinimum != null && it.hasStealthDisadvantage != null) {
-                    InventoryArmorDetails(
-                        armorType = it.armorType,
-                        armorClass = it.armorClass,
-                        appliesDexterityBonus = it.appliesDexterityBonus,
-                        maxDexterityBonus = it.maxDexterityBonus,
-                        strengthMinimum = it.strengthMinimum,
-                        hasStealthDisadvantage = it.hasStealthDisadvantage
-                    )
-                } else {
-                    null
-                },
-                weaponDetails = if (
-                    it.weaponClass != null &&
-                    it.weaponRangeType != null &&
-                    it.weaponPrimaryDamageDice != null &&
-                    it.weaponPrimaryDamageType != null
-                ) {
-                    InventoryWeaponDetails(
-                        weaponClass = it.weaponClass,
-                        rangeType = it.weaponRangeType,
-                        baseWeaponId = it.weaponBaseId,
-                        normalRange = it.weaponNormalRange,
-                        longRange = it.weaponLongRange,
-                        damages = listOf(
-                            InventoryWeaponDamage(
-                                dice = it.weaponPrimaryDamageDice,
-                                damageType = it.weaponPrimaryDamageType
-                            )
-                        ),
-                        twoHandedDamage = if (it.weaponTwoHandedDamageDice != null && it.weaponTwoHandedDamageType != null) {
-                            InventoryWeaponDamage(
-                                dice = it.weaponTwoHandedDamageDice,
-                                damageType = it.weaponTwoHandedDamageType
-                            )
-                        } else {
-                            null
-                        },
-                        properties = it.weaponProperties
-                            .orEmpty()
-                            .split(',')
-                            .mapNotNull { value ->
-                                value.takeIf { it.isNotBlank() }?.let(InventoryWeaponProperty::valueOf)
-                            }
-                            .toSet()
-                    )
-                } else {
-                    null
-                }
-            )
-        },
+        inventoryItems = inventoryItems.sortedBy { it.id }.map(InventoryItemEntity::toDomain),
         spells = spells.map {
             Spell(
                 id = it.id,
@@ -216,6 +152,71 @@ fun CharacterEntity.toDomain(): Character =
         biography = biography,
         createdAt = createdAt,
         updatedAt = updatedAt
+    )
+
+fun InventoryItemEntity.toDomain(): InventoryItem =
+    InventoryItem(
+        id = id,
+        name = name,
+        description = description,
+        isMagical = isMagical,
+        magicalBonus = magicalBonus,
+        category = category,
+        weight = weight,
+        quantity = quantity,
+        isEquipped = isEquipped,
+        icon = icon,
+        costQuantity = costQuantity,
+        costUnit = costUnit,
+        armorDetails = if (armorType != null && armorClass != null && appliesDexterityBonus != null && strengthMinimum != null && hasStealthDisadvantage != null) {
+            InventoryArmorDetails(
+                armorType = armorType,
+                armorClass = armorClass,
+                appliesDexterityBonus = appliesDexterityBonus,
+                maxDexterityBonus = maxDexterityBonus,
+                strengthMinimum = strengthMinimum,
+                hasStealthDisadvantage = hasStealthDisadvantage
+            )
+        } else {
+            null
+        },
+        weaponDetails = if (
+            weaponClass != null &&
+            weaponRangeType != null &&
+            weaponPrimaryDamageDice != null &&
+            weaponPrimaryDamageType != null
+        ) {
+            InventoryWeaponDetails(
+                weaponClass = weaponClass,
+                rangeType = weaponRangeType,
+                baseWeaponId = weaponBaseId,
+                normalRange = weaponNormalRange,
+                longRange = weaponLongRange,
+                damages = listOf(
+                    InventoryWeaponDamage(
+                        dice = weaponPrimaryDamageDice,
+                        damageType = weaponPrimaryDamageType
+                    )
+                ),
+                twoHandedDamage = if (weaponTwoHandedDamageDice != null && weaponTwoHandedDamageType != null) {
+                    InventoryWeaponDamage(
+                        dice = weaponTwoHandedDamageDice,
+                        damageType = weaponTwoHandedDamageType
+                    )
+                } else {
+                    null
+                },
+                properties = weaponProperties
+                    .orEmpty()
+                    .split(',')
+                    .mapNotNull { value ->
+                        value.takeIf { it.isNotBlank() }?.let(InventoryWeaponProperty::valueOf)
+                    }
+                    .toSet()
+            )
+        } else {
+            null
+        }
     )
 
 fun Character.toEntity(): CharacterEntity =

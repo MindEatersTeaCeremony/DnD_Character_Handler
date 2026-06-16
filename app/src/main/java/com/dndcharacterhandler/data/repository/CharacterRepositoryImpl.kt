@@ -1,16 +1,14 @@
 package com.dndcharacterhandler.data.repository
 
-import androidx.room.withTransaction
 import com.dndcharacterhandler.data.local.AppDatabase
 import com.dndcharacterhandler.data.local.dao.CharacterDao
-import com.dndcharacterhandler.data.local.entity.InventoryItemEntity
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Attack
-import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.CharacterProficiencyField
+import com.dndcharacterhandler.domain.model.CharacterTextField
 import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.Feature
-import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.Note
 import com.dndcharacterhandler.domain.model.Skill
@@ -27,6 +25,10 @@ class CharacterRepositoryImpl(
     private val characterDao: CharacterDao
 ) : CharacterRepository {
     private val writeMutex = Mutex()
+    private val writeCoordinator = CharacterWriteCoordinator(
+        database = database,
+        characterDao = characterDao
+    )
 
     override fun observeCharacters(): Flow<List<CharacterBundle>> =
         characterDao.observeCharacters().map { characters -> characters.map { it.toDomain() } }
@@ -41,7 +43,7 @@ class CharacterRepositoryImpl(
     override suspend fun upsertCharacter(character: CharacterBundle): Long =
         writeMutex.withLock {
             val characterEntity = character.character.toEntity()
-            replaceCharacterBundle(
+            writeCoordinator.replaceCharacterBundle(
                 character = characterEntity,
                 skills = character.skills.map { it.toEntity(characterEntity.id) },
                 attacks = character.attacks.map { it.toEntity(characterEntity.id) },
@@ -53,9 +55,164 @@ class CharacterRepositoryImpl(
             )
         }
 
-    override suspend fun updateCharacterDetails(character: Character) {
+    override suspend fun updateIdentity(
+        characterId: Long,
+        name: String,
+        race: String,
+        characterClass: String,
+        level: Int
+    ) {
         writeMutex.withLock {
-            characterDao.updateCharacterEntity(character.copy(updatedAt = System.currentTimeMillis()).toEntity())
+            val current = characterDao.getCharacterEntity(characterId) ?: return@withLock
+            val sanitizedLevel = level.coerceAtLeast(1)
+            characterDao.updateIdentity(
+                characterId = characterId,
+                name = name,
+                race = race,
+                characterClass = characterClass,
+                level = sanitizedLevel,
+                spentHitDice = current.spentHitDice.coerceAtMost(sanitizedLevel),
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+    }
+
+    override suspend fun updateExperience(characterId: Long, experience: Int) {
+        writeMutex.withLock {
+            characterDao.updateExperience(characterId, experience.coerceAtLeast(0), System.currentTimeMillis())
+        }
+    }
+
+    override suspend fun updatePortrait(characterId: Long, portraitUri: String?) {
+        writeMutex.withLock {
+            characterDao.updatePortrait(characterId, portraitUri, System.currentTimeMillis())
+        }
+    }
+
+    override suspend fun updateHitPoints(characterId: Long, currentHp: Int, temporaryHp: Int) {
+        writeMutex.withLock {
+            characterDao.updateHitPoints(
+                characterId = characterId,
+                currentHp = currentHp.coerceAtLeast(0),
+                temporaryHp = temporaryHp.coerceAtLeast(0),
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+    }
+
+    override suspend fun updateMaxHitPoints(characterId: Long, currentHp: Int, maxHp: Int) {
+        writeMutex.withLock {
+            val sanitizedMaxHp = maxHp.coerceAtLeast(1)
+            characterDao.updateMaxHitPoints(
+                characterId = characterId,
+                currentHp = currentHp.coerceIn(0, sanitizedMaxHp),
+                maxHp = sanitizedMaxHp,
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+    }
+
+    override suspend fun updateInitiative(characterId: Long, initiative: Int, initiativeBonus: Int) {
+        writeMutex.withLock {
+            characterDao.updateInitiative(
+                characterId = characterId,
+                initiative = initiative,
+                initiativeBonus = initiativeBonus,
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+    }
+
+    override suspend fun updateSpeed(characterId: Long, speed: Int) {
+        writeMutex.withLock {
+            characterDao.updateSpeed(characterId, speed.coerceAtLeast(1), System.currentTimeMillis())
+        }
+    }
+
+    override suspend fun updateHitDice(characterId: Long, hitDieSides: Int, spentHitDice: Int) {
+        writeMutex.withLock {
+            val current = characterDao.getCharacterEntity(characterId) ?: return@withLock
+            val sanitizedLevel = current.level.coerceAtLeast(1)
+            characterDao.updateHitDice(
+                characterId = characterId,
+                hitDieSides = hitDieSides,
+                spentHitDice = spentHitDice.coerceIn(0, sanitizedLevel),
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+    }
+
+    override suspend fun updateInspiration(characterId: Long, hasInspiration: Boolean) {
+        writeMutex.withLock {
+            characterDao.updateInspiration(characterId, hasInspiration, System.currentTimeMillis())
+        }
+    }
+
+    override suspend fun updatePassivePerceptionBonus(characterId: Long, bonus: Int) {
+        writeMutex.withLock {
+            characterDao.updatePassivePerceptionBonus(characterId, bonus, System.currentTimeMillis())
+        }
+    }
+
+    override suspend fun updateAbilityScore(
+        characterId: Long,
+        ability: SpellcastingAbility,
+        value: Int,
+        saveProficient: Boolean,
+        armorClass: Int?
+    ) {
+        writeMutex.withLock {
+            val updatedAt = System.currentTimeMillis()
+            when (ability) {
+                SpellcastingAbility.STRENGTH -> characterDao.updateStrength(characterId, value, saveProficient, updatedAt)
+                SpellcastingAbility.DEXTERITY -> characterDao.updateDexterity(
+                    characterId,
+                    value,
+                    saveProficient,
+                    armorClass,
+                    updatedAt
+                )
+                SpellcastingAbility.CONSTITUTION -> characterDao.updateConstitution(characterId, value, saveProficient, updatedAt)
+                SpellcastingAbility.INTELLIGENCE -> characterDao.updateIntelligence(characterId, value, saveProficient, updatedAt)
+                SpellcastingAbility.WISDOM -> characterDao.updateWisdom(characterId, value, saveProficient, updatedAt)
+                SpellcastingAbility.CHARISMA -> characterDao.updateCharisma(characterId, value, saveProficient, updatedAt)
+            }
+        }
+    }
+
+    override suspend fun updateProficiencyField(characterId: Long, field: CharacterProficiencyField, value: String) {
+        writeMutex.withLock {
+            val updatedAt = System.currentTimeMillis()
+            when (field) {
+                CharacterProficiencyField.ARMOR -> characterDao.updateArmorProficiencies(characterId, value, updatedAt)
+                CharacterProficiencyField.WEAPON -> characterDao.updateWeaponProficiencies(characterId, value, updatedAt)
+                CharacterProficiencyField.TOOL -> characterDao.updateToolProficiencies(characterId, value, updatedAt)
+                CharacterProficiencyField.LANGUAGE -> characterDao.updateLanguageProficiencies(characterId, value, updatedAt)
+            }
+        }
+    }
+
+    override suspend fun updateTextField(characterId: Long, field: CharacterTextField, value: String) {
+        writeMutex.withLock {
+            val updatedAt = System.currentTimeMillis()
+            when (field) {
+                CharacterTextField.ALIGNMENT -> characterDao.updateAlignment(characterId, value, updatedAt)
+                CharacterTextField.BACKGROUND -> characterDao.updateBackground(characterId, value, updatedAt)
+                CharacterTextField.FAITH -> characterDao.updateFaith(characterId, value, updatedAt)
+                CharacterTextField.HOMELAND -> characterDao.updateHomeland(characterId, value, updatedAt)
+                CharacterTextField.PERSONALITY_TRAITS -> characterDao.updatePersonalityTraits(characterId, value, updatedAt)
+                CharacterTextField.IDEALS -> characterDao.updateIdeals(characterId, value, updatedAt)
+                CharacterTextField.BONDS -> characterDao.updateBonds(characterId, value, updatedAt)
+                CharacterTextField.FLAWS -> characterDao.updateFlaws(characterId, value, updatedAt)
+                CharacterTextField.AGE -> characterDao.updateAge(characterId, value, updatedAt)
+                CharacterTextField.GENDER -> characterDao.updateGender(characterId, value, updatedAt)
+                CharacterTextField.HEIGHT -> characterDao.updateHeight(characterId, value, updatedAt)
+                CharacterTextField.WEIGHT -> characterDao.updateWeight(characterId, value, updatedAt)
+                CharacterTextField.EYES -> characterDao.updateEyes(characterId, value, updatedAt)
+                CharacterTextField.HAIR -> characterDao.updateHair(characterId, value, updatedAt)
+                CharacterTextField.SKIN -> characterDao.updateSkin(characterId, value, updatedAt)
+                CharacterTextField.BIOGRAPHY -> characterDao.updateBiography(characterId, value, updatedAt)
+            }
         }
     }
 
@@ -73,7 +230,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun upsertInventoryItem(characterId: Long, item: InventoryItem): Long =
         writeMutex.withLock {
-            upsertInventoryItemForCharacter(
+            writeCoordinator.upsertInventoryItemForCharacter(
                 characterId = characterId,
                 item = item.toEntity(characterId),
                 updatedAt = System.currentTimeMillis()
@@ -82,7 +239,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun deleteInventoryItem(characterId: Long, itemId: Long) {
         writeMutex.withLock {
-            deleteInventoryItemForCharacter(
+            writeCoordinator.deleteInventoryItemForCharacter(
                 characterId = characterId,
                 itemId = itemId,
                 updatedAt = System.currentTimeMillis()
@@ -92,7 +249,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun toggleInventoryItemEquipped(characterId: Long, itemId: Long) {
         writeMutex.withLock {
-            toggleInventoryItemEquippedForCharacter(
+            writeCoordinator.toggleInventoryItemEquippedForCharacter(
                 characterId = characterId,
                 itemId = itemId,
                 updatedAt = System.currentTimeMillis()
@@ -102,7 +259,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun upsertSpell(characterId: Long, spell: Spell): Long =
         writeMutex.withLock {
-            upsertSpellForCharacter(
+            writeCoordinator.upsertSpellForCharacter(
                 characterId = characterId,
                 spell = spell.toEntity(characterId),
                 updatedAt = System.currentTimeMillis()
@@ -111,7 +268,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun deleteSpell(characterId: Long, spellId: Long) {
         writeMutex.withLock {
-            deleteSpellForCharacter(
+            writeCoordinator.deleteSpellForCharacter(
                 characterId = characterId,
                 spellId = spellId,
                 updatedAt = System.currentTimeMillis()
@@ -165,7 +322,7 @@ class CharacterRepositoryImpl(
         manualArmorClass: Int?
     ) {
         writeMutex.withLock {
-            updateArmorClassSettingsForCharacter(
+            writeCoordinator.updateArmorClassSettingsForCharacter(
                 characterId = characterId,
                 baseArmorClass = baseArmorClass,
                 armorClassMode = armorClassMode,
@@ -177,7 +334,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun upsertAttack(characterId: Long, attack: Attack): Long =
         writeMutex.withLock {
-            upsertAttackForCharacter(
+            writeCoordinator.upsertAttackForCharacter(
                 characterId = characterId,
                 attack = attack.toEntity(characterId),
                 updatedAt = System.currentTimeMillis()
@@ -186,7 +343,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun deleteAttack(characterId: Long, attackId: Long) {
         writeMutex.withLock {
-            deleteAttackForCharacter(
+            writeCoordinator.deleteAttackForCharacter(
                 characterId = characterId,
                 attackId = attackId,
                 updatedAt = System.currentTimeMillis()
@@ -196,7 +353,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun upsertCombatResource(characterId: Long, resource: CombatResource): Long =
         writeMutex.withLock {
-            upsertCombatResourceForCharacter(
+            writeCoordinator.upsertCombatResourceForCharacter(
                 characterId = characterId,
                 resource = resource.toEntity(characterId),
                 updatedAt = System.currentTimeMillis()
@@ -205,7 +362,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun deleteCombatResource(characterId: Long, resourceId: Long) {
         writeMutex.withLock {
-            deleteCombatResourceForCharacter(
+            writeCoordinator.deleteCombatResourceForCharacter(
                 characterId = characterId,
                 resourceId = resourceId,
                 updatedAt = System.currentTimeMillis()
@@ -215,7 +372,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun updateCombatResourceUses(characterId: Long, resourceId: Long, delta: Int) {
         writeMutex.withLock {
-            updateCombatResourceUsesForCharacter(
+            writeCoordinator.updateCombatResourceUsesForCharacter(
                 characterId = characterId,
                 resourceId = resourceId,
                 delta = delta,
@@ -226,7 +383,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun upsertFeature(characterId: Long, feature: Feature): Long =
         writeMutex.withLock {
-            upsertFeatureForCharacter(
+            writeCoordinator.upsertFeatureForCharacter(
                 characterId = characterId,
                 feature = feature.toEntity(characterId),
                 updatedAt = System.currentTimeMillis()
@@ -235,7 +392,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun deleteFeature(characterId: Long, featureId: Long) {
         writeMutex.withLock {
-            deleteFeatureForCharacter(
+            writeCoordinator.deleteFeatureForCharacter(
                 characterId = characterId,
                 featureId = featureId,
                 updatedAt = System.currentTimeMillis()
@@ -245,7 +402,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun upsertNote(characterId: Long, note: Note): Long =
         writeMutex.withLock {
-            upsertNoteForCharacter(
+            writeCoordinator.upsertNoteForCharacter(
                 characterId = characterId,
                 note = note.toEntity(characterId),
                 updatedAt = System.currentTimeMillis()
@@ -254,7 +411,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun deleteNote(characterId: Long, noteId: Long) {
         writeMutex.withLock {
-            deleteNoteForCharacter(
+            writeCoordinator.deleteNoteForCharacter(
                 characterId = characterId,
                 noteId = noteId,
                 updatedAt = System.currentTimeMillis()
@@ -264,7 +421,7 @@ class CharacterRepositoryImpl(
 
     override suspend fun upsertSkill(characterId: Long, skill: Skill) {
         writeMutex.withLock {
-            upsertSkillForCharacter(
+            writeCoordinator.upsertSkillForCharacter(
                 characterId = characterId,
                 skill = skill.toEntity(characterId),
                 updatedAt = System.currentTimeMillis()
@@ -277,261 +434,4 @@ class CharacterRepositoryImpl(
             characterDao.deleteCharacter(characterId)
         }
     }
-
-    private suspend fun replaceCharacterBundle(
-        character: com.dndcharacterhandler.data.local.entity.CharacterEntity,
-        skills: List<com.dndcharacterhandler.data.local.entity.SkillEntity>,
-        attacks: List<com.dndcharacterhandler.data.local.entity.AttackEntity>,
-        combatResources: List<com.dndcharacterhandler.data.local.entity.CombatResourceEntity>,
-        inventoryItems: List<InventoryItemEntity>,
-        spells: List<com.dndcharacterhandler.data.local.entity.SpellEntity>,
-        features: List<com.dndcharacterhandler.data.local.entity.FeatureEntity>,
-        notes: List<com.dndcharacterhandler.data.local.entity.NoteEntity>
-    ): Long = database.withTransaction {
-        val savedId = characterDao.insertCharacter(character)
-        val characterId = if (character.id == 0L) savedId else character.id
-
-        characterDao.deleteSkillsForCharacter(characterId)
-        characterDao.deleteAttacksForCharacter(characterId)
-        characterDao.deleteCombatResourcesForCharacter(characterId)
-        characterDao.deleteInventoryItemsForCharacter(characterId)
-        characterDao.deleteSpellsForCharacter(characterId)
-        characterDao.deleteFeaturesForCharacter(characterId)
-        characterDao.deleteNotesForCharacter(characterId)
-
-        characterDao.insertSkills(skills.map { it.copy(characterOwnerId = characterId) })
-        characterDao.insertAttacks(attacks.map { it.copy(characterOwnerId = characterId) })
-        characterDao.insertCombatResources(combatResources.map { it.copy(characterOwnerId = characterId) })
-        characterDao.insertInventoryItems(inventoryItems.map { it.copy(characterOwnerId = characterId) })
-        characterDao.insertSpells(spells.map { it.copy(characterOwnerId = characterId) })
-        characterDao.insertFeatures(features.map { it.copy(characterOwnerId = characterId) })
-        characterDao.insertNotes(notes.map { it.copy(characterOwnerId = characterId) })
-
-        characterId
-    }
-
-    private suspend fun upsertInventoryItemForCharacter(characterId: Long, item: InventoryItemEntity, updatedAt: Long): Long =
-        database.withTransaction {
-            val savedId = characterDao.upsertInventoryItem(item.copy(characterOwnerId = characterId))
-            refreshInventoryDerivedCharacterState(characterId, updatedAt)
-            savedId
-        }
-
-    private suspend fun deleteInventoryItemForCharacter(characterId: Long, itemId: Long, updatedAt: Long) {
-        database.withTransaction {
-            characterDao.deleteInventoryItemById(itemId)
-            refreshInventoryDerivedCharacterState(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun toggleInventoryItemEquippedForCharacter(characterId: Long, itemId: Long, updatedAt: Long) {
-        database.withTransaction {
-            val targetItem = characterDao.getInventoryItemById(itemId) ?: return@withTransaction
-            if (targetItem.characterOwnerId != characterId) return@withTransaction
-
-            val shouldEquip = !targetItem.isEquipped
-            val targetArmorType = targetItem.armorType
-            val items = characterDao.getInventoryItemsForCharacter(characterId)
-
-            items.forEach { currentItem ->
-                val nextEquipped = when {
-                    currentItem.id == itemId -> shouldEquip
-                    !shouldEquip -> currentItem.isEquipped
-                    targetArmorType == InventoryArmorType.SHIELD && currentItem.armorType == InventoryArmorType.SHIELD -> false
-                    targetArmorType != null && targetArmorType != InventoryArmorType.SHIELD &&
-                        currentItem.armorType != null && currentItem.armorType != InventoryArmorType.SHIELD -> false
-                    else -> currentItem.isEquipped
-                }
-
-                if (nextEquipped != currentItem.isEquipped) {
-                    characterDao.updateInventoryItemEquipped(currentItem.id, nextEquipped)
-                }
-            }
-
-            refreshInventoryDerivedCharacterState(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun refreshInventoryDerivedCharacterState(characterId: Long, updatedAt: Long) {
-        val character = characterDao.getCharacterEntity(characterId) ?: return
-        if (character.armorClassMode == ArmorClassMode.AUTOMATIC) {
-            val armorClass = calculateArmorClassForEntities(
-                baseArmorClass = character.baseArmorClass,
-                dexterityScore = character.dexterity,
-                inventoryItems = characterDao.getInventoryItemsForCharacter(characterId)
-            )
-            characterDao.updateArmorClass(characterId, armorClass, updatedAt)
-        } else {
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun upsertSpellForCharacter(
-        characterId: Long,
-        spell: com.dndcharacterhandler.data.local.entity.SpellEntity,
-        updatedAt: Long
-    ): Long = database.withTransaction {
-        val savedId = characterDao.upsertSpellEntity(spell.copy(characterOwnerId = characterId))
-        characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        savedId
-    }
-
-    private suspend fun deleteSpellForCharacter(characterId: Long, spellId: Long, updatedAt: Long) {
-        database.withTransaction {
-            characterDao.deleteSpellById(spellId)
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun updateArmorClassSettingsForCharacter(
-        characterId: Long,
-        baseArmorClass: Int,
-        armorClassMode: ArmorClassMode,
-        manualArmorClass: Int?,
-        updatedAt: Long
-    ) {
-        database.withTransaction {
-            val character = characterDao.getCharacterEntity(characterId) ?: return@withTransaction
-            val sanitizedBaseArmorClass = baseArmorClass.coerceAtLeast(1)
-            val sanitizedArmorClass = when (armorClassMode) {
-                ArmorClassMode.AUTOMATIC -> calculateArmorClassForEntities(
-                    baseArmorClass = sanitizedBaseArmorClass,
-                    dexterityScore = character.dexterity,
-                    inventoryItems = characterDao.getInventoryItemsForCharacter(characterId)
-                )
-                ArmorClassMode.MANUAL -> manualArmorClass?.coerceAtLeast(1) ?: character.armorClass
-            }
-            characterDao.updateArmorClassSettings(
-                characterId = characterId,
-                armorClass = sanitizedArmorClass,
-                baseArmorClass = sanitizedBaseArmorClass,
-                armorClassMode = armorClassMode,
-                updatedAt = updatedAt
-            )
-        }
-    }
-
-    private suspend fun upsertAttackForCharacter(
-        characterId: Long,
-        attack: com.dndcharacterhandler.data.local.entity.AttackEntity,
-        updatedAt: Long
-    ): Long = database.withTransaction {
-        val savedId = characterDao.upsertAttackEntity(attack.copy(characterOwnerId = characterId))
-        characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        savedId
-    }
-
-    private suspend fun deleteAttackForCharacter(characterId: Long, attackId: Long, updatedAt: Long) {
-        database.withTransaction {
-            characterDao.deleteAttackById(attackId)
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun upsertCombatResourceForCharacter(
-        characterId: Long,
-        resource: com.dndcharacterhandler.data.local.entity.CombatResourceEntity,
-        updatedAt: Long
-    ): Long = database.withTransaction {
-        val savedId = characterDao.upsertCombatResourceEntity(resource.copy(characterOwnerId = characterId))
-        characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        savedId
-    }
-
-    private suspend fun deleteCombatResourceForCharacter(characterId: Long, resourceId: Long, updatedAt: Long) {
-        database.withTransaction {
-            characterDao.deleteCombatResourceById(resourceId)
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun updateCombatResourceUsesForCharacter(characterId: Long, resourceId: Long, delta: Int, updatedAt: Long) {
-        database.withTransaction {
-            val current = characterDao.getCombatResourceById(resourceId) ?: return@withTransaction
-            if (current.characterOwnerId != characterId) return@withTransaction
-            val nextUses = (current.currentUses + delta).coerceIn(0, current.maximumUses.coerceAtLeast(0))
-            characterDao.updateCombatResourceCurrentUses(resourceId, nextUses)
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun upsertFeatureForCharacter(
-        characterId: Long,
-        feature: com.dndcharacterhandler.data.local.entity.FeatureEntity,
-        updatedAt: Long
-    ): Long = database.withTransaction {
-        val savedId = characterDao.upsertFeatureEntity(feature.copy(characterOwnerId = characterId))
-        characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        savedId
-    }
-
-    private suspend fun deleteFeatureForCharacter(characterId: Long, featureId: Long, updatedAt: Long) {
-        database.withTransaction {
-            characterDao.deleteFeatureById(featureId)
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun upsertNoteForCharacter(
-        characterId: Long,
-        note: com.dndcharacterhandler.data.local.entity.NoteEntity,
-        updatedAt: Long
-    ): Long = database.withTransaction {
-        val savedId = characterDao.upsertNoteEntity(note.copy(characterOwnerId = characterId))
-        characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        savedId
-    }
-
-    private suspend fun deleteNoteForCharacter(characterId: Long, noteId: Long, updatedAt: Long) {
-        database.withTransaction {
-            characterDao.deleteNoteById(noteId)
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-
-    private suspend fun upsertSkillForCharacter(
-        characterId: Long,
-        skill: com.dndcharacterhandler.data.local.entity.SkillEntity,
-        updatedAt: Long
-    ) {
-        database.withTransaction {
-            val existing = characterDao.getSkillForCharacter(characterId, skill.name)
-            characterDao.upsertSkillEntity(
-                skill.copy(
-                    id = existing?.id ?: skill.id,
-                    characterOwnerId = characterId
-                )
-            )
-            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
-        }
-    }
-}
-
-private fun calculateArmorClassForEntities(
-    baseArmorClass: Int,
-    dexterityScore: Int,
-    inventoryItems: List<InventoryItemEntity>
-): Int {
-    val dexterityModifier = Math.floorDiv(dexterityScore - 10, 2)
-    val equippedArmor = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorType != null && it.armorType != InventoryArmorType.SHIELD
-    }
-    val equippedShield = inventoryItems.firstOrNull {
-        it.isEquipped && it.armorType == InventoryArmorType.SHIELD
-    }
-
-    val effectiveArmorClass = if (equippedArmor != null) {
-        val armorClass = equippedArmor.armorClass ?: baseArmorClass
-        armorClass + equippedArmor.appliedDexterityModifier(dexterityModifier)
-    } else {
-        baseArmorClass + dexterityModifier
-    }
-
-    val shieldBonus = equippedShield?.armorClass ?: 0
-    return (effectiveArmorClass + shieldBonus).coerceAtLeast(1)
-}
-
-private fun InventoryItemEntity.appliedDexterityModifier(dexterityModifier: Int): Int {
-    if (appliesDexterityBonus != true) return 0
-    return maxDexterityBonus?.let { dexterityModifier.coerceAtMost(it) } ?: dexterityModifier
 }

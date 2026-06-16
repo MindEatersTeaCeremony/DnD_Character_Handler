@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import androidx.room.Update
 import com.dndcharacterhandler.data.local.entity.AttackEntity
 import com.dndcharacterhandler.data.local.entity.CharacterEntity
 import com.dndcharacterhandler.data.local.entity.CharacterWithDetails
@@ -39,8 +38,254 @@ interface CharacterDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharacter(character: CharacterEntity): Long
 
-    @Update
-    suspend fun updateCharacterEntity(character: CharacterEntity)
+    @Query(
+        """
+        UPDATE characters
+        SET name = :name,
+            race = :race,
+            characterClass = :characterClass,
+            level = :level,
+            spentHitDice = :spentHitDice,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateIdentity(
+        characterId: Long,
+        name: String,
+        race: String,
+        characterClass: String,
+        level: Int,
+        spentHitDice: Int,
+        updatedAt: Long
+    )
+
+    @Query(
+        """
+        UPDATE characters
+        SET experience = :experience,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateExperience(characterId: Long, experience: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET portraitUri = :portraitUri,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updatePortrait(characterId: Long, portraitUri: String?, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET currentHp = :currentHp,
+            temporaryHp = :temporaryHp,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateHitPoints(characterId: Long, currentHp: Int, temporaryHp: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET currentHp = :currentHp,
+            maxHp = :maxHp,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateMaxHitPoints(characterId: Long, currentHp: Int, maxHp: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET initiative = :initiative,
+            initiativeBonus = :initiativeBonus,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateInitiative(characterId: Long, initiative: Int, initiativeBonus: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET speed = :speed,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateSpeed(characterId: Long, speed: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET hitDieSides = :hitDieSides,
+            spentHitDice = :spentHitDice,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateHitDice(characterId: Long, hitDieSides: Int, spentHitDice: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET hasInspiration = :hasInspiration,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateInspiration(characterId: Long, hasInspiration: Boolean, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET passivePerceptionBonus = :bonus,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updatePassivePerceptionBonus(characterId: Long, bonus: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET strength = :value,
+            strengthSaveProficient = :saveProficient,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateStrength(characterId: Long, value: Int, saveProficient: Boolean, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET dexterity = :value,
+            dexteritySaveProficient = :saveProficient,
+            armorClass = COALESCE(:armorClass, armorClass),
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateDexterity(
+        characterId: Long,
+        value: Int,
+        saveProficient: Boolean,
+        armorClass: Int?,
+        updatedAt: Long
+    )
+
+    @Query(
+        """
+        UPDATE characters
+        SET constitution = :value,
+            constitutionSaveProficient = :saveProficient,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateConstitution(characterId: Long, value: Int, saveProficient: Boolean, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET intelligence = :value,
+            intelligenceSaveProficient = :saveProficient,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateIntelligence(characterId: Long, value: Int, saveProficient: Boolean, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET wisdom = :value,
+            wisdomSaveProficient = :saveProficient,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateWisdom(characterId: Long, value: Int, saveProficient: Boolean, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET charisma = :value,
+            charismaSaveProficient = :saveProficient,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateCharisma(characterId: Long, value: Int, saveProficient: Boolean, updatedAt: Long)
+
+    @Query("UPDATE characters SET armorProficiencies = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateArmorProficiencies(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET weaponProficiencies = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateWeaponProficiencies(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET toolProficiencies = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateToolProficiencies(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET languageProficiencies = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateLanguageProficiencies(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET alignment = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateAlignment(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET background = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateBackground(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET faith = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateFaith(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET homeland = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateHomeland(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET personalityTraits = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updatePersonalityTraits(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET ideals = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateIdeals(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET bonds = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateBonds(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET flaws = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateFlaws(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET age = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateAge(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET gender = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateGender(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET height = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateHeight(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET weight = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateWeight(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET eyes = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateEyes(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET hair = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateHair(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET skin = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateSkin(characterId: Long, value: String, updatedAt: Long)
+
+    @Query("UPDATE characters SET biography = :value, updatedAt = :updatedAt WHERE id = :characterId")
+    suspend fun updateBiography(characterId: Long, value: String, updatedAt: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSkills(skills: List<SkillEntity>)
@@ -93,17 +338,20 @@ interface CharacterDao {
     @Query("DELETE FROM attacks WHERE characterOwnerId = :characterId")
     suspend fun deleteAttacksForCharacter(characterId: Long)
 
-    @Query("DELETE FROM attacks WHERE id = :attackId")
-    suspend fun deleteAttackById(attackId: Long)
+    @Query("SELECT * FROM attacks WHERE id = :attackId AND characterOwnerId = :characterId LIMIT 1")
+    suspend fun getAttackById(characterId: Long, attackId: Long): AttackEntity?
+
+    @Query("DELETE FROM attacks WHERE id = :attackId AND characterOwnerId = :characterId")
+    suspend fun deleteAttackById(characterId: Long, attackId: Long)
 
     @Query("DELETE FROM combat_resources WHERE characterOwnerId = :characterId")
     suspend fun deleteCombatResourcesForCharacter(characterId: Long)
 
-    @Query("DELETE FROM combat_resources WHERE id = :resourceId")
-    suspend fun deleteCombatResourceById(resourceId: Long)
+    @Query("DELETE FROM combat_resources WHERE id = :resourceId AND characterOwnerId = :characterId")
+    suspend fun deleteCombatResourceById(characterId: Long, resourceId: Long)
 
-    @Query("SELECT * FROM combat_resources WHERE id = :resourceId LIMIT 1")
-    suspend fun getCombatResourceById(resourceId: Long): CombatResourceEntity?
+    @Query("SELECT * FROM combat_resources WHERE id = :resourceId AND characterOwnerId = :characterId LIMIT 1")
+    suspend fun getCombatResourceById(characterId: Long, resourceId: Long): CombatResourceEntity?
 
     @Query("DELETE FROM inventory_items WHERE characterOwnerId = :characterId")
     suspend fun deleteInventoryItemsForCharacter(characterId: Long)
@@ -111,14 +359,14 @@ interface CharacterDao {
     @Query("SELECT * FROM inventory_items WHERE characterOwnerId = :characterId")
     suspend fun getInventoryItemsForCharacter(characterId: Long): List<InventoryItemEntity>
 
-    @Query("SELECT * FROM inventory_items WHERE id = :itemId LIMIT 1")
-    suspend fun getInventoryItemById(itemId: Long): InventoryItemEntity?
+    @Query("SELECT * FROM inventory_items WHERE id = :itemId AND characterOwnerId = :characterId LIMIT 1")
+    suspend fun getInventoryItemById(characterId: Long, itemId: Long): InventoryItemEntity?
 
-    @Query("DELETE FROM inventory_items WHERE id = :itemId")
-    suspend fun deleteInventoryItemById(itemId: Long)
+    @Query("DELETE FROM inventory_items WHERE id = :itemId AND characterOwnerId = :characterId")
+    suspend fun deleteInventoryItemById(characterId: Long, itemId: Long)
 
-    @Query("UPDATE inventory_items SET isEquipped = :isEquipped WHERE id = :itemId")
-    suspend fun updateInventoryItemEquipped(itemId: Long, isEquipped: Boolean)
+    @Query("UPDATE inventory_items SET isEquipped = :isEquipped WHERE id = :itemId AND characterOwnerId = :characterId")
+    suspend fun updateInventoryItemEquipped(characterId: Long, itemId: Long, isEquipped: Boolean)
 
     @Query(
         """
@@ -181,8 +429,11 @@ interface CharacterDao {
     @Query("DELETE FROM spells WHERE characterOwnerId = :characterId")
     suspend fun deleteSpellsForCharacter(characterId: Long)
 
-    @Query("DELETE FROM spells WHERE id = :spellId")
-    suspend fun deleteSpellById(spellId: Long)
+    @Query("SELECT * FROM spells WHERE id = :spellId AND characterOwnerId = :characterId LIMIT 1")
+    suspend fun getSpellById(characterId: Long, spellId: Long): SpellEntity?
+
+    @Query("DELETE FROM spells WHERE id = :spellId AND characterOwnerId = :characterId")
+    suspend fun deleteSpellById(characterId: Long, spellId: Long)
 
     @Query(
         """
@@ -227,14 +478,20 @@ interface CharacterDao {
     @Query("DELETE FROM features WHERE characterOwnerId = :characterId")
     suspend fun deleteFeaturesForCharacter(characterId: Long)
 
-    @Query("DELETE FROM features WHERE id = :featureId")
-    suspend fun deleteFeatureById(featureId: Long)
+    @Query("SELECT * FROM features WHERE id = :featureId AND characterOwnerId = :characterId LIMIT 1")
+    suspend fun getFeatureById(characterId: Long, featureId: Long): FeatureEntity?
+
+    @Query("DELETE FROM features WHERE id = :featureId AND characterOwnerId = :characterId")
+    suspend fun deleteFeatureById(characterId: Long, featureId: Long)
 
     @Query("DELETE FROM notes WHERE characterOwnerId = :characterId")
     suspend fun deleteNotesForCharacter(characterId: Long)
 
-    @Query("DELETE FROM notes WHERE id = :noteId")
-    suspend fun deleteNoteById(noteId: Long)
+    @Query("SELECT * FROM notes WHERE id = :noteId AND characterOwnerId = :characterId LIMIT 1")
+    suspend fun getNoteById(characterId: Long, noteId: Long): NoteEntity?
+
+    @Query("DELETE FROM notes WHERE id = :noteId AND characterOwnerId = :characterId")
+    suspend fun deleteNoteById(characterId: Long, noteId: Long)
 
     @Query("DELETE FROM characters WHERE id = :characterId")
     suspend fun deleteCharacter(characterId: Long)

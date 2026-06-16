@@ -1,0 +1,291 @@
+package com.dndcharacterhandler.data.repository
+
+import androidx.room.withTransaction
+import com.dndcharacterhandler.data.local.AppDatabase
+import com.dndcharacterhandler.data.local.dao.CharacterDao
+import com.dndcharacterhandler.data.local.entity.AttackEntity
+import com.dndcharacterhandler.data.local.entity.CharacterEntity
+import com.dndcharacterhandler.data.local.entity.CombatResourceEntity
+import com.dndcharacterhandler.data.local.entity.FeatureEntity
+import com.dndcharacterhandler.data.local.entity.InventoryItemEntity
+import com.dndcharacterhandler.data.local.entity.NoteEntity
+import com.dndcharacterhandler.data.local.entity.SkillEntity
+import com.dndcharacterhandler.data.local.entity.SpellEntity
+import com.dndcharacterhandler.domain.model.ArmorClassMode
+import com.dndcharacterhandler.domain.model.InventoryArmorType
+import com.dndcharacterhandler.domain.rules.calculateArmorClass
+
+class CharacterWriteCoordinator(
+    private val database: AppDatabase,
+    private val characterDao: CharacterDao
+) {
+    suspend fun replaceCharacterBundle(
+        character: CharacterEntity,
+        skills: List<SkillEntity>,
+        attacks: List<AttackEntity>,
+        combatResources: List<CombatResourceEntity>,
+        inventoryItems: List<InventoryItemEntity>,
+        spells: List<SpellEntity>,
+        features: List<FeatureEntity>,
+        notes: List<NoteEntity>
+    ): Long = database.withTransaction {
+        val savedId = characterDao.insertCharacter(character)
+        val characterId = if (character.id == 0L) savedId else character.id
+
+        characterDao.deleteSkillsForCharacter(characterId)
+        characterDao.deleteAttacksForCharacter(characterId)
+        characterDao.deleteCombatResourcesForCharacter(characterId)
+        characterDao.deleteInventoryItemsForCharacter(characterId)
+        characterDao.deleteSpellsForCharacter(characterId)
+        characterDao.deleteFeaturesForCharacter(characterId)
+        characterDao.deleteNotesForCharacter(characterId)
+
+        characterDao.insertSkills(skills.map { it.copy(characterOwnerId = characterId) })
+        characterDao.insertAttacks(attacks.map { it.copy(characterOwnerId = characterId) })
+        characterDao.insertCombatResources(combatResources.map { it.copy(characterOwnerId = characterId) })
+        characterDao.insertInventoryItems(inventoryItems.map { it.copy(characterOwnerId = characterId) })
+        characterDao.insertSpells(spells.map { it.copy(characterOwnerId = characterId) })
+        characterDao.insertFeatures(features.map { it.copy(characterOwnerId = characterId) })
+        characterDao.insertNotes(notes.map { it.copy(characterOwnerId = characterId) })
+
+        characterId
+    }
+
+    suspend fun upsertInventoryItemForCharacter(characterId: Long, item: InventoryItemEntity, updatedAt: Long): Long =
+        database.withTransaction {
+            val safeItem = if (item.id == 0L) {
+                item.copy(characterOwnerId = characterId)
+            } else {
+                val existing = characterDao.getInventoryItemById(characterId, item.id)
+                if (existing != null) {
+                    item.copy(characterOwnerId = characterId)
+                } else {
+                    item.copy(id = 0L, characterOwnerId = characterId)
+                }
+            }
+            val savedId = characterDao.upsertInventoryItem(safeItem)
+            refreshInventoryDerivedCharacterState(characterId, updatedAt)
+            savedId
+        }
+
+    suspend fun deleteInventoryItemForCharacter(characterId: Long, itemId: Long, updatedAt: Long) {
+        database.withTransaction {
+            characterDao.deleteInventoryItemById(characterId, itemId)
+            refreshInventoryDerivedCharacterState(characterId, updatedAt)
+        }
+    }
+
+    suspend fun toggleInventoryItemEquippedForCharacter(characterId: Long, itemId: Long, updatedAt: Long) {
+        database.withTransaction {
+            val targetItem = characterDao.getInventoryItemById(characterId, itemId) ?: return@withTransaction
+
+            val shouldEquip = !targetItem.isEquipped
+            val targetArmorType = targetItem.armorType
+            val items = characterDao.getInventoryItemsForCharacter(characterId)
+
+            items.forEach { currentItem ->
+                val nextEquipped = when {
+                    currentItem.id == itemId -> shouldEquip
+                    !shouldEquip -> currentItem.isEquipped
+                    targetArmorType == InventoryArmorType.SHIELD && currentItem.armorType == InventoryArmorType.SHIELD -> false
+                    targetArmorType != null && targetArmorType != InventoryArmorType.SHIELD &&
+                        currentItem.armorType != null && currentItem.armorType != InventoryArmorType.SHIELD -> false
+                    else -> currentItem.isEquipped
+                }
+
+                if (nextEquipped != currentItem.isEquipped) {
+                    characterDao.updateInventoryItemEquipped(characterId, currentItem.id, nextEquipped)
+                }
+            }
+
+            refreshInventoryDerivedCharacterState(characterId, updatedAt)
+        }
+    }
+
+    suspend fun upsertSpellForCharacter(characterId: Long, spell: SpellEntity, updatedAt: Long): Long =
+        database.withTransaction {
+            val safeSpell = if (spell.id == 0L) {
+                spell.copy(characterOwnerId = characterId)
+            } else {
+                val existing = characterDao.getSpellById(characterId, spell.id)
+                if (existing != null) {
+                    spell.copy(characterOwnerId = characterId)
+                } else {
+                    spell.copy(id = 0L, characterOwnerId = characterId)
+                }
+            }
+            val savedId = characterDao.upsertSpellEntity(safeSpell)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+            savedId
+        }
+
+    suspend fun deleteSpellForCharacter(characterId: Long, spellId: Long, updatedAt: Long) {
+        database.withTransaction {
+            characterDao.deleteSpellById(characterId, spellId)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    suspend fun updateArmorClassSettingsForCharacter(
+        characterId: Long,
+        baseArmorClass: Int,
+        armorClassMode: ArmorClassMode,
+        manualArmorClass: Int?,
+        updatedAt: Long
+    ) {
+        database.withTransaction {
+            val character = characterDao.getCharacterEntity(characterId) ?: return@withTransaction
+            val sanitizedBaseArmorClass = baseArmorClass.coerceAtLeast(1)
+            val sanitizedArmorClass = when (armorClassMode) {
+                ArmorClassMode.AUTOMATIC -> calculateArmorClass(
+                    baseArmorClass = sanitizedBaseArmorClass,
+                    dexterityScore = character.dexterity,
+                    inventoryItems = characterDao.getInventoryItemsForCharacter(characterId).map(InventoryItemEntity::toDomain)
+                )
+                ArmorClassMode.MANUAL -> manualArmorClass?.coerceAtLeast(1) ?: character.armorClass
+            }
+            characterDao.updateArmorClassSettings(
+                characterId = characterId,
+                armorClass = sanitizedArmorClass,
+                baseArmorClass = sanitizedBaseArmorClass,
+                armorClassMode = armorClassMode,
+                updatedAt = updatedAt
+            )
+        }
+    }
+
+    suspend fun upsertAttackForCharacter(characterId: Long, attack: AttackEntity, updatedAt: Long): Long =
+        database.withTransaction {
+            val safeAttack = if (attack.id == 0L) {
+                attack.copy(characterOwnerId = characterId)
+            } else {
+                val existing = characterDao.getAttackById(characterId, attack.id)
+                if (existing != null) {
+                    attack.copy(characterOwnerId = characterId)
+                } else {
+                    attack.copy(id = 0L, characterOwnerId = characterId)
+                }
+            }
+            val savedId = characterDao.upsertAttackEntity(safeAttack)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+            savedId
+        }
+
+    suspend fun deleteAttackForCharacter(characterId: Long, attackId: Long, updatedAt: Long) {
+        database.withTransaction {
+            characterDao.deleteAttackById(characterId, attackId)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    suspend fun upsertCombatResourceForCharacter(
+        characterId: Long,
+        resource: CombatResourceEntity,
+        updatedAt: Long
+    ): Long = database.withTransaction {
+        val safeResource = if (resource.id == 0L) {
+            resource.copy(characterOwnerId = characterId)
+        } else {
+            val existing = characterDao.getCombatResourceById(characterId, resource.id)
+            if (existing != null) {
+                resource.copy(characterOwnerId = characterId)
+            } else {
+                resource.copy(id = 0L, characterOwnerId = characterId)
+            }
+        }
+        val savedId = characterDao.upsertCombatResourceEntity(safeResource)
+        characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        savedId
+    }
+
+    suspend fun deleteCombatResourceForCharacter(characterId: Long, resourceId: Long, updatedAt: Long) {
+        database.withTransaction {
+            characterDao.deleteCombatResourceById(characterId, resourceId)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    suspend fun updateCombatResourceUsesForCharacter(characterId: Long, resourceId: Long, delta: Int, updatedAt: Long) {
+        database.withTransaction {
+            val current = characterDao.getCombatResourceById(characterId, resourceId) ?: return@withTransaction
+            val nextUses = (current.currentUses + delta).coerceIn(0, current.maximumUses.coerceAtLeast(0))
+            characterDao.updateCombatResourceCurrentUses(resourceId, nextUses)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    suspend fun upsertFeatureForCharacter(characterId: Long, feature: FeatureEntity, updatedAt: Long): Long =
+        database.withTransaction {
+            val safeFeature = if (feature.id == 0L) {
+                feature.copy(characterOwnerId = characterId)
+            } else {
+                val existing = characterDao.getFeatureById(characterId, feature.id)
+                if (existing != null) {
+                    feature.copy(characterOwnerId = characterId)
+                } else {
+                    feature.copy(id = 0L, characterOwnerId = characterId)
+                }
+            }
+            val savedId = characterDao.upsertFeatureEntity(safeFeature)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+            savedId
+        }
+
+    suspend fun deleteFeatureForCharacter(characterId: Long, featureId: Long, updatedAt: Long) {
+        database.withTransaction {
+            characterDao.deleteFeatureById(characterId, featureId)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    suspend fun upsertNoteForCharacter(characterId: Long, note: NoteEntity, updatedAt: Long): Long =
+        database.withTransaction {
+            val safeNote = if (note.id == 0L) {
+                note.copy(characterOwnerId = characterId)
+            } else {
+                val existing = characterDao.getNoteById(characterId, note.id)
+                if (existing != null) {
+                    note.copy(characterOwnerId = characterId)
+                } else {
+                    note.copy(id = 0L, characterOwnerId = characterId)
+                }
+            }
+            val savedId = characterDao.upsertNoteEntity(safeNote)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+            savedId
+        }
+
+    suspend fun deleteNoteForCharacter(characterId: Long, noteId: Long, updatedAt: Long) {
+        database.withTransaction {
+            characterDao.deleteNoteById(characterId, noteId)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    suspend fun upsertSkillForCharacter(characterId: Long, skill: SkillEntity, updatedAt: Long) {
+        database.withTransaction {
+            val existing = characterDao.getSkillForCharacter(characterId, skill.name)
+            characterDao.upsertSkillEntity(
+                skill.copy(
+                    id = existing?.id ?: skill.id,
+                    characterOwnerId = characterId
+                )
+            )
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    private suspend fun refreshInventoryDerivedCharacterState(characterId: Long, updatedAt: Long) {
+        val character = characterDao.getCharacterEntity(characterId) ?: return
+        if (character.armorClassMode == ArmorClassMode.AUTOMATIC) {
+            val armorClass = calculateArmorClass(
+                baseArmorClass = character.baseArmorClass,
+                dexterityScore = character.dexterity,
+                inventoryItems = characterDao.getInventoryItemsForCharacter(characterId).map(InventoryItemEntity::toDomain)
+            )
+            characterDao.updateArmorClass(characterId, armorClass, updatedAt)
+        } else {
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+}

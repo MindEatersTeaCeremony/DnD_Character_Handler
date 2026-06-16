@@ -52,9 +52,20 @@ class CharacterManagerViewModel(
                         val id = characterRepository.createCharacter(defaultCharacterBundle())
                         selectedCharacterHolder.setSelectedCharacterId(id)
                         _uiState.value = _uiState.value.copy(selectedCharacterId = id)
+                    } else {
+                        selectedCharacterHolder.setSelectedCharacterId(null)
+                        _uiState.value = _uiState.value.copy(
+                            characters = emptyList(),
+                            selectedCharacterId = null
+                        )
                     }
                 } else {
-                    val selected = _uiState.value.selectedCharacterId ?: characters.first().character.id
+                    val currentSelectedId = _uiState.value.selectedCharacterId
+                    val selected = characters
+                        .firstOrNull { it.character.id == currentSelectedId }
+                        ?.character
+                        ?.id
+                        ?: characters.first().character.id
                     selectedCharacterHolder.setSelectedCharacterId(selected)
                     _uiState.value = _uiState.value.copy(
                         characters = characters,

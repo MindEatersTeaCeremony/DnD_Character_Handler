@@ -60,7 +60,9 @@ import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.CharacterProficiencyField
 import com.dndcharacterhandler.domain.model.Skill
+import com.dndcharacterhandler.domain.model.SpellcastingAbility
 import com.dndcharacterhandler.domain.rules.abilityModifier
 import com.dndcharacterhandler.domain.rules.calculateArmorClass
 import com.dndcharacterhandler.domain.rules.proficiencyBonusForLevel
@@ -100,19 +102,21 @@ class AttributesViewModel(
         if (updated == current) return
 
         viewModelScope.launch {
-            val updatedCharacter = if (ability == AbilityType.DEXTERITY && current.armorClassMode == ArmorClassMode.AUTOMATIC) {
-                updated.copy(
-                    armorClass = calculateArmorClass(
-                        baseArmorClass = current.baseArmorClass,
-                        dexterityScore = sanitizedValue,
-                        inventoryItems = characterBundle.inventoryItems
-                    )
+            val armorClass = if (ability == AbilityType.DEXTERITY && current.armorClassMode == ArmorClassMode.AUTOMATIC) {
+                calculateArmorClass(
+                    baseArmorClass = current.baseArmorClass,
+                    dexterityScore = sanitizedValue,
+                    inventoryItems = characterBundle.inventoryItems
                 )
             } else {
-                updated
+                null
             }
-            characterRepository.updateCharacterDetails(
-                updatedCharacter
+            characterRepository.updateAbilityScore(
+                characterId = current.id,
+                ability = ability.toSpellcastingAbility(),
+                value = sanitizedValue,
+                saveProficient = saveProficient,
+                armorClass = armorClass
             )
         }
     }
@@ -122,47 +126,43 @@ class AttributesViewModel(
         if (bonus == current.passivePerceptionBonus) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    passivePerceptionBonus = bonus
-                )
-            )
+            characterRepository.updatePassivePerceptionBonus(current.id, bonus)
         }
     }
 
     fun updateArmorProficiencies(characterBundle: CharacterBundle, selectedIds: Set<String>) {
         updateCharacterProficiencyString(
             characterBundle = characterBundle,
+            field = CharacterProficiencyField.ARMOR,
             currentValue = characterBundle.character.armorProficiencies,
-            nextValue = encodeProficiencyIds(selectedIds),
-            applyValue = { it.copy(armorProficiencies = encodeProficiencyIds(selectedIds)) }
+            nextValue = encodeProficiencyIds(selectedIds)
         )
     }
 
     fun updateWeaponProficiencies(characterBundle: CharacterBundle, selectedIds: Set<String>) {
         updateCharacterProficiencyString(
             characterBundle = characterBundle,
+            field = CharacterProficiencyField.WEAPON,
             currentValue = characterBundle.character.weaponProficiencies,
-            nextValue = encodeProficiencyIds(selectedIds),
-            applyValue = { it.copy(weaponProficiencies = encodeProficiencyIds(selectedIds)) }
+            nextValue = encodeProficiencyIds(selectedIds)
         )
     }
 
     fun updateToolProficiencies(characterBundle: CharacterBundle, selectedIds: Set<String>) {
         updateCharacterProficiencyString(
             characterBundle = characterBundle,
+            field = CharacterProficiencyField.TOOL,
             currentValue = characterBundle.character.toolProficiencies,
-            nextValue = encodeProficiencyIds(selectedIds),
-            applyValue = { it.copy(toolProficiencies = encodeProficiencyIds(selectedIds)) }
+            nextValue = encodeProficiencyIds(selectedIds)
         )
     }
 
     fun updateLanguageProficiencies(characterBundle: CharacterBundle, selectedIds: Set<String>) {
         updateCharacterProficiencyString(
             characterBundle = characterBundle,
+            field = CharacterProficiencyField.LANGUAGE,
             currentValue = characterBundle.character.languageProficiencies,
-            nextValue = encodeProficiencyIds(selectedIds),
-            applyValue = { it.copy(languageProficiencies = encodeProficiencyIds(selectedIds)) }
+            nextValue = encodeProficiencyIds(selectedIds)
         )
     }
 
@@ -210,19 +210,31 @@ class AttributesViewModel(
 
     private fun updateCharacterProficiencyString(
         characterBundle: CharacterBundle,
+        field: CharacterProficiencyField,
         currentValue: String,
-        nextValue: String,
-        applyValue: (Character) -> Character
+        nextValue: String
     ) {
         if (nextValue == currentValue) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                applyValue(characterBundle.character)
+            characterRepository.updateProficiencyField(
+                characterId = characterBundle.character.id,
+                field = field,
+                value = nextValue
             )
         }
     }
 }
+
+private fun AbilityType.toSpellcastingAbility(): SpellcastingAbility =
+    when (this) {
+        AbilityType.STRENGTH -> SpellcastingAbility.STRENGTH
+        AbilityType.DEXTERITY -> SpellcastingAbility.DEXTERITY
+        AbilityType.CONSTITUTION -> SpellcastingAbility.CONSTITUTION
+        AbilityType.INTELLIGENCE -> SpellcastingAbility.INTELLIGENCE
+        AbilityType.WISDOM -> SpellcastingAbility.WISDOM
+        AbilityType.CHARISMA -> SpellcastingAbility.CHARISMA
+    }
 
 @Composable
 fun AttributesScreen(

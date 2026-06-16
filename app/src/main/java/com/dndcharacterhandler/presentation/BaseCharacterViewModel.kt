@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,9 +23,13 @@ abstract class BaseCharacterViewModel(
 
     init {
         viewModelScope.launch {
-            selectedCharacterHolder.selectedCharacterId.filterNotNull().collectLatest { characterId ->
-                getCharacterBundleUseCase(characterId).collectLatest { character ->
-                    _uiState.value = CharacterSectionUiState(character = character)
+            selectedCharacterHolder.selectedCharacterId.collectLatest { characterId ->
+                if (characterId == null) {
+                    _uiState.value = CharacterSectionUiState(character = null)
+                } else {
+                    getCharacterBundleUseCase(characterId).collectLatest { character ->
+                        _uiState.value = CharacterSectionUiState(character = character)
+                    }
                 }
             }
         }

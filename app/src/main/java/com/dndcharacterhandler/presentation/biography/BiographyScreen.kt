@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.CharacterTextField
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
@@ -72,9 +73,12 @@ class BiographyViewModel(
 ) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
     fun updateBiography(characterBundle: CharacterBundle, value: String) {
         val current = characterBundle.character
+        if (current.biography == value) return
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(biography = value)
+            characterRepository.updateTextField(
+                characterId = current.id,
+                field = CharacterTextField.BIOGRAPHY,
+                value = value
             )
         }
     }
@@ -102,12 +106,33 @@ class BiographyViewModel(
         if (updated == current) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                updated
+            characterRepository.updateTextField(
+                characterId = current.id,
+                field = field.toCharacterTextField(),
+                value = sanitized
             )
         }
     }
 }
+
+private fun BiographyField.toCharacterTextField(): CharacterTextField =
+    when (this) {
+        BiographyField.ALIGNMENT -> CharacterTextField.ALIGNMENT
+        BiographyField.BACKGROUND -> CharacterTextField.BACKGROUND
+        BiographyField.FAITH -> CharacterTextField.FAITH
+        BiographyField.HOMELAND -> CharacterTextField.HOMELAND
+        BiographyField.PERSONALITY_TRAITS -> CharacterTextField.PERSONALITY_TRAITS
+        BiographyField.IDEALS -> CharacterTextField.IDEALS
+        BiographyField.BONDS -> CharacterTextField.BONDS
+        BiographyField.FLAWS -> CharacterTextField.FLAWS
+        BiographyField.AGE -> CharacterTextField.AGE
+        BiographyField.GENDER -> CharacterTextField.GENDER
+        BiographyField.HEIGHT -> CharacterTextField.HEIGHT
+        BiographyField.WEIGHT -> CharacterTextField.WEIGHT
+        BiographyField.EYES -> CharacterTextField.EYES
+        BiographyField.HAIR -> CharacterTextField.HAIR
+        BiographyField.SKIN -> CharacterTextField.SKIN
+    }
 
 @Composable
 fun BiographyScreen(

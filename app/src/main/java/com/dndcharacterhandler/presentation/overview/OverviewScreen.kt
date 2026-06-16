@@ -129,14 +129,12 @@ class OverviewViewModel(
                 return@launch
             }
 
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    name = newName,
-                    race = newRace,
-                    characterClass = newClass,
-                    level = newLevel,
-                    spentHitDice = current.spentHitDice.coerceAtMost(newLevel)
-                )
+            characterRepository.updateIdentity(
+                characterId = current.id,
+                name = newName,
+                race = newRace,
+                characterClass = newClass,
+                level = newLevel
             )
         }
     }
@@ -146,11 +144,7 @@ class OverviewViewModel(
         if (sanitized == characterBundle.character.experience) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                characterBundle.character.copy(
-                    experience = sanitized
-                )
-            )
+            characterRepository.updateExperience(characterBundle.character.id, sanitized)
         }
     }
 
@@ -160,11 +154,7 @@ class OverviewViewModel(
         if (sanitized == current.portraitUri) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    portraitUri = sanitized
-                )
-            )
+            characterRepository.updatePortrait(current.id, sanitized)
         }
     }
 
@@ -200,11 +190,10 @@ class OverviewViewModel(
         if (sanitized == current.maxHp) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    currentHp = current.currentHp.coerceAtMost(sanitized),
-                    maxHp = sanitized
-                )
+            characterRepository.updateMaxHitPoints(
+                characterId = current.id,
+                currentHp = current.currentHp.coerceAtMost(sanitized),
+                maxHp = sanitized
             )
         }
     }
@@ -253,10 +242,11 @@ class OverviewViewModel(
         if (recalculatedArmorClass == current.armorClass) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    armorClass = recalculatedArmorClass
-                )
+            characterRepository.updateArmorClassSettings(
+                characterId = current.id,
+                baseArmorClass = current.baseArmorClass,
+                armorClassMode = current.armorClassMode,
+                manualArmorClass = recalculatedArmorClass
             )
         }
     }
@@ -267,11 +257,10 @@ class OverviewViewModel(
         if (initiativeBonus == current.initiativeBonus && recalculatedInitiative == current.initiative) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    initiative = recalculatedInitiative,
-                    initiativeBonus = initiativeBonus
-                )
+            characterRepository.updateInitiative(
+                characterId = current.id,
+                initiative = recalculatedInitiative,
+                initiativeBonus = initiativeBonus
             )
         }
     }
@@ -282,11 +271,7 @@ class OverviewViewModel(
         if (sanitized == current.speed) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    speed = sanitized
-                )
-            )
+            characterRepository.updateSpeed(current.id, sanitized)
         }
     }
 
@@ -296,10 +281,10 @@ class OverviewViewModel(
         if (sanitized == current.hitDieSides) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    hitDieSides = sanitized
-                )
+            characterRepository.updateHitDice(
+                characterId = current.id,
+                hitDieSides = sanitized,
+                spentHitDice = current.spentHitDice
             )
         }
     }
@@ -312,10 +297,10 @@ class OverviewViewModel(
         if (spent == 0) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    spentHitDice = (current.spentHitDice + spent).coerceAtMost(level)
-                )
+            characterRepository.updateHitDice(
+                characterId = current.id,
+                hitDieSides = current.hitDieSides,
+                spentHitDice = (current.spentHitDice + spent).coerceAtMost(level)
             )
         }
     }
@@ -323,23 +308,22 @@ class OverviewViewModel(
     fun toggleInspiration(characterBundle: CharacterBundle) {
         val current = characterBundle.character
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    hasInspiration = !current.hasInspiration
-                )
-            )
+            characterRepository.updateInspiration(current.id, !current.hasInspiration)
         }
     }
 
     fun longRest(characterBundle: CharacterBundle) {
         val current = characterBundle.character
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    currentHp = current.maxHp,
-                    temporaryHp = 0,
-                    spentHitDice = 0
-                )
+            characterRepository.updateHitPoints(
+                characterId = current.id,
+                currentHp = current.maxHp,
+                temporaryHp = 0
+            )
+            characterRepository.updateHitDice(
+                characterId = current.id,
+                hitDieSides = current.hitDieSides,
+                spentHitDice = 0
             )
         }
     }
@@ -353,12 +337,7 @@ class OverviewViewModel(
         if (currentHp == current.currentHp && temporaryHp == current.temporaryHp) return
 
         viewModelScope.launch {
-            characterRepository.updateCharacterDetails(
-                current.copy(
-                    currentHp = currentHp,
-                    temporaryHp = temporaryHp
-                )
-            )
+            characterRepository.updateHitPoints(current.id, currentHp, temporaryHp)
         }
     }
 }
