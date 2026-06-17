@@ -206,7 +206,7 @@ fun archiveManifestToCharacterBundle(
     manifest: JSONObject,
     resolveAssetReference: (String?) -> String?
 ): ImportedArchive {
-    val schemaVersion = manifest.getInt("schemaVersion")
+    val schemaVersion = manifest.optInt("schemaVersion", SCHEMA_VERSION)
     require(schemaVersion in 1..SCHEMA_VERSION) {
         "Unsupported character archive schema version."
     }
@@ -229,9 +229,7 @@ fun archiveManifestToCharacterBundle(
         armorClass = characterJson.optInt("armorClass"),
         baseArmorClass = characterJson.optInt("baseArmorClass", 10).coerceAtLeast(1),
         armorClassMode = characterJson.optString("armorClassMode")
-            .takeIf { it.isNotBlank() }
-            ?.let(ArmorClassMode::valueOf)
-            ?: ArmorClassMode.AUTOMATIC,
+            .toEnumOrDefault(ArmorClassMode.AUTOMATIC),
         copperPieces = characterJson.optInt("copperPieces").coerceAtLeast(0),
         silverPieces = characterJson.optInt("silverPieces").coerceAtLeast(0),
         goldPieces = characterJson.optInt("goldPieces").coerceAtLeast(0),
@@ -288,13 +286,13 @@ fun archiveManifestToCharacterBundle(
         characterName = character.name,
         characterBundle = CharacterBundle(
             character = character,
-            skills = manifest.getJSONArray("skills").toSkillList(),
-            attacks = manifest.getJSONArray("attacks").toAttackList(resolveAssetReference),
-            combatResources = manifest.getJSONArray("combatResources").toCombatResourceList(),
-            inventoryItems = manifest.getJSONArray("inventoryItems").toInventoryItemList(resolveAssetReference),
-            spells = manifest.getJSONArray("spells").toSpellList(),
-            features = manifest.getJSONArray("features").toFeatureList(),
-            notes = manifest.getJSONArray("notes").toNoteList()
+            skills = manifest.optJSONArray("skills")?.toSkillList().orEmpty(),
+            attacks = manifest.optJSONArray("attacks")?.toAttackList(resolveAssetReference).orEmpty(),
+            combatResources = manifest.optJSONArray("combatResources")?.toCombatResourceList().orEmpty(),
+            inventoryItems = manifest.optJSONArray("inventoryItems")?.toInventoryItemList(resolveAssetReference).orEmpty(),
+            spells = manifest.optJSONArray("spells")?.toSpellList().orEmpty(),
+            features = manifest.optJSONArray("features")?.toFeatureList().orEmpty(),
+            notes = manifest.optJSONArray("notes")?.toNoteList().orEmpty()
         )
     )
 }
@@ -363,7 +361,7 @@ private fun JSONArray.toInventoryItemList(resolveAssetReference: (String?) -> St
                 description = json.optString("description"),
                 isMagical = json.optBoolean("isMagical", false),
                 magicalBonus = json.optInt("magicalBonus", 1),
-                category = InventoryCategory.valueOf(json.optString("category")),
+                category = json.optString("category").toEnumOrDefault(InventoryCategory.OTHER),
                 weight = json.optDouble("weight"),
                 quantity = json.optInt("quantity"),
                 isEquipped = json.optBoolean("isEquipped"),
@@ -388,7 +386,7 @@ private fun InventoryArmorDetails.toJson(): JSONObject =
 
 private fun JSONObject.toArmorDetails(): InventoryArmorDetails =
     InventoryArmorDetails(
-        armorType = InventoryArmorType.valueOf(optString("armorType")),
+        armorType = optString("armorType").toEnumOrDefault(InventoryArmorType.LIGHT),
         armorClass = optInt("armorClass"),
         appliesDexterityBonus = optBoolean("appliesDexterityBonus"),
         maxDexterityBonus = optNullableInt("maxDexterityBonus"),
@@ -420,8 +418,8 @@ private fun InventoryWeaponDetails.toJson(): JSONObject =
 
 private fun JSONObject.toWeaponDetails(): InventoryWeaponDetails =
     InventoryWeaponDetails(
-        weaponClass = InventoryWeaponClass.valueOf(optString("weaponClass")),
-        rangeType = InventoryWeaponRangeType.valueOf(optString("rangeType")),
+        weaponClass = optString("weaponClass").toEnumOrDefault(InventoryWeaponClass.SIMPLE),
+        rangeType = optString("rangeType").toEnumOrDefault(InventoryWeaponRangeType.MELEE),
         baseWeaponId = optNullableString("baseWeaponId"),
         normalRange = optNullableInt("normalRange"),
         longRange = optNullableInt("longRange"),
@@ -430,7 +428,9 @@ private fun JSONObject.toWeaponDetails(): InventoryWeaponDetails =
         properties = optJSONArray("properties")
             ?.let { array ->
                 (0 until array.length()).mapNotNull { index ->
-                    array.optString(index).takeIf { it.isNotBlank() }?.let(InventoryWeaponProperty::valueOf)
+                    array.optString(index)
+                        .takeIf { it.isNotBlank() }
+                        ?.let { runCatching { InventoryWeaponProperty.valueOf(it) }.getOrNull() }
                 }.toSet()
             }
             ?: emptySet()
@@ -514,6 +514,11 @@ private fun JSONObject.optNullableInt(key: String): Int? {
 private fun Int.coerceInHitDieSides(): Int {
     return if (this in listOf(6, 8, 10, 12)) this else 8
 }
+
+private inline fun <reified T : Enum<T>> String.toEnumOrDefault(default: T): T =
+    takeIf { it.isNotBlank() }
+        ?.let { runCatching { enumValueOf<T>(it) }.getOrDefault(default) }
+        ?: default
 
 fun resolveImportedAssetReference(rawValue: String?, extractedAssets: Map<String, File>): String? {
     if (rawValue.isNullOrBlank()) return null
