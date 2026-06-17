@@ -14,7 +14,7 @@ class LanguagePreferencesRepository(private val context: Context) {
     private val key = stringPreferencesKey("app_language")
 
     val language: Flow<AppLanguage> = context.dataStore.data.map { preferences ->
-        preferences[key]?.let(AppLanguage::valueOf) ?: AppLanguage.ENGLISH
+        preferences[key]?.let { runCatching { AppLanguage.valueOf(it) }.getOrNull() } ?: AppLanguage.ENGLISH
     }
 
     suspend fun setLanguage(language: AppLanguage) {

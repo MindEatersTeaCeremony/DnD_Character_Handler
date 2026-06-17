@@ -101,7 +101,7 @@ private data class BaseWeaponOption(
 private data class WeaponDamageEditorState(
     val diceCount: String,
     val dieType: String,
-    val damageTypes: Set<String>
+    val damageType: String
 )
 
 private val CompactEditorFieldHeight = 46.dp
@@ -1080,10 +1080,10 @@ private fun InventoryItemEditDialog(
     var weaponLongRange by remember(inventoryItem) { mutableStateOf(inventoryItem.weaponDetails?.longRange?.toString().orEmpty()) }
     var primaryDamageCount by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.diceCount) }
     var primaryDamageDieType by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.dieType) }
-    var primaryDamageTypes by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.damageTypes) }
+    var primaryDamageType by remember(inventoryItem) { mutableStateOf(initialPrimaryDamage.damageType) }
     var alternateDamageCount by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.diceCount) }
     var alternateDamageDieType by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.dieType) }
-    var alternateDamageTypes by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.damageTypes) }
+    var alternateDamageType by remember(inventoryItem) { mutableStateOf(initialAlternateDamage.damageType) }
     var weaponProperties by remember(inventoryItem) {
         mutableStateOf(inventoryItem.weaponDetails?.properties ?: emptySet())
     }
@@ -1276,8 +1276,8 @@ private fun InventoryItemEditDialog(
                             onDiceCountChange = { primaryDamageCount = it.filter(Char::isDigit) },
                             dieType = primaryDamageDieType,
                             onDieTypeChange = { primaryDamageDieType = it },
-                            damageTypes = primaryDamageTypes,
-                            onDamageTypesChange = { primaryDamageTypes = it }
+                            damageType = primaryDamageType,
+                            onDamageTypeChange = { primaryDamageType = it }
                         )
                     }
                     if (hasAlternateDamage) {
@@ -1288,8 +1288,8 @@ private fun InventoryItemEditDialog(
                                 onDiceCountChange = { alternateDamageCount = it.filter(Char::isDigit) },
                                 dieType = alternateDamageDieType,
                                 onDieTypeChange = { alternateDamageDieType = it },
-                                damageTypes = alternateDamageTypes,
-                                onDamageTypesChange = { alternateDamageTypes = it }
+                                damageType = alternateDamageType,
+                                onDamageTypeChange = { alternateDamageType = it }
                             )
                         }
                         item {
@@ -1298,7 +1298,7 @@ private fun InventoryItemEditDialog(
                                     hasAlternateDamage = false
                                     alternateDamageCount = "1"
                                     alternateDamageDieType = "d4"
-                                    alternateDamageTypes = setOf(defaultDamageType())
+                                    alternateDamageType = defaultDamageType()
                                 }
                             ) {
                                 Text(text("inventory_remove_alternate_damage"))
@@ -1313,8 +1313,8 @@ private fun InventoryItemEditDialog(
                                     if (alternateDamageDieType.isBlank()) {
                                         alternateDamageDieType = "d4"
                                     }
-                                    if (alternateDamageTypes.isEmpty()) {
-                                        alternateDamageTypes = setOf(defaultDamageType())
+                                    if (alternateDamageType.isBlank()) {
+                                        alternateDamageType = defaultDamageType()
                                     }
                                 }
                             ) {
@@ -1363,13 +1363,13 @@ private fun InventoryItemEditDialog(
                     val primaryDamage = WeaponDamageEditorState(
                         diceCount = primaryDamageCount,
                         dieType = primaryDamageDieType,
-                        damageTypes = primaryDamageTypes
-                    ).toWeaponDamages()
+                        damageType = primaryDamageType
+                    ).toWeaponDamage()
                     val alternateDamage = WeaponDamageEditorState(
                         diceCount = alternateDamageCount,
                         dieType = alternateDamageDieType,
-                        damageTypes = alternateDamageTypes
-                    ).toWeaponDamages().firstOrNull()
+                        damageType = alternateDamageType
+                    ).toWeaponDamage()
 
                     val updatedArmorDetails = if (inventoryItem.armorDetails != null) {
                         InventoryArmorDetails(
@@ -1391,7 +1391,7 @@ private fun InventoryItemEditDialog(
                             baseWeaponId = baseWeaponId.ifBlank { null },
                             normalRange = weaponNormalRange.toIntOrNull(),
                             longRange = weaponLongRange.toIntOrNull(),
-                            damages = primaryDamage,
+                            damages = listOfNotNull(primaryDamage),
                             twoHandedDamage = if (hasAlternateDamage) alternateDamage else null,
                             properties = weaponProperties
                         )
@@ -1554,13 +1554,12 @@ private fun WeaponDamageEditor(
     onDiceCountChange: (String) -> Unit,
     dieType: String,
     onDieTypeChange: (String) -> Unit,
-    damageTypes: Set<String>,
-    onDamageTypesChange: (Set<String>) -> Unit
+    damageType: String,
+    onDamageTypeChange: (String) -> Unit
 ) {
     val strings = LocalStrings.current
     var isDieTypeDialogOpen by remember { mutableStateOf(false) }
     var isDamageTypeDialogOpen by remember { mutableStateOf(false) }
-    val displayedDamageTypes = damageTypeOptions().filter { it in damageTypes }.map { strings[damageTypeLocalizationKey(it)] }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         InventoryDialogSection(title)
@@ -1583,9 +1582,10 @@ private fun WeaponDamageEditor(
                 onClick = { isDieTypeDialogOpen = true }
             )
         }
-        DamageTypeTagField(
+        CompactSelectionField(
+            modifier = Modifier.fillMaxWidth(),
             label = text("inventory_field_damage_type"),
-            damageTypes = displayedDamageTypes,
+            value = strings[damageTypeLocalizationKey(damageType)],
             onClick = { isDamageTypeDialogOpen = true }
         )
     }
@@ -1605,16 +1605,15 @@ private fun WeaponDamageEditor(
     }
 
     if (isDamageTypeDialogOpen) {
-        MultiSelectionDialog(
+        SelectionDialog(
             title = text("inventory_field_damage_type"),
             options = damageTypeOptions(),
-            selected = damageTypes,
+            selected = damageType,
             labelForOption = { strings[damageTypeLocalizationKey(it)] },
             onDismiss = { isDamageTypeDialogOpen = false },
-            onToggle = { option ->
-                val current = damageTypes
-                val updated = if (option in current) current - option else current + option
-                onDamageTypesChange(updated)
+            onSelect = {
+                onDamageTypeChange(it)
+                isDamageTypeDialogOpen = false
             }
         )
     }
@@ -1900,52 +1899,6 @@ private fun StepperButton(
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFFF7F2EA)
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DamageTypeTagField(
-    label: String,
-    damageTypes: List<String>,
-    onClick: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFFD2CAC2)
-        )
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            if (damageTypes.isEmpty()) {
-                Text(
-                    text = text("inventory_damage_type_placeholder"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFAAA29A)
-                )
-            } else {
-                damageTypes.forEach { type ->
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = Color(0x22FFF6EA),
-                        border = BorderStroke(1.dp, Color(0x30FFFFFF))
-                    ) {
-                        Text(
-                            text = type,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFFE6DED3)
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -2252,27 +2205,22 @@ private fun InventoryWeaponDetails?.toWeaponKindOption(): WeaponKindOption =
         rangeType = this?.rangeType ?: InventoryWeaponRangeType.MELEE
     )
 
-private fun InventoryWeaponDetails?.toPrimaryDamageEditorState(): WeaponDamageEditorState {
-    val damages = this?.damages.orEmpty()
-    val base = damages.firstOrNull().toEditorState()
-    return base.copy(
-        damageTypes = damages.map { it.damageType.ifBlank { defaultDamageType() } }.toSet()
-            .ifEmpty { setOf(defaultDamageType()) }
-    )
-}
+private fun InventoryWeaponDetails?.toPrimaryDamageEditorState(): WeaponDamageEditorState =
+    this?.damages?.firstOrNull().toEditorState()
 
 private fun InventoryWeaponDamage?.toEditorState(): WeaponDamageEditorState {
     if (this == null) {
-        return WeaponDamageEditorState("1", "d4", setOf(defaultDamageType()))
+        return WeaponDamageEditorState("1", "d4", defaultDamageType())
     }
 
+    val resolvedDamageType = damageType.ifBlank { defaultDamageType() }
     val normalized = dice.replace(" ", "")
     val pureBonus = normalized.toIntOrNull()
     if (pureBonus != null) {
         return WeaponDamageEditorState(
             diceCount = "1",
             dieType = "d4",
-            damageTypes = setOf(damageType.ifBlank { defaultDamageType() })
+            damageType = resolvedDamageType
         )
     }
 
@@ -2281,28 +2229,22 @@ private fun InventoryWeaponDamage?.toEditorState(): WeaponDamageEditorState {
         WeaponDamageEditorState(
             diceCount = match.groupValues[1],
             dieType = "d${match.groupValues[2]}",
-            damageTypes = setOf(damageType.ifBlank { defaultDamageType() })
+            damageType = resolvedDamageType
         )
     } else {
         WeaponDamageEditorState(
             diceCount = "1",
             dieType = "d4",
-            damageTypes = setOf(damageType.ifBlank { defaultDamageType() })
+            damageType = resolvedDamageType
         )
     }
 }
 
-private fun WeaponDamageEditorState.toWeaponDamages(): List<InventoryWeaponDamage> {
-    val sanitizedCount = diceCount.toIntOrNull()?.takeIf { it > 0 }
-    val diceValue = when {
-        sanitizedCount != null -> "${sanitizedCount}${dieType.lowercase()}"
-        else -> ""
-    }
-    if (diceValue.isBlank()) return emptyList()
-    val selectedTypes = damageTypeOptions().filter { it in damageTypes }.ifEmpty { listOf(damageTypeOptions().first()) }
-    return selectedTypes.map { type ->
-        InventoryWeaponDamage(dice = diceValue, damageType = type)
-    }
+private fun WeaponDamageEditorState.toWeaponDamage(): InventoryWeaponDamage? {
+    val sanitizedCount = diceCount.toIntOrNull()?.takeIf { it > 0 } ?: return null
+    val diceValue = "${sanitizedCount}${dieType.lowercase()}"
+    val resolvedType = damageType.takeIf { it in damageTypeOptions() } ?: damageTypeOptions().first()
+    return InventoryWeaponDamage(dice = diceValue, damageType = resolvedType)
 }
 
 private fun weaponDieTypeOptions(): List<String> = listOf("d4", "d6", "d8", "d10", "d12")

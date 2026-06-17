@@ -16,7 +16,7 @@ class RoomConverters {
 
     @TypeConverter
     fun toArmorClassMode(value: String): ArmorClassMode =
-        ArmorClassMode.valueOf(value)
+        runCatching { ArmorClassMode.valueOf(value) }.getOrDefault(ArmorClassMode.AUTOMATIC)
 
     @TypeConverter
     fun fromAttackCalculationMode(value: AttackCalculationMode): String = value.name
@@ -30,28 +30,28 @@ class RoomConverters {
 
     @TypeConverter
     fun toInventoryCategory(value: String): InventoryCategory =
-        InventoryCategory.valueOf(value)
+        runCatching { InventoryCategory.valueOf(value) }.getOrDefault(InventoryCategory.OTHER)
 
     @TypeConverter
     fun fromInventoryArmorType(value: InventoryArmorType?): String? = value?.name
 
     @TypeConverter
     fun toInventoryArmorType(value: String?): InventoryArmorType? =
-        value?.let(InventoryArmorType::valueOf)
+        value?.let { runCatching { InventoryArmorType.valueOf(it) }.getOrNull() }
 
     @TypeConverter
     fun fromInventoryWeaponClass(value: InventoryWeaponClass?): String? = value?.name
 
     @TypeConverter
     fun toInventoryWeaponClass(value: String?): InventoryWeaponClass? =
-        value?.let(InventoryWeaponClass::valueOf)
+        value?.let { runCatching { InventoryWeaponClass.valueOf(it) }.getOrNull() }
 
     @TypeConverter
     fun fromInventoryWeaponRangeType(value: InventoryWeaponRangeType?): String? = value?.name
 
     @TypeConverter
     fun toInventoryWeaponRangeType(value: String?): InventoryWeaponRangeType? =
-        value?.let(InventoryWeaponRangeType::valueOf)
+        value?.let { runCatching { InventoryWeaponRangeType.valueOf(it) }.getOrNull() }
 
     @TypeConverter
     fun fromFeatureSource(value: FeatureSource): String = value.name

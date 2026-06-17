@@ -209,7 +209,8 @@ fun InventoryItemEntity.toDomain(): InventoryItem =
                     .orEmpty()
                     .split(',')
                     .mapNotNull { value ->
-                        value.takeIf { it.isNotBlank() }?.let(InventoryWeaponProperty::valueOf)
+                        value.takeIf { it.isNotBlank() }
+                            ?.let { runCatching { InventoryWeaponProperty.valueOf(it) }.getOrNull() }
                     }
                     .toSet()
             )
