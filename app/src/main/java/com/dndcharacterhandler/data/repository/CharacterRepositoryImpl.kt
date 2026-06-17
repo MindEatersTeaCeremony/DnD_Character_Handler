@@ -19,10 +19,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.File
 
 class CharacterRepositoryImpl(
     private val database: AppDatabase,
-    private val characterDao: CharacterDao
+    private val characterDao: CharacterDao,
+    private val filesDir: File
 ) : CharacterRepository {
     private val writeMutex = Mutex()
     private val writeCoordinator = CharacterWriteCoordinator(
@@ -40,7 +42,7 @@ class CharacterRepositoryImpl(
         return replaceCharacterBundle(character.copy(character = character.character.copy(id = 0)))
     }
 
-    private suspend fun replaceCharacterBundle(character: CharacterBundle): Long =
+    override suspend fun replaceCharacterBundle(character: CharacterBundle): Long =
         writeMutex.withLock {
             val characterEntity = character.character.toEntity()
             writeCoordinator.replaceCharacterBundle(
@@ -432,6 +434,7 @@ class CharacterRepositoryImpl(
     override suspend fun deleteCharacter(characterId: Long) {
         writeMutex.withLock {
             characterDao.deleteCharacter(characterId)
+            CharacterAssetStorage.deleteCharacterAssets(filesDir, characterId)
         }
     }
 }

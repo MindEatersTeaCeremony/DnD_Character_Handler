@@ -35,6 +35,9 @@ interface CharacterDao {
     @Query("SELECT * FROM characters WHERE id = :characterId LIMIT 1")
     suspend fun getCharacterEntity(characterId: Long): CharacterEntity?
 
+    @Query("SELECT id FROM characters")
+    suspend fun getAllCharacterIds(): List<Long>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharacter(character: CharacterEntity): Long
 

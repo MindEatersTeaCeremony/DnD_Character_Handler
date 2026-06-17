@@ -6,7 +6,9 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
 import com.dndcharacterhandler.data.local.dao.CharacterDao
+import com.dndcharacterhandler.domain.model.Attack
 import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.repository.CharacterFileRepository
 import com.dndcharacterhandler.domain.repository.CharacterRepository
 import org.json.JSONObject
@@ -38,12 +40,94 @@ class CharacterFileRepositoryImpl(
 
     override suspend fun importCharacter(sourceUri: String): Result<Long> {
         return runCatching {
-            val importedArchive = readCharacterArchive(Uri.parse(sourceUri))
-            characterRepository.createCharacter(
-                importedArchive.characterBundle.copy(
-                    character = importedArchive.characterBundle.character.copy(id = 0)
+            val stagingDir = CharacterAssetStorage
+                .importStagingDir(context.filesDir, UUID.randomUUID().toString())
+                .apply { mkdirs() }
+            try {
+                val importedArchive = readCharacterArchive(Uri.parse(sourceUri), stagingDir)
+                val characterId = characterRepository.createCharacter(
+                    importedArchive.characterBundle.copy(
+                        character = importedArchive.characterBundle.character.copy(id = 0)
+                    )
                 )
-            )
+                val relocatedBundle = relocateImportedAssets(
+                    characterId = characterId,
+                    bundle = importedArchive.characterBundle,
+                    stagingDir = stagingDir
+                )
+                characterRepository.replaceCharacterBundle(
+                    relocatedBundle.copy(character = relocatedBundle.character.copy(id = characterId))
+                )
+                characterId
+            } finally {
+                stagingDir.deleteRecursively()
+            }
+        }
+    }
+
+    override suspend fun purgeOrphanedAssets() {
+        runCatching {
+            val validIds = characterDao.getAllCharacterIds().toSet()
+            CharacterAssetStorage.purgeOrphanedAssets(context.filesDir, validIds)
+        }
+    }
+
+    /**
+     * Moves every asset extracted into [stagingDir] (portrait, attack and inventory icons) into the
+     * character's permanent directory and rewrites the bundle's references to point at the new files.
+     * After this returns, [stagingDir] can be safely deleted without breaking any reference.
+     */
+    private fun relocateImportedAssets(
+        characterId: Long,
+        bundle: CharacterBundle,
+        stagingDir: File
+    ): CharacterBundle {
+        val permanentDir = CharacterAssetStorage
+            .characterAssetsDir(context.filesDir, characterId)
+            .apply { mkdirs() }
+        val relocatedReferences = HashMap<String, String>()
+
+        fun relocate(reference: String?): String? {
+            if (reference.isNullOrBlank()) return reference
+            relocatedReferences[reference]?.let { return it }
+            val stagedFile = stagedFileForReference(reference, stagingDir) ?: return reference
+            val target = uniqueTargetFile(permanentDir, stagedFile.name)
+            val moved = stagedFile.renameTo(target) || runCatching {
+                stagedFile.copyTo(target, overwrite = true); true
+            }.getOrDefault(false)
+            val resolved = if (moved) target.absolutePath else reference
+            relocatedReferences[reference] = resolved
+            return resolved
+        }
+
+        return bundle.copy(
+            character = bundle.character.copy(portraitUri = relocate(bundle.character.portraitUri)),
+            attacks = bundle.attacks.map { attack: Attack -> attack.copy(icon = relocate(attack.icon).orEmpty()) },
+            inventoryItems = bundle.inventoryItems.map { item: InventoryItem ->
+                item.copy(icon = relocate(item.icon).orEmpty())
+            }
+        )
+    }
+
+    private fun stagedFileForReference(reference: String, stagingDir: File): File? {
+        val path = if (reference.startsWith("file://")) Uri.parse(reference).path else reference
+        val file = path?.let(::File) ?: return null
+        if (!file.exists()) return null
+        val stagingRoot = stagingDir.canonicalPath + File.separator
+        return file.takeIf { it.canonicalPath.startsWith(stagingRoot) }
+    }
+
+    private fun uniqueTargetFile(directory: File, preferredName: String): File {
+        val candidate = File(directory, preferredName)
+        if (!candidate.exists()) return candidate
+        val baseName = preferredName.substringBeforeLast('.', preferredName)
+        val extension = preferredName.substringAfterLast('.', "")
+        var suffix = 1
+        while (true) {
+            val name = if (extension.isBlank()) "${baseName}_$suffix" else "${baseName}_$suffix.$extension"
+            val next = File(directory, name)
+            if (!next.exists()) return next
+            suffix += 1
         }
     }
 
@@ -66,10 +150,7 @@ class CharacterFileRepositoryImpl(
         } ?: error("Unable to open export destination.")
     }
 
-    private fun readCharacterArchive(sourceUri: Uri): ImportedArchive {
-        val importDirectory = File(context.filesDir, "imported_assets/${UUID.randomUUID()}").apply {
-            mkdirs()
-        }
+    private fun readCharacterArchive(sourceUri: Uri, importDirectory: File): ImportedArchive {
         val extractedAssets = linkedMapOf<String, File>()
         var manifestJson: String? = null
 
@@ -83,13 +164,16 @@ class CharacterFileRepositoryImpl(
                         }
 
                         entry.name.startsWith("assets/") && !entry.isDirectory -> {
-                            val targetFile = File(importDirectory, entry.name.removePrefix("assets/")).apply {
-                                parentFile?.mkdirs()
+                            val targetFile = File(importDirectory, entry.name.removePrefix("assets/"))
+                            val withinStaging = targetFile.canonicalPath
+                                .startsWith(importDirectory.canonicalPath + File.separator)
+                            if (withinStaging) {
+                                targetFile.parentFile?.mkdirs()
+                                FileOutputStream(targetFile).use { output ->
+                                    zipInputStream.copyTo(output)
+                                }
+                                extractedAssets[entry.name] = targetFile
                             }
-                            FileOutputStream(targetFile).use { output ->
-                                zipInputStream.copyTo(output)
-                            }
-                            extractedAssets[entry.name] = targetFile
                         }
                     }
                     zipInputStream.closeEntry()

@@ -18,6 +18,7 @@ interface CharacterRepository {
     fun observeCharacters(): Flow<List<CharacterBundle>>
     fun observeCharacter(characterId: Long): Flow<CharacterBundle?>
     suspend fun createCharacter(character: CharacterBundle): Long
+    suspend fun replaceCharacterBundle(character: CharacterBundle): Long
     suspend fun updateIdentity(characterId: Long, name: String, race: String, characterClass: String, level: Int)
     suspend fun updateExperience(characterId: Long, experience: Int)
     suspend fun updatePortrait(characterId: Long, portraitUri: String?)

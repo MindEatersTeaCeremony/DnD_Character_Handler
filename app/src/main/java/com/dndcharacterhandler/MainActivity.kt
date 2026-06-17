@@ -3,20 +3,15 @@ package com.dndcharacterhandler
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.dndcharacterhandler.data.local.AppDatabase
-import com.dndcharacterhandler.data.localization.LocalizationRepository
-import com.dndcharacterhandler.data.preferences.LanguagePreferencesRepository
-import com.dndcharacterhandler.data.repository.AssetInventoryCatalogRepository
-import com.dndcharacterhandler.data.repository.AssetSpellCatalogRepository
-import com.dndcharacterhandler.data.repository.CharacterFileRepositoryImpl
-import com.dndcharacterhandler.data.repository.CharacterRepositoryImpl
-import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.dndcharacterhandler.presentation.DndCharacterApp
 import com.dndcharacterhandler.presentation.DndCharacterAppState
-import com.dndcharacterhandler.presentation.SelectedCharacterHolder
 import com.dndcharacterhandler.presentation.attributes.AttributesViewModel
 import com.dndcharacterhandler.presentation.biography.BiographyViewModel
 import com.dndcharacterhandler.presentation.combat.CombatViewModel
+import com.dndcharacterhandler.presentation.components.CharacterManagerViewModel
 import com.dndcharacterhandler.presentation.features.FeaturesViewModel
 import com.dndcharacterhandler.presentation.inventory.InventoryViewModel
 import com.dndcharacterhandler.presentation.notes.NotesViewModel
@@ -28,76 +23,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val database = AppDatabase.getInstance(applicationContext)
-        val characterRepository = CharacterRepositoryImpl(
-            database = database,
-            characterDao = database.characterDao()
-        )
-        val fileRepository = CharacterFileRepositoryImpl(
-            context = applicationContext,
-            characterDao = database.characterDao(),
-            characterRepository = characterRepository
-        )
-        val languagePreferencesRepository = LanguagePreferencesRepository(applicationContext)
-        val localizationRepository = LocalizationRepository(applicationContext)
-        val inventoryCatalogRepository = AssetInventoryCatalogRepository(applicationContext)
-        val spellCatalogRepository = AssetSpellCatalogRepository(applicationContext)
-        val getCharacterBundleUseCase = GetCharacterBundleUseCase(characterRepository)
-        val selectedCharacterHolder = SelectedCharacterHolder()
+        val container = (application as DndApplication).container
+        val viewModelProvider = ViewModelProvider(this, AppViewModelFactory(container))
+
+        lifecycleScope.launch {
+            container.fileRepository.purgeOrphanedAssets()
+        }
 
         setContent {
             DnDTheme {
                 DndCharacterApp(
                     appState = DndCharacterAppState(
-                        overviewViewModel = OverviewViewModel(
-                            characterRepository = characterRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        attributesViewModel = AttributesViewModel(
-                            characterRepository = characterRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        combatViewModel = CombatViewModel(
-                            characterRepository = characterRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        inventoryViewModel = InventoryViewModel(
-                            characterRepository = characterRepository,
-                            inventoryCatalogRepository = inventoryCatalogRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        spellsViewModel = SpellsViewModel(
-                            characterRepository = characterRepository,
-                            spellCatalogRepository = spellCatalogRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        featuresViewModel = FeaturesViewModel(
-                            characterRepository = characterRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        biographyViewModel = BiographyViewModel(
-                            characterRepository = characterRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        notesViewModel = NotesViewModel(
-                            characterRepository = characterRepository,
-                            getCharacterBundleUseCase = getCharacterBundleUseCase,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        characterManagerViewModel = com.dndcharacterhandler.presentation.components.CharacterManagerViewModel(
-                            characterRepository = characterRepository,
-                            fileRepository = fileRepository,
-                            languagePreferencesRepository = languagePreferencesRepository,
-                            selectedCharacterHolder = selectedCharacterHolder
-                        ),
-                        localizationRepository = localizationRepository
+                        overviewViewModel = viewModelProvider.get(OverviewViewModel::class.java),
+                        attributesViewModel = viewModelProvider.get(AttributesViewModel::class.java),
+                        combatViewModel = viewModelProvider.get(CombatViewModel::class.java),
+                        inventoryViewModel = viewModelProvider.get(InventoryViewModel::class.java),
+                        spellsViewModel = viewModelProvider.get(SpellsViewModel::class.java),
+                        featuresViewModel = viewModelProvider.get(FeaturesViewModel::class.java),
+                        biographyViewModel = viewModelProvider.get(BiographyViewModel::class.java),
+                        notesViewModel = viewModelProvider.get(NotesViewModel::class.java),
+                        characterManagerViewModel = viewModelProvider.get(CharacterManagerViewModel::class.java),
+                        localizationRepository = container.localizationRepository
                     )
                 )
             }
