@@ -46,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -123,6 +124,13 @@ class SpellsViewModel(
             components = spell.components.trim(),
             material = spell.material.trim(),
             availableClasses = spell.availableClasses.trim(),
+            attackType = spell.attackType.trim(),
+            damageType = spell.damageType.trim(),
+            damage = spell.damage.trim(),
+            saveAbility = spell.saveAbility.trim(),
+            saveEffect = spell.saveEffect.trim(),
+            areaOfEffect = spell.areaOfEffect.trim(),
+            healing = spell.healing.trim(),
             isPrepared = if (spell.level == 0) true else spell.isPrepared
         )
         viewModelScope.launch {
@@ -832,15 +840,63 @@ private fun SpellEditDialog(
     var isPrepared by remember(spell) { mutableStateOf(if (spell.level == 0) true else spell.isPrepared) }
     var description by remember(spell) { mutableStateOf(spell.description) }
     var higherLevelDescription by remember(spell) { mutableStateOf(spell.higherLevelDescription) }
-    var range by remember(spell) { mutableStateOf(spell.range) }
-    var castingTime by remember(spell) { mutableStateOf(spell.castingTime) }
-    var duration by remember(spell) { mutableStateOf(spell.duration) }
-    var components by remember(spell) { mutableStateOf(spell.components) }
+    var rangeKind by remember(spell) { mutableStateOf(parseRangeKind(spell.range)) }
+    var rangeFeet by remember(spell) { mutableStateOf(parseRangeFeet(spell.range)) }
+    var rangeSpecial by remember(spell) {
+        mutableStateOf(if (parseRangeKind(spell.range) == SpellRangeKind.SPECIAL) spell.range else "")
+    }
+    var castingKind by remember(spell) { mutableStateOf(parseCastingKind(spell.castingTime)) }
+    var castingAmount by remember(spell) { mutableStateOf(parseCastingAmount(spell.castingTime)) }
+    var durationKind by remember(spell) { mutableStateOf(parseDurationKind(spell.duration)) }
+    var durationAmount by remember(spell) { mutableStateOf(parseDurationAmount(spell.duration)) }
+    var hasVerbalComponent by remember(spell) { mutableStateOf(spell.components.hasComponentLetter("V")) }
+    var hasSomaticComponent by remember(spell) { mutableStateOf(spell.components.hasComponentLetter("S")) }
+    var hasMaterialComponent by remember(spell) {
+        mutableStateOf(spell.components.hasComponentLetter("M") || spell.material.isNotBlank())
+    }
     var material by remember(spell) { mutableStateOf(spell.material) }
+    var materialCost by remember(spell) { mutableStateOf(spell.materialCost) }
     var isRitual by remember(spell) { mutableStateOf(spell.isRitual) }
     var requiresConcentration by remember(spell) { mutableStateOf(spell.requiresConcentration) }
+    var resolutionKind by remember(spell) { mutableStateOf(parseResolutionKind(spell)) }
+    var damageType by remember(spell) { mutableStateOf(spell.damageType) }
+    var damageDiceCount by remember(spell) { mutableStateOf(parseDiceCount(spell.damageBase)) }
+    var damageDieType by remember(spell) { mutableStateOf(parseDieType(spell.damageBase)) }
+    var damageBonusValue by remember(spell) { mutableStateOf(if (spell.damageBonusValue != 0) spell.damageBonusValue.toString() else "") }
+    var damageBonusIsModifier by remember(spell) { mutableStateOf(spell.damageBonusIsModifier) }
+    var hasAltDamage by remember(spell) {
+        mutableStateOf(
+            spell.altDamageBase.isNotBlank() || spell.altDamageType.isNotBlank() ||
+                spell.altDamageBonusValue != 0 || spell.altDamageBonusIsModifier
+        )
+    }
+    var altDamageCount by remember(spell) { mutableStateOf(parseDiceCount(spell.altDamageBase)) }
+    var altDamageDieType by remember(spell) { mutableStateOf(parseDieType(spell.altDamageBase)) }
+    var altDamageBonusValue by remember(spell) { mutableStateOf(if (spell.altDamageBonusValue != 0) spell.altDamageBonusValue.toString() else "") }
+    var altDamageBonusIsModifier by remember(spell) { mutableStateOf(spell.altDamageBonusIsModifier) }
+    var altDamageType by remember(spell) { mutableStateOf(spell.altDamageType) }
+    var saveAbility by remember(spell) { mutableStateOf(spell.saveAbility.ifBlank { "DEX" }) }
+    var saveEffect by remember(spell) { mutableStateOf(spell.saveEffect.ifBlank { "none" }) }
+    var areaShape by remember(spell) { mutableStateOf(parseAreaShape(spell.areaOfEffect)) }
+    var areaSize by remember(spell) { mutableStateOf(parseAreaSize(spell.areaOfEffect)) }
+    var healDiceCount by remember(spell) { mutableStateOf(parseDiceCount(spell.healBase)) }
+    var healDieType by remember(spell) { mutableStateOf(parseDieType(spell.healBase)) }
+    var healBonusValue by remember(spell) { mutableStateOf(if (spell.healBonusValue != 0) spell.healBonusValue.toString() else "") }
+    var healBonusIsModifier by remember(spell) { mutableStateOf(spell.healBonusIsModifier) }
     var selectingLevel by remember { mutableStateOf(false) }
     var selectingSchool by remember { mutableStateOf(false) }
+    var selectingRange by remember { mutableStateOf(false) }
+    var selectingCasting by remember { mutableStateOf(false) }
+    var selectingDuration by remember { mutableStateOf(false) }
+    var selectingResolution by remember { mutableStateOf(false) }
+    var selectingSaveAbility by remember { mutableStateOf(false) }
+    var selectingSaveEffect by remember { mutableStateOf(false) }
+    var selectingDamageType by remember { mutableStateOf(false) }
+    var selectingArea by remember { mutableStateOf(false) }
+    var selectingDamageDie by remember { mutableStateOf(false) }
+    var selectingHealDie by remember { mutableStateOf(false) }
+    var selectingAltDie by remember { mutableStateOf(false) }
+    var selectingAltDamageType by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
     AlertDialog(
@@ -895,34 +951,102 @@ private fun SpellEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    CompactTextField(
-                        value = range,
-                        onValueChange = { range = it },
+                    CompactSelectionField(
                         label = text("spells_range"),
+                        value = rangeKindLabel(rangeKind, strings),
+                        onClick = { selectingRange = true },
                         modifier = Modifier.weight(1f)
                     )
-                    CompactTextField(
-                        value = castingTime,
-                        onValueChange = { castingTime = it },
-                        label = text("spells_casting_time"),
-                        modifier = Modifier.weight(1f)
-                    )
+                    when (rangeKind) {
+                        SpellRangeKind.RANGED -> CompactTextField(
+                            value = rangeFeet,
+                            onValueChange = { rangeFeet = it.filter(Char::isDigit) },
+                            label = text("spells_range_feet"),
+                            modifier = Modifier.width(72.dp)
+                        )
+                        SpellRangeKind.SPECIAL -> CompactTextField(
+                            value = rangeSpecial,
+                            onValueChange = { rangeSpecial = it },
+                            label = text("spells_range_special"),
+                            modifier = Modifier.weight(1f)
+                        )
+                        else -> Unit
+                    }
                 }
-                CompactTextField(
-                    value = duration,
-                    onValueChange = { duration = it },
-                    label = text("spells_duration")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CompactSelectionField(
+                        label = text("spells_casting_time"),
+                        value = castingKindLabel(castingKind, strings),
+                        onClick = { selectingCasting = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    when (castingKind) {
+                        CastingTimeKind.MINUTES, CastingTimeKind.HOURS -> CompactTextField(
+                            value = castingAmount,
+                            onValueChange = { castingAmount = it.filter(Char::isDigit) },
+                            label = castingUnitLabel(castingKind, strings),
+                            modifier = Modifier.width(72.dp)
+                        )
+                        else -> Unit
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CompactSelectionField(
+                        label = text("spells_duration"),
+                        value = durationKindLabel(durationKind, strings),
+                        onClick = { selectingDuration = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (durationKind.isTimed) {
+                        CompactTextField(
+                            value = durationAmount,
+                            onValueChange = { durationAmount = it.filter(Char::isDigit) },
+                            label = durationUnitLabel(durationKind, strings),
+                            modifier = Modifier.width(72.dp)
+                        )
+                    }
+                }
+                DialogSection(text("spells_components"))
+                SpellComponentToggle(
+                    label = text("spells_component_verbal"),
+                    checked = hasVerbalComponent,
+                    onCheckedChange = { hasVerbalComponent = it }
                 )
-                CompactTextField(
-                    value = components,
-                    onValueChange = { components = it },
-                    label = text("spells_components")
+                SpellComponentToggle(
+                    label = text("spells_component_somatic"),
+                    checked = hasSomaticComponent,
+                    onCheckedChange = { hasSomaticComponent = it }
                 )
-                CompactTextField(
-                    value = material,
-                    onValueChange = { material = it },
-                    label = text("spells_material")
+                SpellComponentToggle(
+                    label = text("spells_component_material"),
+                    checked = hasMaterialComponent,
+                    onCheckedChange = { hasMaterialComponent = it }
                 )
+                if (hasMaterialComponent) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CompactTextField(
+                            value = material,
+                            onValueChange = { material = it },
+                            label = text("spells_material"),
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactTextField(
+                            value = materialCost,
+                            onValueChange = { materialCost = it.filter(Char::isDigit) },
+                            label = text("spells_material_cost"),
+                            modifier = Modifier.width(60.dp)
+                        )
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = isRitual,
@@ -961,6 +1085,168 @@ private fun SpellEditDialog(
                     minLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                DialogSection(text("spells_section_combat"))
+                CompactSelectionField(
+                    label = text("spells_attack_type"),
+                    value = resolutionKindLabel(resolutionKind, strings),
+                    onClick = { selectingResolution = true },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (resolutionKind == SpellResolutionKind.SAVE) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CompactSelectionField(
+                            label = text("spells_save_ability"),
+                            value = saveAbilityLabel(saveAbility, strings),
+                            onClick = { selectingSaveAbility = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactSelectionField(
+                            label = text("spells_save_effect"),
+                            value = saveEffectLabel(saveEffect, strings),
+                            onClick = { selectingSaveEffect = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                if (resolutionKind != SpellResolutionKind.HEAL) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CompactTextField(
+                            value = if (damageDiceCount == 0) "" else damageDiceCount.toString(),
+                            onValueChange = { damageDiceCount = it.filter(Char::isDigit).toIntOrNull() ?: 0 },
+                            label = text("inventory_field_damage_dice_count"),
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactSelectionField(
+                            label = text("inventory_field_damage_die_type"),
+                            value = damageDieType,
+                            onClick = { selectingDamageDie = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (!damageBonusIsModifier) {
+                            CompactTextField(
+                                value = if (damageBonusValue.isBlank()) "" else "+$damageBonusValue",
+                                onValueChange = { damageBonusValue = it.filter(Char::isDigit) },
+                                label = text("spells_damage_bonus"),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    SpellComponentToggle(
+                        label = text("spells_bonus_modifier"),
+                        checked = damageBonusIsModifier,
+                        onCheckedChange = { damageBonusIsModifier = it }
+                    )
+                    CompactSelectionField(
+                        label = text("spells_damage_type"),
+                        value = damageTypeLabel(damageType, strings),
+                        onClick = { selectingDamageType = true },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (hasAltDamage) {
+                        DialogSection(text("combat_attack_section_alternate_damage"))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CompactTextField(
+                                value = if (altDamageCount == 0) "" else altDamageCount.toString(),
+                                onValueChange = { altDamageCount = it.filter(Char::isDigit).toIntOrNull() ?: 0 },
+                                label = text("inventory_field_damage_dice_count"),
+                                modifier = Modifier.weight(1f)
+                            )
+                            CompactSelectionField(
+                                label = text("inventory_field_damage_die_type"),
+                                value = altDamageDieType,
+                                onClick = { selectingAltDie = true },
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (!altDamageBonusIsModifier) {
+                                CompactTextField(
+                                    value = if (altDamageBonusValue.isBlank()) "" else "+$altDamageBonusValue",
+                                    onValueChange = { altDamageBonusValue = it.filter(Char::isDigit) },
+                                    label = text("spells_damage_bonus"),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        SpellComponentToggle(
+                            label = text("spells_bonus_modifier"),
+                            checked = altDamageBonusIsModifier,
+                            onCheckedChange = { altDamageBonusIsModifier = it }
+                        )
+                        CompactSelectionField(
+                            label = text("spells_damage_type"),
+                            value = damageTypeLabel(altDamageType, strings),
+                            onClick = { selectingAltDamageType = true },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        TextButton(onClick = { hasAltDamage = false }) {
+                            Text(text("combat_attack_remove_alternate_damage"))
+                        }
+                    } else {
+                        TextButton(onClick = { hasAltDamage = true }) {
+                            Text(text("combat_attack_add_alternate_damage"))
+                        }
+                    }
+                }
+                if (resolutionKind == SpellResolutionKind.HEAL) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CompactTextField(
+                            value = if (healDiceCount == 0) "" else healDiceCount.toString(),
+                            onValueChange = { healDiceCount = it.filter(Char::isDigit).toIntOrNull() ?: 0 },
+                            label = text("inventory_field_damage_dice_count"),
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactSelectionField(
+                            label = text("inventory_field_damage_die_type"),
+                            value = healDieType,
+                            onClick = { selectingHealDie = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (!healBonusIsModifier) {
+                            CompactTextField(
+                                value = if (healBonusValue.isBlank()) "" else "+$healBonusValue",
+                                onValueChange = { healBonusValue = it.filter(Char::isDigit) },
+                                label = text("spells_damage_bonus"),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    SpellComponentToggle(
+                        label = text("spells_bonus_modifier"),
+                        checked = healBonusIsModifier,
+                        onCheckedChange = { healBonusIsModifier = it }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CompactSelectionField(
+                        label = text("spells_area_of_effect"),
+                        value = areaShapeLabel(areaShape, strings),
+                        onClick = { selectingArea = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (areaShape != AreaShape.NONE) {
+                        CompactTextField(
+                            value = areaSize,
+                            onValueChange = { areaSize = it.filter(Char::isDigit) },
+                            label = text("spells_range_feet"),
+                            modifier = Modifier.width(72.dp)
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
@@ -974,13 +1260,36 @@ private fun SpellEditDialog(
                             isPrepared = if (level == 0) true else isPrepared,
                             description = description.trim(),
                             higherLevelDescription = higherLevelDescription.trim(),
-                            range = range.trim(),
-                            castingTime = castingTime.trim(),
-                            duration = duration.trim(),
-                            components = components.trim(),
-                            material = material.trim(),
+                            range = encodeRange(rangeKind, rangeFeet, rangeSpecial),
+                            castingTime = encodeCastingTime(castingKind, castingAmount),
+                            duration = encodeDuration(durationKind, durationAmount, requiresConcentration),
+                            components = buildComponentsString(
+                                hasVerbalComponent,
+                                hasSomaticComponent,
+                                hasMaterialComponent
+                            ),
+                            material = if (hasMaterialComponent) material.trim() else "",
+                            materialCost = if (hasMaterialComponent) materialCost.trim() else "",
                             isRitual = isRitual,
-                            requiresConcentration = requiresConcentration
+                            requiresConcentration = requiresConcentration,
+                            attackType = if (resolutionKind == SpellResolutionKind.ATTACK) "attack" else "",
+                            damageType = if (resolutionKind == SpellResolutionKind.HEAL) "" else damageType.trim(),
+                            damageBase = if (resolutionKind == SpellResolutionKind.HEAL) "" else formatDice(damageDiceCount, damageDieType),
+                            damageBonusValue = if (resolutionKind != SpellResolutionKind.HEAL && !damageBonusIsModifier) (damageBonusValue.toIntOrNull() ?: 0) else 0,
+                            damageBonusIsModifier = resolutionKind != SpellResolutionKind.HEAL && damageBonusIsModifier,
+                            altDamageBase = if (resolutionKind != SpellResolutionKind.HEAL && hasAltDamage) formatDice(altDamageCount, altDamageDieType) else "",
+                            altDamageType = if (resolutionKind != SpellResolutionKind.HEAL && hasAltDamage) altDamageType else "",
+                            altDamageBonusValue = if (resolutionKind != SpellResolutionKind.HEAL && hasAltDamage && !altDamageBonusIsModifier) (altDamageBonusValue.toIntOrNull() ?: 0) else 0,
+                            altDamageBonusIsModifier = resolutionKind != SpellResolutionKind.HEAL && hasAltDamage && altDamageBonusIsModifier,
+                            damage = if (resolutionKind == SpellResolutionKind.HEAL) "" else spell.damage,
+                            saveAbility = if (resolutionKind == SpellResolutionKind.SAVE) saveAbility else "",
+                            saveEffect = if (resolutionKind == SpellResolutionKind.SAVE) saveEffect else "",
+                            areaOfEffect = encodeArea(areaShape, areaSize),
+                            healBase = if (resolutionKind == SpellResolutionKind.HEAL) formatDice(healDiceCount, healDieType) else "",
+                            healBonusValue = if (resolutionKind == SpellResolutionKind.HEAL && !healBonusIsModifier) (healBonusValue.toIntOrNull() ?: 0) else 0,
+                            healBonusIsModifier = resolutionKind == SpellResolutionKind.HEAL && healBonusIsModifier,
+                            healing = if (resolutionKind == SpellResolutionKind.HEAL) spell.healing else "",
+                            availableClasses = spell.availableClasses
                         )
                     )
                 }
@@ -1029,6 +1338,174 @@ private fun SpellEditDialog(
             onSelect = { selected ->
                 school = selected
                 selectingSchool = false
+            }
+        )
+    }
+
+    if (selectingRange) {
+        SelectionDialog(
+            title = text("spells_range"),
+            options = SpellRangeKind.entries,
+            selected = rangeKind,
+            labelForOption = { option -> rangeKindLabel(option, strings) },
+            onDismiss = { selectingRange = false },
+            onSelect = { selected ->
+                rangeKind = selected
+                selectingRange = false
+            }
+        )
+    }
+
+    if (selectingCasting) {
+        SelectionDialog(
+            title = text("spells_casting_time"),
+            options = CastingTimeKind.entries,
+            selected = castingKind,
+            labelForOption = { option -> castingKindLabel(option, strings) },
+            onDismiss = { selectingCasting = false },
+            onSelect = { selected ->
+                castingKind = selected
+                selectingCasting = false
+            }
+        )
+    }
+
+    if (selectingDuration) {
+        SelectionDialog(
+            title = text("spells_duration"),
+            options = SpellDurationKind.entries,
+            selected = durationKind,
+            labelForOption = { option -> durationKindLabel(option, strings) },
+            onDismiss = { selectingDuration = false },
+            onSelect = { selected ->
+                durationKind = selected
+                selectingDuration = false
+            }
+        )
+    }
+
+    if (selectingResolution) {
+        SelectionDialog(
+            title = text("spells_attack_type"),
+            options = SpellResolutionKind.entries,
+            selected = resolutionKind,
+            labelForOption = { option -> resolutionKindLabel(option, strings) },
+            onDismiss = { selectingResolution = false },
+            onSelect = { selected ->
+                resolutionKind = selected
+                selectingResolution = false
+            }
+        )
+    }
+
+    if (selectingSaveAbility) {
+        SelectionDialog(
+            title = text("spells_save_ability"),
+            options = saveAbilityCodes,
+            selected = saveAbility.uppercase().takeIf { it in saveAbilityCodes } ?: "DEX",
+            labelForOption = { option -> saveAbilityLabel(option, strings) },
+            onDismiss = { selectingSaveAbility = false },
+            onSelect = { selected ->
+                saveAbility = selected
+                selectingSaveAbility = false
+            }
+        )
+    }
+
+    if (selectingSaveEffect) {
+        SelectionDialog(
+            title = text("spells_save_effect"),
+            options = saveEffectCodes,
+            selected = saveEffect.lowercase().takeIf { it in saveEffectCodes } ?: "none",
+            labelForOption = { option -> saveEffectLabel(option, strings) },
+            onDismiss = { selectingSaveEffect = false },
+            onSelect = { selected ->
+                saveEffect = selected
+                selectingSaveEffect = false
+            }
+        )
+    }
+
+    if (selectingDamageType) {
+        SelectionDialog(
+            title = text("spells_damage_type"),
+            options = damageTypeCodes,
+            selected = damageTypeCodes.firstOrNull { it.equals(damageType, ignoreCase = true) }.orEmpty(),
+            labelForOption = { option -> damageTypeLabel(option, strings) },
+            onDismiss = { selectingDamageType = false },
+            onSelect = { selected ->
+                damageType = selected
+                selectingDamageType = false
+            }
+        )
+    }
+
+    if (selectingArea) {
+        SelectionDialog(
+            title = text("spells_area_of_effect"),
+            options = AreaShape.entries,
+            selected = areaShape,
+            labelForOption = { option -> areaShapeLabel(option, strings) },
+            onDismiss = { selectingArea = false },
+            onSelect = { selected ->
+                areaShape = selected
+                selectingArea = false
+            }
+        )
+    }
+
+    if (selectingDamageDie) {
+        SelectionDialog(
+            title = text("inventory_field_damage_die_type"),
+            options = spellDieTypeOptions,
+            selected = damageDieType,
+            labelForOption = { it },
+            onDismiss = { selectingDamageDie = false },
+            onSelect = { selected ->
+                damageDieType = selected
+                selectingDamageDie = false
+            }
+        )
+    }
+
+    if (selectingHealDie) {
+        SelectionDialog(
+            title = text("inventory_field_damage_die_type"),
+            options = spellDieTypeOptions,
+            selected = healDieType,
+            labelForOption = { it },
+            onDismiss = { selectingHealDie = false },
+            onSelect = { selected ->
+                healDieType = selected
+                selectingHealDie = false
+            }
+        )
+    }
+
+    if (selectingAltDie) {
+        SelectionDialog(
+            title = text("inventory_field_damage_die_type"),
+            options = spellDieTypeOptions,
+            selected = altDamageDieType,
+            labelForOption = { it },
+            onDismiss = { selectingAltDie = false },
+            onSelect = { selected ->
+                altDamageDieType = selected
+                selectingAltDie = false
+            }
+        )
+    }
+
+    if (selectingAltDamageType) {
+        SelectionDialog(
+            title = text("spells_damage_type"),
+            options = damageTypeCodes,
+            selected = damageTypeCodes.firstOrNull { it.equals(altDamageType, ignoreCase = true) }.orEmpty(),
+            labelForOption = { option -> damageTypeLabel(option, strings) },
+            onDismiss = { selectingAltDamageType = false },
+            onSelect = { selected ->
+                altDamageType = selected
+                selectingAltDamageType = false
             }
         )
     }
@@ -1117,6 +1594,30 @@ private fun DialogSection(title: String) {
         style = MaterialTheme.typography.titleMedium,
         color = Color(0xFFF7F2EA)
     )
+}
+
+@Composable
+private fun SpellComponentToggle(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color(0xFFF7F2EA)
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
 }
 
 @Composable
@@ -1336,6 +1837,306 @@ private fun newDraftSpell(): Spell =
         isPrepared = true,
         description = ""
     )
+
+private fun String.hasComponentLetter(letter: String): Boolean =
+    split(',').any { token ->
+        val trimmed = token.trim()
+        trimmed == letter || trimmed.startsWith("$letter ") || trimmed.startsWith("$letter(")
+    }
+
+private fun buildComponentsString(verbal: Boolean, somatic: Boolean, material: Boolean): String =
+    buildList {
+        if (verbal) add("V")
+        if (somatic) add("S")
+        if (material) add("M")
+    }.joinToString(", ")
+
+private enum class SpellRangeKind { SELF, TOUCH, RANGED, SIGHT, UNLIMITED, SPECIAL }
+
+private val rangeFeetRegex = Regex("""^\d+\s*(feet|foot|ft)?$""", RegexOption.IGNORE_CASE)
+
+private fun parseRangeKind(range: String): SpellRangeKind {
+    val value = range.trim()
+    return when {
+        value.isBlank() -> SpellRangeKind.SELF
+        value.equals("self", ignoreCase = true) -> SpellRangeKind.SELF
+        value.equals("touch", ignoreCase = true) -> SpellRangeKind.TOUCH
+        value.equals("sight", ignoreCase = true) -> SpellRangeKind.SIGHT
+        value.equals("unlimited", ignoreCase = true) -> SpellRangeKind.UNLIMITED
+        rangeFeetRegex.matches(value) -> SpellRangeKind.RANGED
+        else -> SpellRangeKind.SPECIAL
+    }
+}
+
+private fun parseRangeFeet(range: String): String =
+    Regex("""\d+""").find(range.trim())?.value.takeIf { rangeFeetRegex.matches(range.trim()) } ?: ""
+
+private fun encodeRange(kind: SpellRangeKind, feet: String, special: String): String =
+    when (kind) {
+        SpellRangeKind.SELF -> "Self"
+        SpellRangeKind.TOUCH -> "Touch"
+        SpellRangeKind.SIGHT -> "Sight"
+        SpellRangeKind.UNLIMITED -> "Unlimited"
+        SpellRangeKind.RANGED -> "${feet.trim().ifBlank { "0" }} feet"
+        SpellRangeKind.SPECIAL -> special.trim()
+    }
+
+private fun rangeKindLabel(kind: SpellRangeKind, strings: LocalizedStrings): String =
+    strings[
+        when (kind) {
+            SpellRangeKind.SELF -> "spells_range_self"
+            SpellRangeKind.TOUCH -> "spells_range_touch"
+            SpellRangeKind.RANGED -> "spells_range_ranged"
+            SpellRangeKind.SIGHT -> "spells_range_sight"
+            SpellRangeKind.UNLIMITED -> "spells_range_unlimited"
+            SpellRangeKind.SPECIAL -> "spells_range_special"
+        }
+    ]
+
+private enum class CastingTimeKind { ACTION, BONUS_ACTION, REACTION, MINUTES, HOURS }
+
+private fun parseCastingKind(value: String): CastingTimeKind {
+    val normalized = value.trim().lowercase()
+    return when {
+        normalized.isBlank() -> CastingTimeKind.ACTION
+        normalized.contains("bonus") -> CastingTimeKind.BONUS_ACTION
+        normalized.contains("reaction") -> CastingTimeKind.REACTION
+        normalized.contains("action") -> CastingTimeKind.ACTION
+        normalized.contains("hour") -> CastingTimeKind.HOURS
+        normalized.contains("min") -> CastingTimeKind.MINUTES
+        else -> CastingTimeKind.ACTION
+    }
+}
+
+private fun parseCastingAmount(value: String): String =
+    Regex("""\d+""").find(value)?.value ?: ""
+
+private fun encodeCastingTime(kind: CastingTimeKind, amount: String): String =
+    when (kind) {
+        CastingTimeKind.ACTION -> "1 action"
+        CastingTimeKind.BONUS_ACTION -> "1 bonus action"
+        CastingTimeKind.REACTION -> "1 reaction"
+        CastingTimeKind.MINUTES -> amount.trim().ifBlank { "1" }
+            .let { if (it == "1") "$it minute" else "$it minutes" }
+        CastingTimeKind.HOURS -> amount.trim().ifBlank { "1" }
+            .let { if (it == "1") "$it hour" else "$it hours" }
+    }
+
+private fun castingKindLabel(kind: CastingTimeKind, strings: LocalizedStrings): String =
+    strings[
+        when (kind) {
+            CastingTimeKind.ACTION -> "spells_casting_action"
+            CastingTimeKind.BONUS_ACTION -> "spells_casting_bonus_action"
+            CastingTimeKind.REACTION -> "spells_casting_reaction"
+            CastingTimeKind.MINUTES -> "spells_casting_minutes"
+            CastingTimeKind.HOURS -> "spells_casting_hours"
+        }
+    ]
+
+private fun castingUnitLabel(kind: CastingTimeKind, strings: LocalizedStrings): String =
+    strings[
+        when (kind) {
+            CastingTimeKind.HOURS -> "spells_casting_unit_hours"
+            else -> "spells_casting_unit_minutes"
+        }
+    ]
+
+private enum class SpellDurationKind {
+    INSTANTANEOUS, ROUNDS, MINUTES, HOURS, DAYS, UNTIL_DISPELLED, SPECIAL;
+
+    val isTimed: Boolean
+        get() = this == ROUNDS || this == MINUTES || this == HOURS || this == DAYS
+}
+
+private fun parseDurationKind(value: String): SpellDurationKind {
+    val normalized = value.trim().lowercase()
+    return when {
+        normalized.isBlank() -> SpellDurationKind.INSTANTANEOUS
+        normalized.contains("instant") -> SpellDurationKind.INSTANTANEOUS
+        normalized.contains("dispel") -> SpellDurationKind.UNTIL_DISPELLED
+        normalized.contains("round") -> SpellDurationKind.ROUNDS
+        normalized.contains("day") -> SpellDurationKind.DAYS
+        normalized.contains("hour") -> SpellDurationKind.HOURS
+        normalized.contains("min") -> SpellDurationKind.MINUTES
+        normalized.contains("special") -> SpellDurationKind.SPECIAL
+        else -> SpellDurationKind.SPECIAL
+    }
+}
+
+private fun parseDurationAmount(value: String): String =
+    Regex("""\d+""").find(value)?.value ?: ""
+
+private fun encodeDuration(
+    kind: SpellDurationKind,
+    amount: String,
+    concentration: Boolean
+): String {
+    if (!kind.isTimed) {
+        return when (kind) {
+            SpellDurationKind.UNTIL_DISPELLED -> "Until dispelled"
+            SpellDurationKind.SPECIAL -> "Special"
+            else -> "Instantaneous"
+        }
+    }
+    val count = amount.trim().ifBlank { "1" }
+    val plural = count != "1"
+    val unit = when (kind) {
+        SpellDurationKind.ROUNDS -> if (plural) "rounds" else "round"
+        SpellDurationKind.MINUTES -> if (plural) "minutes" else "minute"
+        SpellDurationKind.HOURS -> if (plural) "hours" else "hour"
+        else -> if (plural) "days" else "day"
+    }
+    val base = "$count $unit"
+    return if (concentration) "Up to $base" else base
+}
+
+private fun durationKindLabel(kind: SpellDurationKind, strings: LocalizedStrings): String =
+    strings[
+        when (kind) {
+            SpellDurationKind.INSTANTANEOUS -> "spells_duration_instantaneous"
+            SpellDurationKind.ROUNDS -> "spells_duration_rounds"
+            SpellDurationKind.MINUTES -> "spells_duration_minutes"
+            SpellDurationKind.HOURS -> "spells_duration_hours"
+            SpellDurationKind.DAYS -> "spells_duration_days"
+            SpellDurationKind.UNTIL_DISPELLED -> "spells_duration_until_dispelled"
+            SpellDurationKind.SPECIAL -> "spells_duration_special"
+        }
+    ]
+
+private fun durationUnitLabel(kind: SpellDurationKind, strings: LocalizedStrings): String =
+    strings[
+        when (kind) {
+            SpellDurationKind.ROUNDS -> "spells_duration_unit_rounds"
+            SpellDurationKind.HOURS -> "spells_casting_unit_hours"
+            SpellDurationKind.DAYS -> "spells_duration_unit_days"
+            else -> "spells_casting_unit_minutes"
+        }
+    ]
+
+private enum class SpellResolutionKind { NONE, ATTACK, SAVE, HEAL }
+
+private fun parseResolutionKind(spell: Spell): SpellResolutionKind =
+    when {
+        spell.saveAbility.isNotBlank() -> SpellResolutionKind.SAVE
+        spell.attackType.isNotBlank() -> SpellResolutionKind.ATTACK
+        spell.healBase.isNotBlank() || spell.healing.isNotBlank() ||
+            spell.healBonusValue != 0 || spell.healBonusIsModifier -> SpellResolutionKind.HEAL
+        else -> SpellResolutionKind.NONE
+    }
+
+private fun resolutionKindLabel(kind: SpellResolutionKind, strings: LocalizedStrings): String =
+    strings[
+        when (kind) {
+            SpellResolutionKind.NONE -> "spells_resolution_none"
+            SpellResolutionKind.ATTACK -> "spells_resolution_attack"
+            SpellResolutionKind.SAVE -> "spells_resolution_save"
+            SpellResolutionKind.HEAL -> "spells_resolution_heal"
+        }
+    ]
+
+private val saveAbilityCodes = listOf("STR", "DEX", "CON", "INT", "WIS", "CHA")
+
+private fun saveAbilityLabel(code: String, strings: LocalizedStrings): String =
+    strings[
+        when (code.uppercase()) {
+            "STR" -> "ability_strength"
+            "DEX" -> "ability_dexterity"
+            "CON" -> "ability_constitution"
+            "INT" -> "ability_intelligence"
+            "WIS" -> "ability_wisdom"
+            "CHA" -> "ability_charisma"
+            else -> "ability_dexterity"
+        }
+    ]
+
+private val saveEffectCodes = listOf("none", "half", "other")
+
+private fun saveEffectLabel(code: String, strings: LocalizedStrings): String =
+    strings[
+        when (code.lowercase()) {
+            "half" -> "spells_save_effect_half"
+            "other" -> "spells_save_effect_other"
+            else -> "spells_save_effect_none"
+        }
+    ]
+
+private val spellDieTypeOptions = listOf("d4", "d6", "d8", "d10", "d12")
+
+private fun parseDiceCount(base: String): Int =
+    Regex("""^\s*(\d+)d\d+""", RegexOption.IGNORE_CASE).find(base)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+private fun parseDieType(base: String): String =
+    Regex("""^\s*\d*(d\d+)""", RegexOption.IGNORE_CASE).find(base)?.groupValues?.get(1)?.lowercase() ?: "d6"
+
+private fun formatDice(count: Int, dieType: String): String =
+    if (count > 0) "$count$dieType" else ""
+
+private val damageTypeCodes = listOf(
+    "", "Acid", "Bludgeoning", "Cold", "Fire", "Force", "Lightning",
+    "Necrotic", "Piercing", "Poison", "Psychic", "Radiant", "Slashing", "Thunder"
+)
+
+private fun damageTypeLabel(code: String, strings: LocalizedStrings): String =
+    strings[
+        when (code.trim().lowercase()) {
+            "acid" -> "spells_damage_type_acid"
+            "bludgeoning" -> "spells_damage_type_bludgeoning"
+            "cold" -> "spells_damage_type_cold"
+            "fire" -> "spells_damage_type_fire"
+            "force" -> "spells_damage_type_force"
+            "lightning" -> "spells_damage_type_lightning"
+            "necrotic" -> "spells_damage_type_necrotic"
+            "piercing" -> "spells_damage_type_piercing"
+            "poison" -> "spells_damage_type_poison"
+            "psychic" -> "spells_damage_type_psychic"
+            "radiant" -> "spells_damage_type_radiant"
+            "slashing" -> "spells_damage_type_slashing"
+            "thunder" -> "spells_damage_type_thunder"
+            else -> "spells_resolution_none"
+        }
+    ]
+
+private enum class AreaShape { NONE, SPHERE, CUBE, CYLINDER, LINE, CONE }
+
+private fun parseAreaShape(value: String): AreaShape {
+    val normalized = value.trim().lowercase()
+    return when {
+        normalized.contains("sphere") -> AreaShape.SPHERE
+        normalized.contains("cube") -> AreaShape.CUBE
+        normalized.contains("cylinder") -> AreaShape.CYLINDER
+        normalized.contains("line") -> AreaShape.LINE
+        normalized.contains("cone") -> AreaShape.CONE
+        else -> AreaShape.NONE
+    }
+}
+
+private fun parseAreaSize(value: String): String =
+    Regex("""\d+""").find(value)?.value ?: ""
+
+private fun encodeArea(shape: AreaShape, size: String): String {
+    val englishShape = when (shape) {
+        AreaShape.NONE -> return ""
+        AreaShape.SPHERE -> "sphere"
+        AreaShape.CUBE -> "cube"
+        AreaShape.CYLINDER -> "cylinder"
+        AreaShape.LINE -> "line"
+        AreaShape.CONE -> "cone"
+    }
+    val sanitizedSize = size.trim().ifBlank { "0" }
+    return "$englishShape, $sanitizedSize ft"
+}
+
+private fun areaShapeLabel(shape: AreaShape, strings: LocalizedStrings): String =
+    strings[
+        when (shape) {
+            AreaShape.NONE -> "spells_resolution_none"
+            AreaShape.SPHERE -> "spells_area_sphere"
+            AreaShape.CUBE -> "spells_area_cube"
+            AreaShape.CYLINDER -> "spells_area_cylinder"
+            AreaShape.LINE -> "spells_area_line"
+            AreaShape.CONE -> "spells_area_cone"
+        }
+    ]
 
 @Composable
 private fun spellLevelTitle(level: Int): String =

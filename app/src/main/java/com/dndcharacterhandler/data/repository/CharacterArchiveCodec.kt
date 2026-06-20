@@ -176,10 +176,27 @@ fun CharacterBundle.toArchiveManifest(
                 put("duration", spell.duration)
                 put("components", spell.components)
                 put("material", spell.material)
+                put("materialCost", spell.materialCost)
                 put("isRitual", spell.isRitual)
                 put("requiresConcentration", spell.requiresConcentration)
                 put("attackType", spell.attackType)
                 put("availableClasses", spell.availableClasses)
+                put("damageType", spell.damageType)
+                put("damageBase", spell.damageBase)
+                put("damageBonusValue", spell.damageBonusValue)
+                put("damageBonusIsModifier", spell.damageBonusIsModifier)
+                put("altDamageBase", spell.altDamageBase)
+                put("altDamageType", spell.altDamageType)
+                put("altDamageBonusValue", spell.altDamageBonusValue)
+                put("altDamageBonusIsModifier", spell.altDamageBonusIsModifier)
+                put("damage", spell.damage)
+                put("saveAbility", spell.saveAbility)
+                put("saveEffect", spell.saveEffect)
+                put("areaOfEffect", spell.areaOfEffect)
+                put("healBase", spell.healBase)
+                put("healBonusValue", spell.healBonusValue)
+                put("healBonusIsModifier", spell.healBonusIsModifier)
+                put("healing", spell.healing)
             }
         }))
         put("features", JSONArray(features.map { feature ->
@@ -463,10 +480,27 @@ private fun JSONArray.toSpellList(): List<Spell> =
                 duration = json.optString("duration"),
                 components = json.optString("components"),
                 material = json.optString("material"),
+                materialCost = json.optString("materialCost"),
                 isRitual = json.optBoolean("isRitual", false),
                 requiresConcentration = json.optBoolean("requiresConcentration", false),
                 attackType = json.optString("attackType"),
-                availableClasses = json.optString("availableClasses")
+                availableClasses = json.optString("availableClasses"),
+                damageType = json.optString("damageType"),
+                damageBase = json.optString("damageBase"),
+                damageBonusValue = json.optInt("damageBonusValue", 0),
+                damageBonusIsModifier = json.optBoolean("damageBonusIsModifier", false),
+                altDamageBase = json.optString("altDamageBase"),
+                altDamageType = json.optString("altDamageType"),
+                altDamageBonusValue = json.optInt("altDamageBonusValue", 0),
+                altDamageBonusIsModifier = json.optBoolean("altDamageBonusIsModifier", false),
+                damage = json.optString("damage"),
+                saveAbility = json.optString("saveAbility"),
+                saveEffect = json.optString("saveEffect"),
+                areaOfEffect = json.optString("areaOfEffect"),
+                healBase = json.optString("healBase"),
+                healBonusValue = json.optInt("healBonusValue", 0),
+                healBonusIsModifier = json.optBoolean("healBonusIsModifier", false),
+                healing = json.optString("healing")
             )
         }
     }

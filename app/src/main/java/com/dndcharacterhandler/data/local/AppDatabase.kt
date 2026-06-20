@@ -28,7 +28,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 31,
+    version = 37,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -75,7 +75,13 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_27_28,
                     MIGRATION_28_29,
                     MIGRATION_29_30,
-                    MIGRATION_30_31
+                    MIGRATION_30_31,
+                    MIGRATION_31_32,
+                    MIGRATION_32_33,
+                    MIGRATION_33_34,
+                    MIGRATION_34_35,
+                    MIGRATION_35_36,
+                    MIGRATION_36_37
                 ).build().also { INSTANCE = it }
             }
         }
@@ -327,6 +333,53 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE spells ADD COLUMN requiresConcentration INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE spells ADD COLUMN attackType TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE spells ADD COLUMN availableClasses TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE spells ADD COLUMN damageType TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN damage TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN saveAbility TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN saveEffect TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN areaOfEffect TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN healing TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_32_33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE spells ADD COLUMN materialCost TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE spells ADD COLUMN damageBase TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_34_35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE spells ADD COLUMN healBase TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE spells ADD COLUMN altDamageBase TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spells ADD COLUMN altDamageType TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_36_37 = object : Migration(36, 37) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE spells ADD COLUMN damageBonusValue INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spells ADD COLUMN damageBonusIsModifier INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spells ADD COLUMN altDamageBonusValue INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spells ADD COLUMN altDamageBonusIsModifier INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spells ADD COLUMN healBonusValue INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spells ADD COLUMN healBonusIsModifier INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

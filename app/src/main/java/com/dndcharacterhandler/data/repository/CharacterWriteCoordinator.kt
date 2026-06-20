@@ -208,7 +208,8 @@ class CharacterWriteCoordinator(
     suspend fun updateCombatResourceUsesForCharacter(characterId: Long, resourceId: Long, delta: Int, updatedAt: Long) {
         database.withTransaction {
             val current = characterDao.getCombatResourceById(characterId, resourceId) ?: return@withTransaction
-            val nextUses = (current.currentUses + delta).coerceIn(0, current.maximumUses.coerceAtLeast(0))
+            val upperBound = if (current.maximumUses <= 0) Int.MAX_VALUE else current.maximumUses
+            val nextUses = (current.currentUses + delta).coerceIn(0, upperBound)
             characterDao.updateCombatResourceCurrentUses(resourceId, nextUses)
             characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
         }

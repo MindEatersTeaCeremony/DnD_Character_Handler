@@ -2992,12 +2992,110 @@
     "fr": "Portee",
     "es": "Alcance"
   },
+  "spells_range_feet": {
+    "en": "ft",
+    "ru": "фт",
+    "de": "ft",
+    "fr": "ft",
+    "es": "ft"
+  },
+  "spells_range_self": {
+    "en": "Self",
+    "ru": "На себя",
+    "de": "Selbst",
+    "fr": "Personnelle",
+    "es": "Personal"
+  },
+  "spells_range_touch": {
+    "en": "Touch",
+    "ru": "Касание",
+    "de": "Beruhrung",
+    "fr": "Contact",
+    "es": "Toque"
+  },
+  "spells_range_ranged": {
+    "en": "Ranged",
+    "ru": "На расстоянии",
+    "de": "Entfernung",
+    "fr": "A distance",
+    "es": "A distancia"
+  },
+  "spells_range_sight": {
+    "en": "Sight",
+    "ru": "Видимость",
+    "de": "Sichtweite",
+    "fr": "Vue",
+    "es": "Vista"
+  },
+  "spells_range_unlimited": {
+    "en": "Unlimited",
+    "ru": "Неограниченно",
+    "de": "Unbegrenzt",
+    "fr": "Illimitee",
+    "es": "Ilimitado"
+  },
+  "spells_range_special": {
+    "en": "Special",
+    "ru": "Особая",
+    "de": "Speziell",
+    "fr": "Speciale",
+    "es": "Especial"
+  },
   "spells_casting_time": {
     "en": "Casting Time",
     "ru": "Время накладывания",
     "de": "Zauberzeit",
     "fr": "Temps d'incantation",
     "es": "Tiempo de lanzamiento"
+  },
+  "spells_casting_action": {
+    "en": "Action",
+    "ru": "Действие",
+    "de": "Aktion",
+    "fr": "Action",
+    "es": "Accion"
+  },
+  "spells_casting_bonus_action": {
+    "en": "Bonus Action",
+    "ru": "Бонусное действие",
+    "de": "Bonusaktion",
+    "fr": "Action bonus",
+    "es": "Accion adicional"
+  },
+  "spells_casting_reaction": {
+    "en": "Reaction",
+    "ru": "Реакция",
+    "de": "Reaktion",
+    "fr": "Reaction",
+    "es": "Reaccion"
+  },
+  "spells_casting_minutes": {
+    "en": "Minutes",
+    "ru": "Минуты",
+    "de": "Minuten",
+    "fr": "Minutes",
+    "es": "Minutos"
+  },
+  "spells_casting_hours": {
+    "en": "Hours",
+    "ru": "Часы",
+    "de": "Stunden",
+    "fr": "Heures",
+    "es": "Horas"
+  },
+  "spells_casting_unit_minutes": {
+    "en": "min",
+    "ru": "мин",
+    "de": "Min",
+    "fr": "min",
+    "es": "min"
+  },
+  "spells_casting_unit_hours": {
+    "en": "hr",
+    "ru": "ч",
+    "de": "Std",
+    "fr": "h",
+    "es": "h"
   },
   "spells_duration": {
     "en": "Duration",
@@ -3006,6 +3104,69 @@
     "fr": "Duree",
     "es": "Duracion"
   },
+  "spells_duration_instantaneous": {
+    "en": "Instantaneous",
+    "ru": "Мгновенная",
+    "de": "Augenblicklich",
+    "fr": "Instantanee",
+    "es": "Instantanea"
+  },
+  "spells_duration_rounds": {
+    "en": "Rounds",
+    "ru": "Раунды",
+    "de": "Runden",
+    "fr": "Rounds",
+    "es": "Asaltos"
+  },
+  "spells_duration_minutes": {
+    "en": "Minutes",
+    "ru": "Минуты",
+    "de": "Minuten",
+    "fr": "Minutes",
+    "es": "Minutos"
+  },
+  "spells_duration_hours": {
+    "en": "Hours",
+    "ru": "Часы",
+    "de": "Stunden",
+    "fr": "Heures",
+    "es": "Horas"
+  },
+  "spells_duration_days": {
+    "en": "Days",
+    "ru": "Дни",
+    "de": "Tage",
+    "fr": "Jours",
+    "es": "Dias"
+  },
+  "spells_duration_until_dispelled": {
+    "en": "Until dispelled",
+    "ru": "Пока не рассеется",
+    "de": "Bis gebannt",
+    "fr": "Jusqu'a dissipation",
+    "es": "Hasta disipar"
+  },
+  "spells_duration_special": {
+    "en": "Special",
+    "ru": "Особая",
+    "de": "Speziell",
+    "fr": "Speciale",
+    "es": "Especial"
+  },
+  "spells_duration_unit_rounds": {
+    "en": "rnd",
+    "ru": "рнд",
+    "de": "Rnd",
+    "fr": "rnd",
+    "es": "asl"
+  },
+  "spells_duration_unit_days": {
+    "en": "days",
+    "ru": "дн",
+    "de": "Tage",
+    "fr": "j",
+    "es": "dias"
+  },
   "spells_components": {
     "en": "Components",
     "ru": "Компоненты",
@@ -3013,12 +3174,40 @@
     "fr": "Composants",
     "es": "Componentes"
   },
+  "spells_component_verbal": {
+    "en": "Verbal",
+    "ru": "Вербальный",
+    "de": "Verbal",
+    "fr": "Verbal",
+    "es": "Verbal"
+  },
+  "spells_component_somatic": {
+    "en": "Somatic",
+    "ru": "Соматический",
+    "de": "Somatisch",
+    "fr": "Somatique",
+    "es": "Somatico"
+  },
+  "spells_component_material": {
+    "en": "Material",
+    "ru": "Материальный",
+    "de": "Material",
+    "fr": "Materiel",
+    "es": "Material"
+  },
   "spells_material": {
     "en": "Material",
     "ru": "Материалы",
     "de": "Material",
     "fr": "Materiel",
     "es": "Material"
+  },
+  "spells_material_cost": {
+    "en": "GP",
+    "ru": "ЗМ",
+    "de": "GM",
+    "fr": "PO",
+    "es": "PO"
   },
   "spells_ritual": {
     "en": "Ritual",
@@ -3054,6 +3243,272 @@
     "de": "Hoehere Grade",
     "fr": "Niveaux superieurs",
     "es": "Nivel superior"
+  },
+  "spells_section_combat": {
+    "en": "Combat",
+    "ru": "Бой",
+    "de": "Kampf",
+    "fr": "Combat",
+    "es": "Combate"
+  },
+  "spells_attack_type": {
+    "en": "Attack Type",
+    "ru": "Тип атаки",
+    "de": "Angriffsart",
+    "fr": "Type d'attaque",
+    "es": "Tipo de ataque"
+  },
+  "spells_resolution_none": {
+    "en": "None",
+    "ru": "Нет",
+    "de": "Keine",
+    "fr": "Aucun",
+    "es": "Ninguno"
+  },
+  "spells_resolution_attack": {
+    "en": "Attack Roll",
+    "ru": "Атака",
+    "de": "Angriffswurf",
+    "fr": "Jet d'attaque",
+    "es": "Tirada de ataque"
+  },
+  "spells_resolution_save": {
+    "en": "Saving Throw",
+    "ru": "Спасбросок",
+    "de": "Rettungswurf",
+    "fr": "Jet de sauvegarde",
+    "es": "Tirada de salvacion"
+  },
+  "spells_resolution_heal": {
+    "en": "Healing",
+    "ru": "Лечение",
+    "de": "Heilung",
+    "fr": "Soins",
+    "es": "Curacion"
+  },
+  "spells_damage_type": {
+    "en": "Damage Type",
+    "ru": "Тип урона",
+    "de": "Schadensart",
+    "fr": "Type de degats",
+    "es": "Tipo de dano"
+  },
+  "spells_damage_type_acid": {
+    "en": "Acid",
+    "ru": "Кислота",
+    "de": "Saure",
+    "fr": "Acide",
+    "es": "Acido"
+  },
+  "spells_damage_type_bludgeoning": {
+    "en": "Bludgeoning",
+    "ru": "Дробящий",
+    "de": "Wuchtschaden",
+    "fr": "Contondant",
+    "es": "Contundente"
+  },
+  "spells_damage_type_cold": {
+    "en": "Cold",
+    "ru": "Холод",
+    "de": "Kalte",
+    "fr": "Froid",
+    "es": "Frio"
+  },
+  "spells_damage_type_fire": {
+    "en": "Fire",
+    "ru": "Огонь",
+    "de": "Feuer",
+    "fr": "Feu",
+    "es": "Fuego"
+  },
+  "spells_damage_type_force": {
+    "en": "Force",
+    "ru": "Силовое поле",
+    "de": "Energie",
+    "fr": "Force",
+    "es": "Fuerza"
+  },
+  "spells_damage_type_lightning": {
+    "en": "Lightning",
+    "ru": "Электричество",
+    "de": "Blitz",
+    "fr": "Foudre",
+    "es": "Relampago"
+  },
+  "spells_damage_type_necrotic": {
+    "en": "Necrotic",
+    "ru": "Некротическая энергия",
+    "de": "Nekrotisch",
+    "fr": "Necrotique",
+    "es": "Necrotico"
+  },
+  "spells_damage_type_piercing": {
+    "en": "Piercing",
+    "ru": "Колющий",
+    "de": "Stich",
+    "fr": "Percant",
+    "es": "Perforante"
+  },
+  "spells_damage_type_poison": {
+    "en": "Poison",
+    "ru": "Яд",
+    "de": "Gift",
+    "fr": "Poison",
+    "es": "Veneno"
+  },
+  "spells_damage_type_psychic": {
+    "en": "Psychic",
+    "ru": "Психическая энергия",
+    "de": "Psychisch",
+    "fr": "Psychique",
+    "es": "Psiquico"
+  },
+  "spells_damage_type_radiant": {
+    "en": "Radiant",
+    "ru": "Излучение",
+    "de": "Gleissend",
+    "fr": "Radiant",
+    "es": "Radiante"
+  },
+  "spells_damage_type_slashing": {
+    "en": "Slashing",
+    "ru": "Рубящий",
+    "de": "Hieb",
+    "fr": "Tranchant",
+    "es": "Cortante"
+  },
+  "spells_damage_type_thunder": {
+    "en": "Thunder",
+    "ru": "Звук",
+    "de": "Schall",
+    "fr": "Tonnerre",
+    "es": "Trueno"
+  },
+  "spells_damage": {
+    "en": "Damage",
+    "ru": "Урон",
+    "de": "Schaden",
+    "fr": "Degats",
+    "es": "Dano"
+  },
+  "spells_damage_dice": {
+    "en": "Dice",
+    "ru": "Кубы",
+    "de": "Würfel",
+    "fr": "Des",
+    "es": "Dados"
+  },
+  "spells_damage_bonus": {
+    "en": "Bonus",
+    "ru": "Бонус",
+    "de": "Bonus",
+    "fr": "Bonus",
+    "es": "Bono"
+  },
+  "spells_bonus_modifier": {
+    "en": "Spellcasting modifier",
+    "ru": "Модификатор хар-ки",
+    "de": "Zaubermodifikator",
+    "fr": "Mod. d'incantation",
+    "es": "Modificador de conjuro"
+  },
+  "spells_damage_scaling": {
+    "en": "Scaling per slot",
+    "ru": "Масштабирование по слотам",
+    "de": "Skalierung pro Grad",
+    "fr": "Montee en puissance",
+    "es": "Escalado por espacio"
+  },
+  "spells_save_ability": {
+    "en": "Saving Throw",
+    "ru": "Спасбросок",
+    "de": "Rettungswurf",
+    "fr": "Jet de sauvegarde",
+    "es": "Tirada de salvacion"
+  },
+  "spells_save_effect": {
+    "en": "On Success",
+    "ru": "При успехе",
+    "de": "Bei Erfolg",
+    "fr": "En cas de reussite",
+    "es": "Con exito"
+  },
+  "spells_save_effect_none": {
+    "en": "No effect",
+    "ru": "Нет эффекта",
+    "de": "Kein Effekt",
+    "fr": "Aucun effet",
+    "es": "Sin efecto"
+  },
+  "spells_save_effect_half": {
+    "en": "Half damage",
+    "ru": "Половина урона",
+    "de": "Halber Schaden",
+    "fr": "Degats reduits de moitie",
+    "es": "Mitad de dano"
+  },
+  "spells_save_effect_other": {
+    "en": "Other",
+    "ru": "Иное",
+    "de": "Sonstiges",
+    "fr": "Autre",
+    "es": "Otro"
+  },
+  "spells_area_of_effect": {
+    "en": "Area of Effect",
+    "ru": "Область действия",
+    "de": "Wirkungsbereich",
+    "fr": "Zone d'effet",
+    "es": "Area de efecto"
+  },
+  "spells_area_sphere": {
+    "en": "Sphere",
+    "ru": "Сфера",
+    "de": "Kugel",
+    "fr": "Sphere",
+    "es": "Esfera"
+  },
+  "spells_area_cube": {
+    "en": "Cube",
+    "ru": "Куб",
+    "de": "Wurfel",
+    "fr": "Cube",
+    "es": "Cubo"
+  },
+  "spells_area_cylinder": {
+    "en": "Cylinder",
+    "ru": "Цилиндр",
+    "de": "Zylinder",
+    "fr": "Cylindre",
+    "es": "Cilindro"
+  },
+  "spells_area_line": {
+    "en": "Line",
+    "ru": "Линия",
+    "de": "Linie",
+    "fr": "Ligne",
+    "es": "Linea"
+  },
+  "spells_area_cone": {
+    "en": "Cone",
+    "ru": "Конус",
+    "de": "Kegel",
+    "fr": "Cone",
+    "es": "Cono"
+  },
+  "spells_healing": {
+    "en": "Healing",
+    "ru": "Лечение",
+    "de": "Heilung",
+    "fr": "Soins",
+    "es": "Curacion"
+  },
+  "spells_available_classes": {
+    "en": "Classes",
+    "ru": "Классы",
+    "de": "Klassen",
+    "fr": "Classes",
+    "es": "Clases"
   },
   "spells_edit_slots": {
     "en": "Edit Spell Slots",

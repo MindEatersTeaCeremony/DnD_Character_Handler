@@ -577,10 +577,23 @@ private fun OverviewContent(
             }
 
             item {
+                Box(modifier = Modifier.offset(y = (-24).dp)) {
+                    OverviewXpBlock(
+                        xpInfo = xpInfo,
+                        onClick = {
+                            experienceEditMode = OverviewExperienceEditMode.ADD
+                            experienceDraft = ""
+                            isExperienceDialogOpen = true
+                        }
+                    )
+                }
+            }
+
+            item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = (-24).dp),
+                        .offset(y = (-28).dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     actions.forEach { action ->
@@ -607,19 +620,6 @@ private fun OverviewContent(
                             }
                         )
                     }
-                }
-            }
-
-            item {
-                Box(modifier = Modifier.offset(y = (-28).dp)) {
-                    OverviewXpBlock(
-                        xpInfo = xpInfo,
-                        onClick = {
-                            experienceEditMode = OverviewExperienceEditMode.ADD
-                            experienceDraft = ""
-                            isExperienceDialogOpen = true
-                        }
-                    )
                 }
             }
 

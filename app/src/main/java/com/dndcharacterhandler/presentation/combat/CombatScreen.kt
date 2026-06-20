@@ -1023,7 +1023,11 @@ private fun CombatResourceTile(
                     onClick = { onAdjust(resource.id, -1) }
                 )
                 Text(
-                    text = "${resource.currentUses}/${resource.maximumUses}",
+                    text = if (resource.maximumUses <= 0) {
+                        "${resource.currentUses}"
+                    } else {
+                        "${resource.currentUses}/${resource.maximumUses}"
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFFF7F2EA),
                     maxLines = 1,
@@ -1031,7 +1035,7 @@ private fun CombatResourceTile(
                 )
                 StepperButton(
                     icon = Icons.Outlined.Add,
-                    enabled = resource.currentUses < resource.maximumUses,
+                    enabled = resource.maximumUses <= 0 || resource.currentUses < resource.maximumUses,
                     onClick = { onAdjust(resource.id, 1) }
                 )
             }
@@ -1093,7 +1097,11 @@ private fun CombatResourceEditDialog(
             Button(
                 onClick = {
                     val parsedMax = maximumUses.toIntOrNull()?.coerceAtLeast(0) ?: 0
-                    val parsedCurrent = (currentUses.toIntOrNull() ?: 0).coerceIn(0, parsedMax)
+                    val parsedCurrent = if (parsedMax <= 0) {
+                        (currentUses.toIntOrNull() ?: 0).coerceAtLeast(0)
+                    } else {
+                        (currentUses.toIntOrNull() ?: 0).coerceIn(0, parsedMax)
+                    }
                     onSave(
                         resource.copy(
                             name = name.trim(),

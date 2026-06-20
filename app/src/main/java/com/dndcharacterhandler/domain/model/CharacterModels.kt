@@ -187,10 +187,27 @@ data class Spell(
     val duration: String = "",
     val components: String = "",
     val material: String = "",
+    val materialCost: String = "",
     val isRitual: Boolean = false,
     val requiresConcentration: Boolean = false,
     val attackType: String = "",
-    val availableClasses: String = ""
+    val availableClasses: String = "",
+    val damageType: String = "",
+    val damageBase: String = "",
+    val damageBonusValue: Int = 0,
+    val damageBonusIsModifier: Boolean = false,
+    val altDamageBase: String = "",
+    val altDamageType: String = "",
+    val altDamageBonusValue: Int = 0,
+    val altDamageBonusIsModifier: Boolean = false,
+    val damage: String = "",
+    val saveAbility: String = "",
+    val saveEffect: String = "",
+    val areaOfEffect: String = "",
+    val healBase: String = "",
+    val healBonusValue: Int = 0,
+    val healBonusIsModifier: Boolean = false,
+    val healing: String = ""
 )
 enum class FeatureSource { RACE, BACKGROUND, CLASS, OTHER }
 data class Feature(

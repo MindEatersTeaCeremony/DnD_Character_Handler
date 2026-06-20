@@ -231,10 +231,27 @@ data class SpellEntity(
     val duration: String,
     val components: String,
     val material: String,
+    val materialCost: String,
     val isRitual: Boolean,
     val requiresConcentration: Boolean,
     val attackType: String,
-    val availableClasses: String
+    val availableClasses: String,
+    val damageType: String,
+    val damageBase: String,
+    val damageBonusValue: Int,
+    val damageBonusIsModifier: Boolean,
+    val altDamageBase: String,
+    val altDamageType: String,
+    val altDamageBonusValue: Int,
+    val altDamageBonusIsModifier: Boolean,
+    val damage: String,
+    val saveAbility: String,
+    val saveEffect: String,
+    val areaOfEffect: String,
+    val healBase: String,
+    val healBonusValue: Int,
+    val healBonusIsModifier: Boolean,
+    val healing: String
 )
 
 @Entity(
