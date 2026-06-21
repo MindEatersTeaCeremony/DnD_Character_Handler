@@ -12,6 +12,19 @@ class AssetSpellCatalogRepository(
     @Volatile
     private var cachedItems: List<SpellCatalogItem>? = null
 
+    @Volatile
+    private var ruTextCache: JSONObject? = null
+
+    private fun ruText(): JSONObject {
+        ruTextCache?.let { return it }
+        val raw = runCatching {
+            context.assets.open("spell_text_ru.json").bufferedReader().use { it.readText() }
+        }.getOrNull()
+        val obj = if (raw != null) JSONObject(raw) else JSONObject()
+        ruTextCache = obj
+        return obj
+    }
+
     override suspend fun getItems(): List<SpellCatalogItem> {
         cachedItems?.let { return it }
         val items = readArray("5e-SRD-Spells.json")
@@ -36,6 +49,7 @@ class AssetSpellCatalogRepository(
     private fun parseSpell(json: JSONObject): SpellCatalogItem? {
         val id = json.optString("index").ifBlank { return null }
         val name = json.optString("name").ifBlank { return null }
+        val ruText = ruText().optJSONObject(id)
         val description = json.optJSONArray("desc").joinText()
         val higherLevel = json.optJSONArray("higher_level").joinText()
         val material = json.optString("material")
@@ -61,6 +75,9 @@ class AssetSpellCatalogRepository(
             school = json.optJSONObject("school")?.optString("name").orEmpty(),
             description = description,
             higherLevelDescription = higherLevel,
+            ruDescription = ruText?.optString("description").orEmpty(),
+            ruHigherLevel = ruText?.optString("higherLevel").orEmpty(),
+            ruMaterial = ruText?.optString("material").orEmpty(),
             range = json.optString("range"),
             castingTime = json.optString("casting_time"),
             duration = json.optString("duration"),

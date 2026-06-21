@@ -27,14 +27,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
-import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -50,7 +48,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,11 +62,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.data.localization.LocalizedStrings
+import com.dndcharacterhandler.domain.model.AppLanguage
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.Spell
@@ -86,6 +88,7 @@ import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.components.ScreenTopActions
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
+import com.dndcharacterhandler.presentation.theme.DnDTheme
 import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -141,10 +144,6 @@ class SpellsViewModel(
         }
     }
 
-    fun addCatalogSpell(characterBundle: CharacterBundle, item: SpellCatalogItem) {
-        updateSpell(characterBundle, item.toSpell())
-    }
-
     fun deleteSpell(characterBundle: CharacterBundle, spell: Spell) {
         if (spell.id == 0L) return
         viewModelScope.launch {
@@ -183,6 +182,26 @@ class SpellsViewModel(
                 characterId = characterBundle.character.id,
                 spellSlotMaximums = maximums.encodeSpellSlotList(),
                 spellSlotRemaining = remainings.encodeSpellSlotList(),
+                restoresOnShortRest = restoresOnShortRest,
+                restoresOnLongRest = restoresOnLongRest
+            )
+        }
+    }
+
+    fun updateAllSpellSlots(
+        characterBundle: CharacterBundle,
+        maximums: List<Int>,
+        remainings: List<Int>,
+        restoresOnShortRest: Boolean,
+        restoresOnLongRest: Boolean
+    ) {
+        val sanitizedMaximums = (0 until 9).map { (maximums.getOrNull(it) ?: 0).coerceAtLeast(0) }
+        val sanitizedRemainings = (0 until 9).map { (remainings.getOrNull(it) ?: 0).coerceIn(0, sanitizedMaximums[it]) }
+        viewModelScope.launch {
+            characterRepository.updateSpellSlots(
+                characterId = characterBundle.character.id,
+                spellSlotMaximums = sanitizedMaximums.encodeSpellSlotList(),
+                spellSlotRemaining = sanitizedRemainings.encodeSpellSlotList(),
                 restoresOnShortRest = restoresOnShortRest,
                 restoresOnLongRest = restoresOnLongRest
             )
@@ -229,10 +248,9 @@ fun SpellsScreen(
         onOpenDrawer = onOpenDrawer,
         onOpenSettings = onOpenSettings,
         onUpdateSpell = viewModel::updateSpell,
-        onAddCatalogSpell = viewModel::addCatalogSpell,
         onDeleteSpell = viewModel::deleteSpell,
         onTogglePrepared = viewModel::togglePrepared,
-        onUpdateSpellSlots = viewModel::updateSpellSlots,
+        onUpdateAllSpellSlots = viewModel::updateAllSpellSlots,
         onUpdateSpellSlotRemaining = viewModel::updateSpellSlotRemaining,
         onUpdateSpellcastingAbility = viewModel::updateSpellcastingAbility
     )
@@ -245,10 +263,9 @@ internal fun SpellsContent(
     onOpenDrawer: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onUpdateSpell: (CharacterBundle, Spell) -> Unit = { _, _ -> },
-    onAddCatalogSpell: (CharacterBundle, SpellCatalogItem) -> Unit = { _, _ -> },
     onDeleteSpell: (CharacterBundle, Spell) -> Unit = { _, _ -> },
     onTogglePrepared: (CharacterBundle, Spell) -> Unit = { _, _ -> },
-    onUpdateSpellSlots: (CharacterBundle, Int, Int, Int, Boolean, Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onUpdateAllSpellSlots: (CharacterBundle, List<Int>, List<Int>, Boolean, Boolean) -> Unit = { _, _, _, _, _ -> },
     onUpdateSpellSlotRemaining: (CharacterBundle, Int, Int) -> Unit = { _, _, _ -> },
     onUpdateSpellcastingAbility: (CharacterBundle, SpellcastingAbility) -> Unit = { _, _ -> }
 ) {
@@ -256,7 +273,7 @@ internal fun SpellsContent(
     val strings = LocalStrings.current
     var query by remember { mutableStateOf("") }
     var editingSpell by remember { mutableStateOf<Spell?>(null) }
-    var editingSlotLevel by remember { mutableStateOf<Int?>(null) }
+    var isSlotsDialogOpen by remember { mutableStateOf(false) }
     var isAddEntryDialogOpen by remember { mutableStateOf(false) }
     var isSpellcastingAbilityDialogOpen by remember { mutableStateOf(false) }
 
@@ -357,7 +374,7 @@ internal fun SpellsContent(
                             level = level,
                             maximumSlots = if (level == 0) 0 else slotMaximums[level - 1],
                             remainingSlots = if (level == 0) 0 else slotRemainings[level - 1],
-                            onTitleClick = if (level == 0) null else ({ editingSlotLevel = level }),
+                            onTitleClick = { isSlotsDialogOpen = true },
                             onSlotClick = if (level == 0) {
                                 null
                             } else {
@@ -409,7 +426,7 @@ internal fun SpellsContent(
                 editingSpell = newDraftSpell()
             },
             onSelectCatalogItem = { item ->
-                onAddCatalogSpell(resolvedBundle, item)
+                onUpdateSpell(resolvedBundle, buildLocalizedCatalogSpell(item, strings))
                 isAddEntryDialogOpen = false
             }
         )
@@ -434,18 +451,16 @@ internal fun SpellsContent(
         )
     }
 
-    editingSlotLevel?.let { level ->
-        val index = level - 1
-        SpellSlotConfigDialog(
-            level = level,
-            maximumSlots = slotMaximums[index],
-            remainingSlots = slotRemainings[index],
+    if (isSlotsDialogOpen) {
+        SpellSlotsConfigDialog(
+            maximums = slotMaximums,
+            remainings = slotRemainings,
             restoresOnShortRest = character.spellSlotsRestoreOnShortRest,
             restoresOnLongRest = character.spellSlotsRestoreOnLongRest,
-            onDismiss = { editingSlotLevel = null },
-            onSave = { maximum, remaining, shortRest, longRest ->
-                onUpdateSpellSlots(resolvedBundle, level, maximum, remaining, shortRest, longRest)
-                editingSlotLevel = null
+            onDismiss = { isSlotsDialogOpen = false },
+            onSave = { maximums, remainings, shortRest, longRest ->
+                onUpdateAllSpellSlots(resolvedBundle, maximums, remainings, shortRest, longRest)
+                isSlotsDialogOpen = false
             }
         )
     }
@@ -714,12 +729,14 @@ private fun SpellsAddEntryDialog(
     onCreateSpell: () -> Unit,
     onSelectCatalogItem: (SpellCatalogItem) -> Unit
 ) {
+    val strings = LocalStrings.current
     var query by remember { mutableStateOf("") }
-    val filteredItems = remember(catalogItems, query) {
+    val filteredItems = remember(catalogItems, query, strings) {
         val needle = query.trim()
         catalogItems.filter { item ->
             needle.isBlank() ||
                 item.name.contains(needle, ignoreCase = true) ||
+                localizedSpellNameOf(item.id, item.name, strings).contains(needle, ignoreCase = true) ||
                 item.description.contains(needle, ignoreCase = true) ||
                 item.school.contains(needle, ignoreCase = true)
         }
@@ -804,7 +821,7 @@ private fun SpellCatalogRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.name,
+                    text = localizedSpellNameOf(item.id, item.name, LocalStrings.current),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFFF7F2EA),
                     maxLines = 1,
@@ -1512,70 +1529,34 @@ private fun SpellEditDialog(
 }
 
 @Composable
-private fun SpellSlotConfigDialog(
-    level: Int,
-    maximumSlots: Int,
-    remainingSlots: Int,
+private fun SpellSlotsConfigDialog(
+    maximums: List<Int>,
+    remainings: List<Int>,
     restoresOnShortRest: Boolean,
     restoresOnLongRest: Boolean,
     onDismiss: () -> Unit,
-    onSave: (Int, Int, Boolean, Boolean) -> Unit
+    onSave: (List<Int>, List<Int>, Boolean, Boolean) -> Unit
 ) {
-    var maximum by remember(level, maximumSlots) { mutableStateOf(maximumSlots) }
-    var remaining by remember(level, remainingSlots) { mutableStateOf(remainingSlots) }
-    var shortRest by remember(level, restoresOnShortRest) { mutableStateOf(restoresOnShortRest) }
-    var longRest by remember(level, restoresOnLongRest) { mutableStateOf(restoresOnLongRest) }
+    val maxState = remember(maximums) { mutableStateListOf<Int>().apply { addAll(maximums.take(9)) } }
+    val remState = remember(remainings) { mutableStateListOf<Int>().apply { addAll(remainings.take(9)) } }
+    var shortRest by remember(restoresOnShortRest) { mutableStateOf(restoresOnShortRest) }
+    var longRest by remember(restoresOnLongRest) { mutableStateOf(restoresOnLongRest) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text("spells_edit_slots")) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = spellLevelTitle(level),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFFF7F2EA)
-                )
-                CompactNumberStepperField(
-                    label = text("spells_slot_count"),
-                    value = maximum,
-                    onValueChange = {
-                        maximum = it.coerceAtLeast(0)
-                        if (remaining > maximum) remaining = maximum
-                    }
-                )
-                CompactNumberStepperField(
-                    label = text("spells_slots_remaining"),
-                    value = remaining,
-                    maxValue = maximum,
-                    onValueChange = { remaining = it.coerceIn(0, maximum) }
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = shortRest,
-                        onCheckedChange = { shortRest = it }
-                    )
-                    Text(
-                        text = text("spells_restore_short_rest"),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFFF7F2EA)
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = longRest,
-                        onCheckedChange = { longRest = it }
-                    )
-                    Text(
-                        text = text("spells_restore_long_rest"),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFFF7F2EA)
-                    )
-                }
-            }
+            SpellSlotsConfigBody(
+                maxState = maxState,
+                remState = remState,
+                shortRest = shortRest,
+                longRest = longRest,
+                onShortRestChange = { shortRest = it },
+                onLongRestChange = { longRest = it }
+            )
         },
         confirmButton = {
-            Button(onClick = { onSave(maximum, remaining.coerceAtMost(maximum), shortRest, longRest) }) {
+            Button(onClick = { onSave(maxState.toList(), remState.toList(), shortRest, longRest) }) {
                 Text(text("common_save"))
             }
         },
@@ -1585,6 +1566,149 @@ private fun SpellSlotConfigDialog(
             }
         }
     )
+}
+
+@Composable
+private fun SpellSlotsConfigBody(
+    maxState: androidx.compose.runtime.snapshots.SnapshotStateList<Int>,
+    remState: androidx.compose.runtime.snapshots.SnapshotStateList<Int>,
+    shortRest: Boolean,
+    longRest: Boolean,
+    onShortRestChange: (Boolean) -> Unit,
+    onLongRestChange: (Boolean) -> Unit
+) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        (1..9).chunked(3).forEach { rowLevels ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowLevels.forEach { level ->
+                    val index = level - 1
+                    SpellSlotCell(
+                        title = spellLevelTitle(level),
+                        value = maxState[index],
+                        onValueChange = {
+                            maxState[index] = it
+                            if (remState[index] > it) remState[index] = it
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = shortRest, onCheckedChange = onShortRestChange)
+            Text(
+                text = text("spells_restore_short_rest"),
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFF7F2EA)
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = longRest, onCheckedChange = onLongRestChange)
+            Text(
+                text = text("spells_restore_long_rest"),
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFF7F2EA)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpellSlotCell(
+    title: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = if (value == 0) "" else value.toString(),
+        onValueChange = { onValueChange(it.filter(Char::isDigit).take(2).toIntOrNull() ?: 0) },
+        label = {
+            Text(
+                text = title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+        modifier = modifier,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = Color(0xFFF7F2EA),
+            unfocusedTextColor = Color(0xFFF7F2EA),
+            focusedContainerColor = Color(0x14FFFFFF),
+            unfocusedContainerColor = Color(0x14FFFFFF),
+            focusedBorderColor = Color(0x50FFFFFF),
+            unfocusedBorderColor = Color(0x30FFFFFF),
+            focusedLabelColor = Color(0xFFD2CAC2),
+            unfocusedLabelColor = Color(0xFFD2CAC2),
+            cursorColor = Color(0xFFFFF6EA)
+        )
+    )
+}
+
+@Preview(name = "Spell Slots Dialog", showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+private fun SpellSlotsConfigDialogPreview() {
+    val strings = LocalizedStrings(
+        language = AppLanguage.ENGLISH,
+        values = mapOf(
+            "spells_edit_slots" to "Edit Spell Slots",
+            "spells_slots_max" to "Max slots",
+            "spells_slots_left" to "Left",
+            "spells_level_1" to "Level 1",
+            "spells_level_2" to "Level 2",
+            "spells_level_3" to "Level 3",
+            "spells_level_4" to "Level 4",
+            "spells_level_5" to "Level 5",
+            "spells_level_6" to "Level 6",
+            "spells_level_7" to "Level 7",
+            "spells_level_8" to "Level 8",
+            "spells_level_9" to "Level 9",
+            "spells_restore_short_rest" to "Restores on short rest",
+            "spells_restore_long_rest" to "Restores on long rest",
+            "common_save" to "Save",
+            "common_cancel" to "Cancel"
+        )
+    )
+
+    val maxState = remember { mutableStateListOf(4, 3, 3, 1, 0, 0, 0, 0, 0) }
+    val remState = remember { mutableStateListOf(3, 2, 1, 0, 0, 0, 0, 0, 0) }
+    var shortRest by remember { mutableStateOf(false) }
+    var longRest by remember { mutableStateOf(true) }
+
+    CompositionLocalProvider(LocalStrings provides strings) {
+        DnDTheme {
+            Surface(color = Color(0xFF1A171D)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = text("spells_edit_slots"),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color(0xFFF7F2EA),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    SpellSlotsConfigBody(
+                        maxState = maxState,
+                        remState = remState,
+                        shortRest = shortRest,
+                        longRest = longRest,
+                        onShortRestChange = { shortRest = it },
+                        onLongRestChange = { longRest = it }
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -1706,86 +1830,6 @@ private fun CompactTextField(
 }
 
 @Composable
-private fun CompactNumberStepperField(
-    label: String,
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    minValue: Int = 0,
-    maxValue: Int = Int.MAX_VALUE,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFFD2CAC2)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StepperButton(icon = Icons.Outlined.Remove) {
-                onValueChange((value - 1).coerceAtLeast(minValue))
-            }
-            Surface(
-                modifier = Modifier.width(72.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = Color(0x14FFFFFF),
-                border = BorderStroke(1.dp, Color(0x30FFFFFF))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = value.toString(),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFFF7F2EA),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-            StepperButton(icon = Icons.Outlined.Add) {
-                onValueChange((value + 1).coerceAtMost(maxValue))
-            }
-        }
-    }
-}
-
-@Composable
-private fun StepperButton(
-    icon: ImageVector,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0x14FFFFFF),
-        border = BorderStroke(1.dp, Color(0x30FFFFFF))
-    ) {
-        Box(
-            modifier = Modifier
-                .width(36.dp)
-                .height(46.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color(0xFFF7F2EA),
-                modifier = Modifier.size(16.dp)
-            )
-        }
-    }
-}
-
-@Composable
 private fun <T> SelectionDialog(
     title: String,
     options: List<T>,
@@ -1825,6 +1869,24 @@ private fun <T> SelectionDialog(
                 Text(text("common_cancel"))
             }
         }
+    )
+}
+
+private fun localizedSpellNameOf(catalogId: String?, fallback: String, strings: LocalizedStrings): String {
+    if (catalogId.isNullOrBlank()) return fallback
+    val key = "spell_name_" + catalogId.removePrefix("spell:")
+    val localized = strings[key]
+    return if (localized == key) fallback else localized
+}
+
+private fun buildLocalizedCatalogSpell(item: SpellCatalogItem, strings: LocalizedStrings): Spell {
+    val spell = item.toSpell()
+    val useRu = strings.language == AppLanguage.RUSSIAN && item.ruDescription.isNotBlank()
+    return spell.copy(
+        name = localizedSpellNameOf(item.id, item.name, strings),
+        description = if (useRu) item.ruDescription else spell.description,
+        higherLevelDescription = if (useRu) item.ruHigherLevel else spell.higherLevelDescription,
+        material = if (useRu && item.ruMaterial.isNotBlank()) item.ruMaterial else spell.material
     )
 }
 
