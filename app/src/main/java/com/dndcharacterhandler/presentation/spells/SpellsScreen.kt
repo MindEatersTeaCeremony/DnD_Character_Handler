@@ -844,7 +844,7 @@ private fun SpellCatalogRow(
 }
 
 @Composable
-private fun SpellEditDialog(
+internal fun SpellEditDialog(
     spell: Spell,
     onDismiss: () -> Unit,
     onSave: (Spell) -> Unit,
@@ -1890,7 +1890,7 @@ private fun buildLocalizedCatalogSpell(item: SpellCatalogItem, strings: Localize
     )
 }
 
-private fun newDraftSpell(): Spell =
+internal fun newDraftSpell(): Spell =
     Spell(
         id = 0,
         name = "",
@@ -2075,18 +2075,18 @@ private fun durationUnitLabel(kind: SpellDurationKind, strings: LocalizedStrings
         }
     ]
 
-private enum class SpellResolutionKind { NONE, ATTACK, SAVE, HEAL }
+internal enum class SpellResolutionKind { NONE, ATTACK, SAVE, HEAL }
 
-private fun parseResolutionKind(spell: Spell): SpellResolutionKind =
+internal fun parseResolutionKind(spell: Spell): SpellResolutionKind =
     when {
-        spell.saveAbility.isNotBlank() -> SpellResolutionKind.SAVE
-        spell.attackType.isNotBlank() -> SpellResolutionKind.ATTACK
         spell.healBase.isNotBlank() || spell.healing.isNotBlank() ||
             spell.healBonusValue != 0 || spell.healBonusIsModifier -> SpellResolutionKind.HEAL
+        spell.saveAbility.isNotBlank() -> SpellResolutionKind.SAVE
+        spell.attackType.isNotBlank() -> SpellResolutionKind.ATTACK
         else -> SpellResolutionKind.NONE
     }
 
-private fun resolutionKindLabel(kind: SpellResolutionKind, strings: LocalizedStrings): String =
+internal fun resolutionKindLabel(kind: SpellResolutionKind, strings: LocalizedStrings): String =
     strings[
         when (kind) {
             SpellResolutionKind.NONE -> "spells_resolution_none"

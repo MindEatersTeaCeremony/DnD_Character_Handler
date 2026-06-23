@@ -255,6 +255,56 @@ data class SpellEntity(
 )
 
 @Entity(
+    tableName = "spell_attacks",
+    foreignKeys = [
+        ForeignKey(
+            entity = CharacterEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["characterOwnerId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("characterOwnerId")]
+)
+data class SpellAttackEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val characterOwnerId: Long,
+    val catalogId: String?,
+    val name: String,
+    val level: Int,
+    val school: String,
+    val isPrepared: Boolean,
+    val description: String,
+    val higherLevelDescription: String,
+    val range: String,
+    val castingTime: String,
+    val duration: String,
+    val components: String,
+    val material: String,
+    val materialCost: String,
+    val isRitual: Boolean,
+    val requiresConcentration: Boolean,
+    val attackType: String,
+    val availableClasses: String,
+    val damageType: String,
+    val damageBase: String,
+    val damageBonusValue: Int,
+    val damageBonusIsModifier: Boolean,
+    val altDamageBase: String,
+    val altDamageType: String,
+    val altDamageBonusValue: Int,
+    val altDamageBonusIsModifier: Boolean,
+    val damage: String,
+    val saveAbility: String,
+    val saveEffect: String,
+    val areaOfEffect: String,
+    val healBase: String,
+    val healBonusValue: Int,
+    val healBonusIsModifier: Boolean,
+    val healing: String
+)
+
+@Entity(
     tableName = "features",
     foreignKeys = [
         ForeignKey(
@@ -309,6 +359,8 @@ data class CharacterWithDetails(
     val inventoryItems: List<InventoryItemEntity>,
     @Relation(parentColumn = "id", entityColumn = "characterOwnerId")
     val spells: List<SpellEntity>,
+    @Relation(parentColumn = "id", entityColumn = "characterOwnerId")
+    val spellAttacks: List<SpellAttackEntity>,
     @Relation(parentColumn = "id", entityColumn = "characterOwnerId")
     val features: List<FeatureEntity>,
     @Relation(parentColumn = "id", entityColumn = "characterOwnerId")

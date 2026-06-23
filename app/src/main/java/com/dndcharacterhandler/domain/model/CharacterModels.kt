@@ -77,6 +77,7 @@ data class CharacterBundle(
     val combatResources: List<CombatResource>,
     val inventoryItems: List<InventoryItem>,
     val spells: List<Spell>,
+    val spellAttacks: List<Spell> = emptyList(),
     val features: List<Feature>,
     val notes: List<Note>
 )

@@ -8,6 +8,7 @@ import com.dndcharacterhandler.domain.model.AppLanguage
 import com.dndcharacterhandler.domain.model.Attack
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CombatResource
+import com.dndcharacterhandler.domain.model.Spell
 import com.dndcharacterhandler.presentation.attributes.previewFallbackCharacter
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.theme.DnDTheme
@@ -33,9 +34,10 @@ fun CombatScreenPreview() {
             "combat_add_attack" to "Add Attack",
             "combat_add_entry_title" to "Add to Combat",
             "combat_add_attacks_section" to "Attacks",
-            "combat_create_weapon_attack" to "Create weapon attack",
-            "combat_create_spell_attack" to "Create spell attack",
-            "combat_create_custom_attack" to "Create custom attack",
+            "combat_create_weapon_attack" to "Weapon attack from inventory",
+            "combat_create_custom_weapon_attack" to "Custom weapon attack",
+            "combat_create_spell_attack" to "Spell attack from spellbook",
+            "combat_create_custom_spell_attack" to "Custom spell attack",
             "combat_add_resources_section" to "Resources",
             "combat_add_resource_action" to "Add resource",
             "combat_select_weapon" to "Select Weapon",
@@ -55,6 +57,7 @@ fun CombatScreenPreview() {
             "combat_attack_damage" to "Damage",
             "combat_attack_damage_type" to "Damage Type",
             "combat_attack_proficient" to "Proficient",
+            "combat_attack_save_dc" to "DC %1\$s",
             "combat_edit_resource" to "Edit Resource",
             "combat_resource_current" to "Current",
             "combat_resource_maximum" to "Maximum",
@@ -79,11 +82,30 @@ fun CombatScreenPreview() {
             "ability_intelligence" to "Intelligence",
             "ability_wisdom" to "Wisdom",
             "ability_charisma" to "Charisma",
+            "ability_str_short" to "STR",
+            "ability_dex_short" to "DEX",
+            "ability_con_short" to "CON",
+            "ability_int_short" to "INT",
+            "ability_wis_short" to "WIS",
+            "ability_cha_short" to "CHA",
             "inventory_damage_type_slashing" to "Slashing",
             "inventory_damage_type_bludgeoning" to "Bludgeoning",
             "inventory_damage_type_piercing" to "Piercing",
             "inventory_damage_type_fire" to "Fire",
-            "inventory_damage_type_cold" to "Cold"
+            "inventory_damage_type_cold" to "Cold",
+            "inventory_damage_type_force" to "Force",
+            "spells_resolution_heal" to "Heal",
+            "spells_area_sphere" to "Sphere",
+            "spells_area_cube" to "Cube",
+            "spells_level_cantrips" to "Cantrip",
+            "spells_level_1" to "Level 1",
+            "spells_level_2" to "Level 2",
+            "spells_level_3" to "Level 3",
+            "spells_ritual" to "Ritual",
+            "spells_material_cost" to "GP",
+            "combat_spell_component_verbal_short" to "V",
+            "combat_spell_component_somatic_short" to "S",
+            "combat_spell_component_material_short" to "M"
         )
     )
     val character = previewFallbackCharacter().copy(
@@ -96,16 +118,6 @@ fun CombatScreenPreview() {
     val attacks = listOf(
         Attack(
             id = 1,
-            name = "Quarterstaff",
-            icon = "",
-            isProficient = true,
-            normalRange = 5,
-            damageDiceCount = 1,
-            damageDieType = "d8",
-            primaryDamageType = "Bludgeoning"
-        ),
-        Attack(
-            id = 2,
             name = "Dagger",
             icon = "",
             isProficient = true,
@@ -113,28 +125,65 @@ fun CombatScreenPreview() {
             damageDiceCount = 1,
             damageDieType = "d4",
             primaryDamageType = "Piercing"
-        ),
-        Attack(
-            id = 3,
+        )
+    )
+    val spellAttacks = listOf(
+        Spell(
+            id = 1,
             name = "Fire Bolt",
-            icon = "",
-            isProficient = true,
-            ability = com.dndcharacterhandler.domain.model.SpellcastingAbility.INTELLIGENCE,
-            normalRange = 120,
-            damageDiceCount = 2,
-            damageDieType = "d10",
-            primaryDamageType = "Fire"
+            level = 0,
+            school = "Evocation",
+            isPrepared = true,
+            description = "",
+            range = "120 feet",
+            components = "V, S",
+            attackType = "attack",
+            damageType = "Fire",
+            damageBase = "2d10"
         ),
-        Attack(
+        Spell(
+            id = 2,
+            name = "Magic Missile",
+            level = 1,
+            school = "Evocation",
+            isPrepared = true,
+            description = "",
+            range = "120 feet",
+            components = "V, S",
+            damageType = "Force",
+            damageBase = "3d4",
+            damageBonusValue = 3
+        ),
+        Spell(
+            id = 3,
+            name = "Fireball",
+            level = 3,
+            school = "Evocation",
+            isPrepared = true,
+            description = "",
+            range = "150 feet",
+            components = "V, S, M",
+            damageType = "Fire",
+            damageBase = "8d6",
+            saveAbility = "Dexterity",
+            saveEffect = "half",
+            areaOfEffect = "sphere, 20 ft"
+        ),
+        Spell(
             id = 4,
-            name = "Ray of Frost",
-            icon = "",
-            isProficient = true,
-            ability = com.dndcharacterhandler.domain.model.SpellcastingAbility.INTELLIGENCE,
-            normalRange = 60,
-            damageDiceCount = 1,
-            damageDieType = "d8",
-            primaryDamageType = "Cold"
+            name = "Heal Spell",
+            level = 2,
+            school = "Evocation",
+            isPrepared = true,
+            description = "",
+            range = "Touch",
+            components = "V, S, M",
+            material = "a diamond",
+            materialCost = "100",
+            isRitual = true,
+            areaOfEffect = "cube, 15 ft",
+            healBase = "2d8",
+            healBonusValue = 3
         )
     )
     val resources = listOf(
@@ -154,6 +203,7 @@ fun CombatScreenPreview() {
                     combatResources = resources,
                     inventoryItems = emptyList(),
                     spells = emptyList(),
+                    spellAttacks = spellAttacks,
                     features = emptyList(),
                     notes = emptyList()
                 )

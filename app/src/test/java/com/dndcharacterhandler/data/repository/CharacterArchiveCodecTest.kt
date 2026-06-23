@@ -239,6 +239,27 @@ class CharacterArchiveCodecTest {
                     availableClasses = "Ranger"
                 )
             ),
+            spellAttacks = listOf(
+                Spell(
+                    catalogId = "cure-wounds",
+                    name = "Cure Wounds",
+                    level = 1,
+                    school = "Evocation",
+                    isPrepared = true,
+                    description = "Heal a creature.",
+                    range = "Touch",
+                    castingTime = "1 action",
+                    duration = "Instantaneous",
+                    components = "V, S, M",
+                    material = "a diamond",
+                    materialCost = "50",
+                    isRitual = true,
+                    availableClasses = "Cleric",
+                    areaOfEffect = "cube, 15 ft",
+                    healBase = "2d8",
+                    healBonusValue = 3
+                )
+            ),
             features = listOf(
                 Feature(
                     name = "Favored Enemy",

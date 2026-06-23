@@ -61,6 +61,8 @@ interface CharacterRepository {
     )
     suspend fun upsertAttack(characterId: Long, attack: Attack): Long
     suspend fun deleteAttack(characterId: Long, attackId: Long)
+    suspend fun upsertSpellAttack(characterId: Long, spellAttack: Spell): Long
+    suspend fun deleteSpellAttack(characterId: Long, spellAttackId: Long)
     suspend fun upsertCombatResource(characterId: Long, resource: CombatResource): Long
     suspend fun deleteCombatResource(characterId: Long, resourceId: Long)
     suspend fun updateCombatResourceUses(characterId: Long, resourceId: Long, delta: Int)

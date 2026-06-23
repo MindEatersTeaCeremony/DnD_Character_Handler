@@ -8,6 +8,7 @@ import com.dndcharacterhandler.data.local.entity.FeatureEntity
 import com.dndcharacterhandler.data.local.entity.InventoryItemEntity
 import com.dndcharacterhandler.data.local.entity.NoteEntity
 import com.dndcharacterhandler.data.local.entity.SkillEntity
+import com.dndcharacterhandler.data.local.entity.SpellAttackEntity
 import com.dndcharacterhandler.data.local.entity.SpellEntity
 import com.dndcharacterhandler.domain.model.Attack
 import com.dndcharacterhandler.domain.model.ArmorClassMode
@@ -99,6 +100,7 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
                 healing = it.healing
             )
         },
+        spellAttacks = spellAttacks.map { it.toDomain() },
         features = features.map { Feature(it.id, it.name, it.description, it.level, it.source) },
         notes = notes.map { Note(it.id, it.title, it.createdDate, it.updatedDate, it.content, it.isPinned) }
     )
@@ -386,6 +388,83 @@ fun InventoryItem.toEntity(characterId: Long): InventoryItemEntity =
 
 fun Spell.toEntity(characterId: Long): SpellEntity =
     SpellEntity(
+        id = id,
+        characterOwnerId = characterId,
+        catalogId = catalogId,
+        name = name,
+        level = level,
+        school = school,
+        isPrepared = isPrepared,
+        description = description,
+        higherLevelDescription = higherLevelDescription,
+        range = range,
+        castingTime = castingTime,
+        duration = duration,
+        components = components,
+        material = material,
+        materialCost = materialCost,
+        isRitual = isRitual,
+        requiresConcentration = requiresConcentration,
+        attackType = attackType,
+        availableClasses = availableClasses,
+        damageType = damageType,
+        damageBase = damageBase,
+        damageBonusValue = damageBonusValue,
+        damageBonusIsModifier = damageBonusIsModifier,
+        altDamageBase = altDamageBase,
+        altDamageType = altDamageType,
+        altDamageBonusValue = altDamageBonusValue,
+        altDamageBonusIsModifier = altDamageBonusIsModifier,
+        damage = damage,
+        saveAbility = saveAbility,
+        saveEffect = saveEffect,
+        areaOfEffect = areaOfEffect,
+        healBase = healBase,
+        healBonusValue = healBonusValue,
+        healBonusIsModifier = healBonusIsModifier,
+        healing = healing
+    )
+
+fun SpellAttackEntity.toDomain(): Spell =
+    Spell(
+        id = id,
+        catalogId = catalogId,
+        name = name,
+        level = level,
+        school = school,
+        isPrepared = isPrepared,
+        description = description,
+        higherLevelDescription = higherLevelDescription,
+        range = range,
+        castingTime = castingTime,
+        duration = duration,
+        components = components,
+        material = material,
+        materialCost = materialCost,
+        isRitual = isRitual,
+        requiresConcentration = requiresConcentration,
+        attackType = attackType,
+        availableClasses = availableClasses,
+        damageType = damageType,
+        damageBase = damageBase,
+        damageBonusValue = damageBonusValue,
+        damageBonusIsModifier = damageBonusIsModifier,
+        altDamageBase = altDamageBase,
+        altDamageType = altDamageType,
+        altDamageBonusValue = altDamageBonusValue,
+        altDamageBonusIsModifier = altDamageBonusIsModifier,
+        damage = damage,
+        saveAbility = saveAbility,
+        saveEffect = saveEffect,
+        areaOfEffect = areaOfEffect,
+        healBase = healBase,
+        healBonusValue = healBonusValue,
+        healBonusIsModifier = healBonusIsModifier,
+        healing = healing
+    )
+
+fun Spell.toSpellAttackEntity(characterId: Long): SpellAttackEntity =
+    SpellAttackEntity(
         id = id,
         characterOwnerId = characterId,
         catalogId = catalogId,

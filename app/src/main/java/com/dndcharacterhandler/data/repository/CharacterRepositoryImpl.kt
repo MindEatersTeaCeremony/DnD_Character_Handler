@@ -52,6 +52,7 @@ class CharacterRepositoryImpl(
                 combatResources = character.combatResources.map { it.toEntity(characterEntity.id) },
                 inventoryItems = character.inventoryItems.map { it.toEntity(characterEntity.id) },
                 spells = character.spells.map { it.toEntity(characterEntity.id) },
+                spellAttacks = character.spellAttacks.map { it.toSpellAttackEntity(characterEntity.id) },
                 features = character.features.map { it.toEntity(characterEntity.id) },
                 notes = character.notes.map { it.toEntity(characterEntity.id) }
             )
@@ -348,6 +349,25 @@ class CharacterRepositoryImpl(
             writeCoordinator.deleteAttackForCharacter(
                 characterId = characterId,
                 attackId = attackId,
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+    }
+
+    override suspend fun upsertSpellAttack(characterId: Long, spellAttack: Spell): Long =
+        writeMutex.withLock {
+            writeCoordinator.upsertSpellAttackForCharacter(
+                characterId = characterId,
+                spellAttack = spellAttack.toSpellAttackEntity(characterId),
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+
+    override suspend fun deleteSpellAttack(characterId: Long, spellAttackId: Long) {
+        writeMutex.withLock {
+            writeCoordinator.deleteSpellAttackForCharacter(
+                characterId = characterId,
+                spellAttackId = spellAttackId,
                 updatedAt = System.currentTimeMillis()
             )
         }

@@ -199,6 +199,43 @@ fun CharacterBundle.toArchiveManifest(
                 put("healing", spell.healing)
             }
         }))
+        put("spellAttacks", JSONArray(spellAttacks.map { spell ->
+            JSONObject().apply {
+                put("catalogId", spell.catalogId)
+                put("name", spell.name)
+                put("level", spell.level)
+                put("school", spell.school)
+                put("isPrepared", spell.isPrepared)
+                put("description", spell.description)
+                put("higherLevelDescription", spell.higherLevelDescription)
+                put("range", spell.range)
+                put("castingTime", spell.castingTime)
+                put("duration", spell.duration)
+                put("components", spell.components)
+                put("material", spell.material)
+                put("materialCost", spell.materialCost)
+                put("isRitual", spell.isRitual)
+                put("requiresConcentration", spell.requiresConcentration)
+                put("attackType", spell.attackType)
+                put("availableClasses", spell.availableClasses)
+                put("damageType", spell.damageType)
+                put("damageBase", spell.damageBase)
+                put("damageBonusValue", spell.damageBonusValue)
+                put("damageBonusIsModifier", spell.damageBonusIsModifier)
+                put("altDamageBase", spell.altDamageBase)
+                put("altDamageType", spell.altDamageType)
+                put("altDamageBonusValue", spell.altDamageBonusValue)
+                put("altDamageBonusIsModifier", spell.altDamageBonusIsModifier)
+                put("damage", spell.damage)
+                put("saveAbility", spell.saveAbility)
+                put("saveEffect", spell.saveEffect)
+                put("areaOfEffect", spell.areaOfEffect)
+                put("healBase", spell.healBase)
+                put("healBonusValue", spell.healBonusValue)
+                put("healBonusIsModifier", spell.healBonusIsModifier)
+                put("healing", spell.healing)
+            }
+        }))
         put("features", JSONArray(features.map { feature ->
             JSONObject().apply {
                 put("name", feature.name)
@@ -308,6 +345,7 @@ fun archiveManifestToCharacterBundle(
             combatResources = manifest.optJSONArray("combatResources")?.toCombatResourceList().orEmpty(),
             inventoryItems = manifest.optJSONArray("inventoryItems")?.toInventoryItemList(resolveAssetReference).orEmpty(),
             spells = manifest.optJSONArray("spells")?.toSpellList().orEmpty(),
+            spellAttacks = manifest.optJSONArray("spellAttacks")?.toSpellList().orEmpty(),
             features = manifest.optJSONArray("features")?.toFeatureList().orEmpty(),
             notes = manifest.optJSONArray("notes")?.toNoteList().orEmpty()
         )

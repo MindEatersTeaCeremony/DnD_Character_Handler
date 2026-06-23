@@ -15,6 +15,7 @@ import com.dndcharacterhandler.data.local.entity.FeatureEntity
 import com.dndcharacterhandler.data.local.entity.InventoryItemEntity
 import com.dndcharacterhandler.data.local.entity.NoteEntity
 import com.dndcharacterhandler.data.local.entity.SkillEntity
+import com.dndcharacterhandler.data.local.entity.SpellAttackEntity
 import com.dndcharacterhandler.data.local.entity.SpellEntity
 
 @Database(
@@ -25,10 +26,11 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         CombatResourceEntity::class,
         InventoryItemEntity::class,
         SpellEntity::class,
+        SpellAttackEntity::class,
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 37,
+    version = 41,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -81,7 +83,11 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_33_34,
                     MIGRATION_34_35,
                     MIGRATION_35_36,
-                    MIGRATION_36_37
+                    MIGRATION_36_37,
+                    MIGRATION_37_38,
+                    MIGRATION_38_39,
+                    MIGRATION_39_40,
+                    MIGRATION_40_41
                 ).build().also { INSTANCE = it }
             }
         }
@@ -380,6 +386,121 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE spells ADD COLUMN altDamageBonusIsModifier INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE spells ADD COLUMN healBonusValue INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE spells ADD COLUMN healBonusIsModifier INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attacks ADD COLUMN areaOfEffect TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_38_39 = object : Migration(38, 39) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attacks ADD COLUMN spellLevel INTEGER")
+            }
+        }
+
+        private val MIGRATION_39_40 = object : Migration(39, 40) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attacks ADD COLUMN isRitual INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN spellComponents TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE attacks ADD COLUMN materialCost TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_40_41 = object : Migration(40, 41) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS spell_attacks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterOwnerId INTEGER NOT NULL,
+                        catalogId TEXT,
+                        name TEXT NOT NULL,
+                        level INTEGER NOT NULL,
+                        school TEXT NOT NULL,
+                        isPrepared INTEGER NOT NULL,
+                        description TEXT NOT NULL,
+                        higherLevelDescription TEXT NOT NULL,
+                        range TEXT NOT NULL,
+                        castingTime TEXT NOT NULL,
+                        duration TEXT NOT NULL,
+                        components TEXT NOT NULL,
+                        material TEXT NOT NULL,
+                        materialCost TEXT NOT NULL,
+                        isRitual INTEGER NOT NULL,
+                        requiresConcentration INTEGER NOT NULL,
+                        attackType TEXT NOT NULL,
+                        availableClasses TEXT NOT NULL,
+                        damageType TEXT NOT NULL,
+                        damageBase TEXT NOT NULL,
+                        damageBonusValue INTEGER NOT NULL,
+                        damageBonusIsModifier INTEGER NOT NULL,
+                        altDamageBase TEXT NOT NULL,
+                        altDamageType TEXT NOT NULL,
+                        altDamageBonusValue INTEGER NOT NULL,
+                        altDamageBonusIsModifier INTEGER NOT NULL,
+                        damage TEXT NOT NULL,
+                        saveAbility TEXT NOT NULL,
+                        saveEffect TEXT NOT NULL,
+                        areaOfEffect TEXT NOT NULL,
+                        healBase TEXT NOT NULL,
+                        healBonusValue INTEGER NOT NULL,
+                        healBonusIsModifier INTEGER NOT NULL,
+                        healing TEXT NOT NULL,
+                        FOREIGN KEY(characterOwnerId) REFERENCES characters(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_spell_attacks_characterOwnerId ON spell_attacks(characterOwnerId)")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS attacks_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterOwnerId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        icon TEXT NOT NULL,
+                        isProficient INTEGER NOT NULL,
+                        calculationMode TEXT NOT NULL,
+                        ability TEXT NOT NULL,
+                        normalRange INTEGER,
+                        longRange INTEGER,
+                        damageDiceCount INTEGER NOT NULL,
+                        damageDieType TEXT NOT NULL,
+                        alternateDamageDiceCount INTEGER,
+                        alternateDamageDieType TEXT,
+                        alternateDamageType TEXT,
+                        magicalBonus INTEGER NOT NULL,
+                        applyAbilityModifierToDamage INTEGER NOT NULL,
+                        range TEXT NOT NULL,
+                        attackBonusOrSaveDc TEXT NOT NULL,
+                        damage TEXT NOT NULL,
+                        damageType TEXT NOT NULL,
+                        FOREIGN KEY(characterOwnerId) REFERENCES characters(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO attacks_new (
+                        id, characterOwnerId, name, icon, isProficient, calculationMode, ability,
+                        normalRange, longRange, damageDiceCount, damageDieType,
+                        alternateDamageDiceCount, alternateDamageDieType, alternateDamageType,
+                        magicalBonus, applyAbilityModifierToDamage, range, attackBonusOrSaveDc, damage, damageType
+                    )
+                    SELECT
+                        id, characterOwnerId, name, icon, isProficient, calculationMode, ability,
+                        normalRange, longRange, damageDiceCount, damageDieType,
+                        alternateDamageDiceCount, alternateDamageDieType, alternateDamageType,
+                        magicalBonus, applyAbilityModifierToDamage, range, attackBonusOrSaveDc, damage, damageType
+                    FROM attacks
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE attacks")
+                db.execSQL("ALTER TABLE attacks_new RENAME TO attacks")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_attacks_characterOwnerId ON attacks(characterOwnerId)")
             }
         }
     }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,6 +68,7 @@ import com.dndcharacterhandler.domain.model.InventoryCategory
 import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.InventoryWeaponProperty
 import com.dndcharacterhandler.domain.model.InventoryWeaponRangeType
+import com.dndcharacterhandler.domain.model.Spell
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
 import com.dndcharacterhandler.domain.rules.abilityModifier
 import com.dndcharacterhandler.domain.rules.calculateArmorClass
@@ -81,6 +84,10 @@ import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.components.ScreenTopActions
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
+import com.dndcharacterhandler.presentation.spells.SpellEditDialog
+import com.dndcharacterhandler.presentation.spells.SpellResolutionKind
+import com.dndcharacterhandler.presentation.spells.newDraftSpell
+import com.dndcharacterhandler.presentation.spells.parseResolutionKind
 import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -152,6 +159,25 @@ class CombatViewModel(
         }
     }
 
+    fun updateSpellAttack(characterBundle: CharacterBundle, spellAttack: Spell) {
+        viewModelScope.launch {
+            characterRepository.upsertSpellAttack(
+                characterId = characterBundle.character.id,
+                spellAttack = spellAttack
+            )
+        }
+    }
+
+    fun deleteSpellAttack(characterBundle: CharacterBundle, spellAttack: Spell) {
+        if (spellAttack.id == 0L) return
+        viewModelScope.launch {
+            characterRepository.deleteSpellAttack(
+                characterId = characterBundle.character.id,
+                spellAttackId = spellAttack.id
+            )
+        }
+    }
+
     fun updateCombatResourceUses(characterBundle: CharacterBundle, resourceId: Long, delta: Int) {
         viewModelScope.launch {
             characterRepository.updateCombatResourceUses(
@@ -197,6 +223,8 @@ fun CombatScreen(
         onUpdateSpellcastingAbility = viewModel::updateSpellcastingAbility,
         onUpdateAttack = viewModel::updateAttack,
         onDeleteAttack = viewModel::deleteAttack,
+        onUpdateSpellAttack = viewModel::updateSpellAttack,
+        onDeleteSpellAttack = viewModel::deleteSpellAttack,
         onUpdateCombatResourceUses = viewModel::updateCombatResourceUses,
         onUpdateCombatResource = viewModel::updateCombatResource,
         onDeleteCombatResource = viewModel::deleteCombatResource
@@ -212,15 +240,19 @@ internal fun CombatContent(
     onUpdateSpellcastingAbility: (CharacterBundle, SpellcastingAbility) -> Unit = { _, _ -> },
     onUpdateAttack: (CharacterBundle, Attack) -> Unit = { _, _ -> },
     onDeleteAttack: (CharacterBundle, Attack) -> Unit = { _, _ -> },
+    onUpdateSpellAttack: (CharacterBundle, Spell) -> Unit = { _, _ -> },
+    onDeleteSpellAttack: (CharacterBundle, Spell) -> Unit = { _, _ -> },
     onUpdateCombatResourceUses: (CharacterBundle, Long, Int) -> Unit = { _, _, _ -> },
     onUpdateCombatResource: (CharacterBundle, CombatResource) -> Unit = { _, _ -> },
     onDeleteCombatResource: (CharacterBundle, CombatResource) -> Unit = { _, _ -> }
 ) {
     val character = characterBundle?.character
     var editingAttack by remember { mutableStateOf<Attack?>(null) }
+    var editingSpellAttack by remember { mutableStateOf<Spell?>(null) }
     var editingCombatResource by remember { mutableStateOf<CombatResource?>(null) }
     var isAddEntryDialogOpen by remember { mutableStateOf(false) }
     var isWeaponAttackPickerOpen by remember { mutableStateOf(false) }
+    var isSpellAttackPickerOpen by remember { mutableStateOf(false) }
     var isArmorClassDialogOpen by remember { mutableStateOf(false) }
     var isSpellcastingAbilityDialogOpen by remember { mutableStateOf(false) }
     var armorClassBaseDraft by remember(character?.id, character?.baseArmorClass) { mutableStateOf(character?.baseArmorClass?.toString().orEmpty()) }
@@ -262,6 +294,7 @@ internal fun CombatContent(
     }
     val spellAttackBonus = signedNumber(proficiencyBonus + spellModifier)
     val spellSaveDc = (8 + proficiencyBonus + spellModifier).toString()
+    val spellSaveDcLabel = LocalStrings.current.format("combat_attack_save_dc", spellSaveDc)
     val resourceRows = remember(resolvedBundle.combatResources) {
         resolvedBundle.combatResources.chunked(3)
     }
@@ -323,17 +356,26 @@ internal fun CombatContent(
                     CombatSectionTitle(text("combat_section_attacks_title"))
                 }
 
-                if (resolvedBundle.attacks.isEmpty()) {
+                if (resolvedBundle.attacks.isEmpty() && resolvedBundle.spellAttacks.isEmpty()) {
                     item {
                         CombatEmptyCard(text("combat_empty_attacks"))
                     }
                 } else {
-                    items(resolvedBundle.attacks, key = { it.id }) { attack ->
+                    items(resolvedBundle.attacks, key = { "attack-${it.id}" }) { attack ->
                         AttackCard(
                             attack = attack,
                             character = character,
                             proficiencyBonus = proficiencyBonus,
                             onClick = { editingAttack = attack }
+                        )
+                    }
+                    items(resolvedBundle.spellAttacks, key = { "spell-${it.id}" }) { spell ->
+                        SpellAttackCard(
+                            spell = spell,
+                            spellAttackBonus = spellAttackBonus,
+                            spellSaveDcLabel = spellSaveDcLabel,
+                            spellModifier = spellModifier,
+                            onClick = { editingSpellAttack = spell }
                         )
                     }
                 }
@@ -375,10 +417,17 @@ internal fun CombatContent(
                 isAddEntryDialogOpen = false
                 isWeaponAttackPickerOpen = true
             },
-            onCreateSpellAttack = {},
-            onCreateCustomAttack = {
+            onCreateCustomWeaponAttack = {
                 isAddEntryDialogOpen = false
                 editingAttack = newDraftAttack()
+            },
+            onCreateSpellAttack = {
+                isAddEntryDialogOpen = false
+                isSpellAttackPickerOpen = true
+            },
+            onCreateCustomSpellAttack = {
+                isAddEntryDialogOpen = false
+                editingSpellAttack = newDraftSpell()
             },
             onAddResource = {
                 isAddEntryDialogOpen = false
@@ -405,6 +454,20 @@ internal fun CombatContent(
         )
     }
 
+    if (isSpellAttackPickerOpen) {
+        SpellAttackPickerDialog(
+            spells = resolvedBundle.spells.filter { it.isCombatSpell() },
+            spellAttackBonus = spellAttackBonus,
+            spellSaveDcLabel = spellSaveDcLabel,
+            spellModifier = spellModifier,
+            onDismiss = { isSpellAttackPickerOpen = false },
+            onSelect = { spell ->
+                onUpdateSpellAttack(resolvedBundle, spell.copy(id = 0))
+                isSpellAttackPickerOpen = false
+            }
+        )
+    }
+
     editingAttack?.let { attack ->
         AttackEditDialog(
             attack = attack,
@@ -417,6 +480,25 @@ internal fun CombatContent(
                 {
                     onDeleteAttack(resolvedBundle, attack)
                     editingAttack = null
+                }
+            } else {
+                null
+            }
+        )
+    }
+
+    editingSpellAttack?.let { spell ->
+        SpellEditDialog(
+            spell = spell,
+            onDismiss = { editingSpellAttack = null },
+            onSave = { updated ->
+                onUpdateSpellAttack(resolvedBundle, updated)
+                editingSpellAttack = null
+            },
+            onDelete = if (spell.id != 0L) {
+                {
+                    onDeleteSpellAttack(resolvedBundle, spell)
+                    editingSpellAttack = null
                 }
             } else {
                 null
@@ -544,8 +626,9 @@ internal fun CombatContent(
 private fun CombatAddEntryDialog(
     onDismiss: () -> Unit,
     onCreateWeaponAttack: () -> Unit,
+    onCreateCustomWeaponAttack: () -> Unit,
     onCreateSpellAttack: () -> Unit,
-    onCreateCustomAttack: () -> Unit,
+    onCreateCustomSpellAttack: () -> Unit,
     onAddResource: () -> Unit
 ) {
     AlertDialog(
@@ -557,8 +640,9 @@ private fun CombatAddEntryDialog(
                     title = text("combat_add_attacks_section"),
                     actions = listOf(
                         DialogActionItem(text("combat_create_weapon_attack"), onCreateWeaponAttack),
+                        DialogActionItem(text("combat_create_custom_weapon_attack"), onCreateCustomWeaponAttack),
                         DialogActionItem(text("combat_create_spell_attack"), onCreateSpellAttack),
-                        DialogActionItem(text("combat_create_custom_attack"), onCreateCustomAttack)
+                        DialogActionItem(text("combat_create_custom_spell_attack"), onCreateCustomSpellAttack)
                     )
                 )
                 DialogActionSection(
@@ -665,6 +749,93 @@ private fun WeaponAttackPickerDialog(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+@Composable
+private fun SpellAttackPickerDialog(
+    spells: List<Spell>,
+    spellAttackBonus: String,
+    spellSaveDcLabel: String,
+    spellModifier: Int,
+    onDismiss: () -> Unit,
+    onSelect: (Spell) -> Unit
+) {
+    val strings = LocalStrings.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text("combat_select_spell")) },
+        text = {
+            if (spells.isEmpty()) {
+                Text(
+                    text = text("combat_no_spells_available"),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFD2CAC2)
+                )
+            } else {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    spells.forEach { spell ->
+                        val bonusOrDc = spell.spellAttackBonusOrDcLabel(
+                            spellAttackBonus = spellAttackBonus,
+                            spellSaveDcLabel = spellSaveDcLabel,
+                            strings = strings
+                        )
+                        val damageLabel = spell.combatDamageLabel(strings = strings, spellModifier = spellModifier)
+                        val tags = spellPickerTags(spell = spell, strings = strings)
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(spell) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF1A171D),
+                            border = BorderStroke(1.dp, Color(0x20FFFFFF))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = spell.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color(0xFFF7F2EA)
+                                )
+                                if (tags.isNotBlank()) {
+                                    Text(
+                                        text = tags,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFFAAA29A),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = buildString {
+                                        append(bonusOrDc)
+                                        if (damageLabel.isNotBlank()) {
+                                            if (isNotEmpty()) append(" • ")
+                                            append(damageLabel)
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD2CAC2),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -853,7 +1024,7 @@ private fun AttackCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFF17141B).copy(alpha = 0.62f),
-        border = BorderStroke(1.dp, Color(0x36FFFFFF))
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -886,21 +1057,23 @@ private fun AttackCard(
 
             Column(
                 modifier = Modifier
-                    .weight(0.9f)
+                    .weight(0.72f)
                     .padding(start = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Text(
-                    text = attackBonusLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFFF7F2EA),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                attackBonusLabel.takeIf { it.isNotBlank() }?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFFF7F2EA),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
                     text = damageLabel,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFFE9DBC8),
+                    color = Color(0xFFE9E2D9),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -916,18 +1089,156 @@ private fun AttackCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SpellAttackCard(
+    spell: Spell,
+    spellAttackBonus: String,
+    spellSaveDcLabel: String,
+    spellModifier: Int,
+    onClick: () -> Unit
+) {
+    val strings = LocalStrings.current
+    val resolution = parseResolutionKind(spell)
+    val rangeLabel = spellRangeTagLabel(spell.range, text("inventory_unit_feet"))
+    val levelLabel = spellLevelLabel(spell.level, strings)
+    val componentsLabel = spellComponentsLabel(spell.components, strings)
+    val materialCostLabel = spell.materialCost.takeIf { it.isNotBlank() }
+        ?.let { "$it ${strings["spells_material_cost"]}" }
+    val areaLabel = spellAreaLabel(spell.areaOfEffect, strings)
+    val bonusLine = when (resolution) {
+        SpellResolutionKind.ATTACK -> spellAttackBonus
+        SpellResolutionKind.SAVE -> spell.spellSaveLabel(spellSaveDcLabel, strings)
+        else -> ""
+    }
+    val amountLabel = spell.combatAmountDiceLabel(spellModifier)
+    val isHeal = resolution == SpellResolutionKind.HEAL
+    val typeLabel = if (isHeal) strings["spells_resolution_heal"] else spellDamageTypeLabel(spell, strings)
+    val typeColor = if (isHeal) Color(0xFF8AD178) else damageTypeColor(spell.damageType)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF17141B).copy(alpha = 0.62f),
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = spell.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color(0xFFF7F2EA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    LevelTag(levelLabel)
+                    rangeLabel?.let { range -> RangeTag(range) }
+                    if (spell.isRitual) {
+                        CombatTag(value = text("spells_ritual"), textColor = Color(0xFFD2CAC2))
+                    }
+                    componentsLabel?.let { components ->
+                        CombatTag(value = components, textColor = Color(0xFFD2CAC2))
+                    }
+                    materialCostLabel?.let { cost ->
+                        CombatTag(value = cost, textColor = Color(0xFFFFD86B))
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(72.dp)
+                    .background(Color(0x20FFFFFF))
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(0.72f)
+                    .padding(start = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                bonusLine.takeIf { it.isNotBlank() }?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFFF7F2EA),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                amountLabel.takeIf { it.isNotBlank() }?.let { amount ->
+                    Text(
+                        text = amount,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFFE9E2D9),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    typeLabel.takeIf { it.isNotBlank() }?.let { type ->
+                        Text(
+                            text = type,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = typeColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    areaLabel?.let { area ->
+                        Text(
+                            text = area,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFFD2CAC2),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun RangeTag(value: String) {
+    CombatTag(value = value, textColor = Color(0xFFD2CAC2))
+}
+
+@Composable
+private fun LevelTag(value: String) {
+    CombatTag(value = value, textColor = Color(0xFF69B7FF))
+}
+
+@Composable
+private fun CombatTag(value: String, textColor: Color) {
     Surface(
         shape = RoundedCornerShape(6.dp),
-        color = Color(0xFF2A2630),
-        border = BorderStroke(1.dp, Color(0x18FFFFFF))
+        color = Color(0xFF2A2231),
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
     ) {
         Text(
             text = value,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFFD2CAC2)
+            color = textColor
         )
     }
 }
@@ -938,7 +1249,7 @@ private fun CombatEmptyCard(label: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFF17141B).copy(alpha = 0.62f),
-        border = BorderStroke(1.dp, Color(0x36FFFFFF))
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
     ) {
         Text(
             text = label,
@@ -986,7 +1297,7 @@ private fun CombatResourceTile(
             .clickable { onEdit(resource) },
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFF17141B).copy(alpha = 0.62f),
-        border = BorderStroke(1.dp, Color(0x36FFFFFF))
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
     ) {
         Column(
             modifier = Modifier
@@ -1573,6 +1884,179 @@ private fun InventoryItem.toCombatAttack(
     )
 }
 
+private fun Spell.isCombatSpell(): Boolean =
+    parseResolutionKind(this) != SpellResolutionKind.NONE || damageBase.isNotBlank()
+
+private fun Spell.spellAttackBonusOrDcLabel(
+    spellAttackBonus: String,
+    spellSaveDcLabel: String,
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings
+): String = when (parseResolutionKind(this)) {
+    SpellResolutionKind.ATTACK -> spellAttackBonus
+    SpellResolutionKind.SAVE -> spellSaveLabel(spellSaveDcLabel, strings)
+    SpellResolutionKind.HEAL -> strings["spells_resolution_heal"]
+    SpellResolutionKind.NONE -> ""
+}
+
+private fun Spell.spellSaveLabel(
+    spellSaveDcLabel: String,
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings
+): String {
+    val abilityKey = spellSaveAbilityShortKey(saveAbility)
+    return if (abilityKey != null) "${strings[abilityKey]} $spellSaveDcLabel" else spellSaveDcLabel
+}
+
+private fun spellSaveAbilityShortKey(raw: String): String? = when (raw.trim().uppercase().take(3)) {
+    "STR" -> "ability_str_short"
+    "DEX" -> "ability_dex_short"
+    "CON" -> "ability_con_short"
+    "INT" -> "ability_int_short"
+    "WIS" -> "ability_wis_short"
+    "CHA" -> "ability_cha_short"
+    else -> null
+}
+
+private fun Spell.combatAmountDiceLabel(spellModifier: Int): String {
+    val isHeal = parseResolutionKind(this) == SpellResolutionKind.HEAL
+    val base = (if (isHeal) healBase else damageBase).trim()
+    if (base.isBlank()) return ""
+    val bonusIsModifier = if (isHeal) healBonusIsModifier else damageBonusIsModifier
+    val bonusValue = if (isHeal) healBonusValue else damageBonusValue
+    val bonus = if (bonusIsModifier) spellModifier else bonusValue
+    val builder = StringBuilder(formatSpellDiceLabel(base, bonus))
+    if (!isHeal) {
+        val alternate = altDamageBase.trim()
+        if (alternate.isNotBlank()) {
+            val alternateBonus = if (altDamageBonusIsModifier) spellModifier else altDamageBonusValue
+            builder.append(" / ").append(formatSpellDiceLabel(alternate, alternateBonus))
+        }
+    }
+    return builder.toString()
+}
+
+private fun spellRangeTagLabel(range: String, feetLabel: String): String? {
+    val trimmed = range.trim()
+    if (trimmed.isBlank()) return null
+    val digits = Regex("""\d+""").find(trimmed)?.value
+    return if (digits != null) "$digits $feetLabel" else trimmed
+}
+
+private fun spellDamageTypeLabel(
+    spell: Spell,
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings
+): String {
+    val primary = spell.damageType.takeIf { it.isNotBlank() }
+        ?.let { strings[damageTypeLocalizationKeyForCombat(it)] }
+        .orEmpty()
+    val alternate = spell.altDamageType.takeIf { it.isNotBlank() }
+        ?.let { strings[damageTypeLocalizationKeyForCombat(it)] }
+    return if (alternate != null && !alternate.equals(primary, ignoreCase = true)) {
+        listOf(primary, alternate).filter { it.isNotBlank() }.joinToString(" / ")
+    } else {
+        primary
+    }
+}
+
+private fun Spell.combatDamageLabel(
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings,
+    spellModifier: Int
+): String {
+    val primary = damageBase.trim()
+    if (primary.isBlank()) return ""
+    val primaryBonus = if (damageBonusIsModifier) spellModifier else damageBonusValue
+    val builder = StringBuilder(formatSpellDiceLabel(primary, primaryBonus))
+    if (damageType.isNotBlank()) {
+        builder.append(" ").append(strings[damageTypeLocalizationKeyForCombat(damageType)])
+    }
+    val alternate = altDamageBase.trim()
+    if (alternate.isNotBlank()) {
+        val alternateBonus = if (altDamageBonusIsModifier) spellModifier else altDamageBonusValue
+        builder.append(" / ").append(formatSpellDiceLabel(alternate, alternateBonus))
+        if (altDamageType.isNotBlank()) {
+            builder.append(" ").append(strings[damageTypeLocalizationKeyForCombat(altDamageType)])
+        }
+    }
+    return builder.toString()
+}
+
+private fun formatSpellDiceLabel(dice: String, bonus: Int): String = buildString {
+    append(dice)
+    if (bonus > 0) append(" + $bonus")
+    if (bonus < 0) append(" - ${kotlin.math.abs(bonus)}")
+}
+
+private fun spellLevelLabel(
+    level: Int,
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings
+): String = if (level <= 0) strings["spells_level_cantrips"] else strings["spells_level_$level"]
+
+private fun spellComponentsLabel(
+    components: String,
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings
+): String? {
+    val letters = buildList {
+        if (components.hasComponentLetter("V")) add(strings["combat_spell_component_verbal_short"])
+        if (components.hasComponentLetter("S")) add(strings["combat_spell_component_somatic_short"])
+        if (components.hasComponentLetter("M")) add(strings["combat_spell_component_material_short"])
+    }
+    return letters.takeIf { it.isNotEmpty() }?.joinToString(" ")
+}
+
+private fun String.hasComponentLetter(letter: String): Boolean =
+    split(',').any { token ->
+        val trimmed = token.trim()
+        trimmed == letter || trimmed.startsWith("$letter ") || trimmed.startsWith("$letter(")
+    }
+
+private fun spellPickerTags(
+    spell: Spell,
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings
+): String {
+    val levelLabel = spellLevelLabel(spell.level, strings)
+    val schoolLabel = spell.school.takeIf { it.isNotBlank() }?.let {
+        strings[spellSchoolLocalizationKey(it)]
+    }
+    val areaLabel = spellAreaLabel(spell.areaOfEffect, strings)
+    return listOfNotNull(levelLabel.takeIf { it.isNotBlank() }, schoolLabel, areaLabel)
+        .joinToString(" • ")
+}
+
+private fun spellAreaLabel(
+    areaOfEffect: String,
+    strings: com.dndcharacterhandler.data.localization.LocalizedStrings
+): String? {
+    val normalized = areaOfEffect.trim().lowercase()
+    if (normalized.isBlank()) return null
+    val shapeKey = when {
+        "sphere" in normalized -> "spells_area_sphere"
+        "cube" in normalized -> "spells_area_cube"
+        "cylinder" in normalized -> "spells_area_cylinder"
+        "line" in normalized -> "spells_area_line"
+        "cone" in normalized -> "spells_area_cone"
+        else -> return null
+    }
+    val size = Regex("""\d+""").find(areaOfEffect)?.value
+    return buildString {
+        append(strings[shapeKey])
+        if (size != null) {
+            append(" ").append(size).append(" ").append(strings["inventory_unit_feet"])
+        }
+    }
+}
+
+private fun spellSchoolLocalizationKey(value: String): String =
+    when (value.lowercase()) {
+        "abjuration" -> "spells_school_abjuration"
+        "conjuration" -> "spells_school_conjuration"
+        "divination" -> "spells_school_divination"
+        "enchantment" -> "spells_school_enchantment"
+        "evocation" -> "spells_school_evocation"
+        "illusion" -> "spells_school_illusion"
+        "necromancy" -> "spells_school_necromancy"
+        "transmutation" -> "spells_school_transmutation"
+        else -> "spells_school_abjuration"
+    }
+
 private fun attackFallbackIcon(attack: Attack): ImageVector {
     val description = "${attack.name} ${attack.primaryDamageType}".lowercase()
     return when {
@@ -2080,7 +2564,7 @@ private fun Attack.displayAttackBonusOrSaveDc(
     proficiencyBonus: Int
 ): String {
     return if (calculationMode == AttackCalculationMode.MANUAL) {
-        manualAttackBonusOrSaveDc.ifBlank { "+0 Attack" }
+        manualAttackBonusOrSaveDc
     } else {
         val abilityScore = scoreForSpellcastingAbility(character, ability)
         val total = (if (isProficient) proficiencyBonus else 0) + abilityModifier(abilityScore) + magicalBonus

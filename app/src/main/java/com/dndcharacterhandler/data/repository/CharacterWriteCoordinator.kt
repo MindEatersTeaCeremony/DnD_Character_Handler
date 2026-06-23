@@ -10,6 +10,7 @@ import com.dndcharacterhandler.data.local.entity.FeatureEntity
 import com.dndcharacterhandler.data.local.entity.InventoryItemEntity
 import com.dndcharacterhandler.data.local.entity.NoteEntity
 import com.dndcharacterhandler.data.local.entity.SkillEntity
+import com.dndcharacterhandler.data.local.entity.SpellAttackEntity
 import com.dndcharacterhandler.data.local.entity.SpellEntity
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.InventoryArmorType
@@ -26,6 +27,7 @@ class CharacterWriteCoordinator(
         combatResources: List<CombatResourceEntity>,
         inventoryItems: List<InventoryItemEntity>,
         spells: List<SpellEntity>,
+        spellAttacks: List<SpellAttackEntity>,
         features: List<FeatureEntity>,
         notes: List<NoteEntity>
     ): Long = database.withTransaction {
@@ -37,6 +39,7 @@ class CharacterWriteCoordinator(
         characterDao.deleteCombatResourcesForCharacter(characterId)
         characterDao.deleteInventoryItemsForCharacter(characterId)
         characterDao.deleteSpellsForCharacter(characterId)
+        characterDao.deleteSpellAttacksForCharacter(characterId)
         characterDao.deleteFeaturesForCharacter(characterId)
         characterDao.deleteNotesForCharacter(characterId)
 
@@ -45,6 +48,7 @@ class CharacterWriteCoordinator(
         characterDao.insertCombatResources(combatResources.map { it.copy(characterOwnerId = characterId) })
         characterDao.insertInventoryItems(inventoryItems.map { it.copy(characterOwnerId = characterId) })
         characterDao.insertSpells(spells.map { it.copy(characterOwnerId = characterId) })
+        characterDao.insertSpellAttacks(spellAttacks.map { it.copy(characterOwnerId = characterId) })
         characterDao.insertFeatures(features.map { it.copy(characterOwnerId = characterId) })
         characterDao.insertNotes(notes.map { it.copy(characterOwnerId = characterId) })
 
@@ -122,6 +126,30 @@ class CharacterWriteCoordinator(
     suspend fun deleteSpellForCharacter(characterId: Long, spellId: Long, updatedAt: Long) {
         database.withTransaction {
             characterDao.deleteSpellById(characterId, spellId)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+        }
+    }
+
+    suspend fun upsertSpellAttackForCharacter(characterId: Long, spellAttack: SpellAttackEntity, updatedAt: Long): Long =
+        database.withTransaction {
+            val safeSpellAttack = if (spellAttack.id == 0L) {
+                spellAttack.copy(characterOwnerId = characterId)
+            } else {
+                val existing = characterDao.getSpellAttackById(characterId, spellAttack.id)
+                if (existing != null) {
+                    spellAttack.copy(characterOwnerId = characterId)
+                } else {
+                    spellAttack.copy(id = 0L, characterOwnerId = characterId)
+                }
+            }
+            val savedId = characterDao.upsertSpellAttackEntity(safeSpellAttack)
+            characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
+            savedId
+        }
+
+    suspend fun deleteSpellAttackForCharacter(characterId: Long, spellAttackId: Long, updatedAt: Long) {
+        database.withTransaction {
+            characterDao.deleteSpellAttackById(characterId, spellAttackId)
             characterDao.updateCharacterUpdatedAt(characterId, updatedAt)
         }
     }

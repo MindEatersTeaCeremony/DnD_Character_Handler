@@ -164,6 +164,7 @@
       "accentInspiration": "#FFD86B",
       "accentXpCapped": "#E0B84E",
       "accentHpTemporary": "#69B7FF",
+      "accentHeal": "#8AD178",
       "dangerHpZero": "#E85C5C",
       "xpProgress": "#D7D1CC",
       "xpTrack": "#30FFFFFF",

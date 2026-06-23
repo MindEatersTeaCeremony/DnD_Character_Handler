@@ -13,6 +13,7 @@ import com.dndcharacterhandler.data.local.entity.FeatureEntity
 import com.dndcharacterhandler.data.local.entity.InventoryItemEntity
 import com.dndcharacterhandler.data.local.entity.NoteEntity
 import com.dndcharacterhandler.data.local.entity.SkillEntity
+import com.dndcharacterhandler.data.local.entity.SpellAttackEntity
 import com.dndcharacterhandler.data.local.entity.SpellEntity
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
@@ -321,6 +322,12 @@ interface CharacterDao {
     suspend fun upsertSpellEntity(spell: SpellEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSpellAttacks(spellAttacks: List<SpellAttackEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSpellAttackEntity(spellAttack: SpellAttackEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFeatures(features: List<FeatureEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -437,6 +444,15 @@ interface CharacterDao {
 
     @Query("DELETE FROM spells WHERE id = :spellId AND characterOwnerId = :characterId")
     suspend fun deleteSpellById(characterId: Long, spellId: Long)
+
+    @Query("DELETE FROM spell_attacks WHERE characterOwnerId = :characterId")
+    suspend fun deleteSpellAttacksForCharacter(characterId: Long)
+
+    @Query("SELECT * FROM spell_attacks WHERE id = :spellAttackId AND characterOwnerId = :characterId LIMIT 1")
+    suspend fun getSpellAttackById(characterId: Long, spellAttackId: Long): SpellAttackEntity?
+
+    @Query("DELETE FROM spell_attacks WHERE id = :spellAttackId AND characterOwnerId = :characterId")
+    suspend fun deleteSpellAttackById(characterId: Long, spellAttackId: Long)
 
     @Query(
         """
