@@ -2,6 +2,7 @@ package com.dndcharacterhandler.domain.model
 
 enum class ArmorClassMode { AUTOMATIC, MANUAL }
 enum class AttackCalculationMode { AUTOMATIC, MANUAL }
+enum class DarkvisionMode { AUTO, MANUAL }
 enum class SpellcastingAbility { STRENGTH, DEXTERITY, CONSTITUTION, INTELLIGENCE, WISDOM, CHARISMA }
 
 data class Character(
@@ -46,6 +47,8 @@ data class Character(
     val wisdomSaveProficient: Boolean,
     val charismaSaveProficient: Boolean,
     val passivePerceptionBonus: Int,
+    val darkvisionMode: DarkvisionMode = DarkvisionMode.AUTO,
+    val darkvisionManualFeet: Int = 0,
     val armorProficiencies: String,
     val weaponProficiencies: String,
     val toolProficiencies: String,

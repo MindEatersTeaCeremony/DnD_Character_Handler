@@ -80,6 +80,7 @@ import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
 import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
 import com.dndcharacterhandler.presentation.components.FloatingAddButton
+import com.dndcharacterhandler.presentation.components.MiniStatCard
 import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.components.ScreenTopActions
 import com.dndcharacterhandler.presentation.localization.LocalStrings
@@ -319,7 +320,7 @@ internal fun CombatContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CombatMiniStatCard(
+                        MiniStatCard(
                             modifier = Modifier.weight(1f),
                             value = character.armorClass.toString(),
                             label = text("overview_ac_full"),
@@ -335,14 +336,14 @@ internal fun CombatContent(
                                 isArmorClassDialogOpen = true
                             }
                         )
-                        CombatMiniStatCard(
+                        MiniStatCard(
                             modifier = Modifier.weight(1f),
                             value = spellAttackBonus,
                             label = text("combat_spell_bonus"),
                             icon = Icons.Outlined.FlashOn,
                             onClick = { isSpellcastingAbilityDialogOpen = true }
                         )
-                        CombatMiniStatCard(
+                        MiniStatCard(
                             modifier = Modifier.weight(1f),
                             value = spellSaveDc,
                             label = text("combat_spell_dc"),
@@ -855,63 +856,6 @@ private data class DialogActionItem(
     val label: String,
     val onClick: () -> Unit
 )
-
-@Composable
-private fun CombatMiniStatCard(
-    modifier: Modifier = Modifier,
-    value: String,
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit
-) {
-    val tokens = LocalDesignTokens.current.typography
-    Surface(
-        modifier = modifier
-            .height(92.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, Color(0x42FFFFFF)),
-        color = Color(0xFF17141B).copy(alpha = 0.62f)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = tokens.bodyLarge.fontSizeSp.sp),
-                color = Color(0xFFBEB6AE),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color(0xFFD8D1CA),
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = tokens.miniStatValue.fontSizeSp.sp,
-                        lineHeight = (tokens.miniStatValue.lineHeightSp ?: tokens.miniStatValue.fontSizeSp).sp
-                    ),
-                    color = Color(0xFFF7F2EA),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun ArmorClassModeOption(

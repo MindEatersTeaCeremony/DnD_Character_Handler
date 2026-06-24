@@ -3,6 +3,7 @@ package com.dndcharacterhandler.data.local
 import androidx.room.TypeConverter
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.AttackCalculationMode
+import com.dndcharacterhandler.domain.model.DarkvisionMode
 import com.dndcharacterhandler.domain.model.FeatureSource
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
@@ -24,6 +25,13 @@ class RoomConverters {
     @TypeConverter
     fun toAttackCalculationMode(value: String): AttackCalculationMode =
         runCatching { AttackCalculationMode.valueOf(value) }.getOrDefault(AttackCalculationMode.AUTOMATIC)
+
+    @TypeConverter
+    fun fromDarkvisionMode(value: DarkvisionMode): String = value.name
+
+    @TypeConverter
+    fun toDarkvisionMode(value: String): DarkvisionMode =
+        runCatching { DarkvisionMode.valueOf(value) }.getOrDefault(DarkvisionMode.AUTO)
 
     @TypeConverter
     fun fromInventoryCategory(value: InventoryCategory): String = value.name

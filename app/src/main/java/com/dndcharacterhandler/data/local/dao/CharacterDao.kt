@@ -16,6 +16,7 @@ import com.dndcharacterhandler.data.local.entity.SkillEntity
 import com.dndcharacterhandler.data.local.entity.SpellAttackEntity
 import com.dndcharacterhandler.data.local.entity.SpellEntity
 import com.dndcharacterhandler.domain.model.ArmorClassMode
+import com.dndcharacterhandler.domain.model.DarkvisionMode
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
 import kotlinx.coroutines.flow.Flow
 
@@ -157,6 +158,17 @@ interface CharacterDao {
         """
     )
     suspend fun updatePassivePerceptionBonus(characterId: Long, bonus: Int, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE characters
+        SET darkvisionMode = :mode,
+            darkvisionManualFeet = :manualFeet,
+            updatedAt = :updatedAt
+        WHERE id = :characterId
+        """
+    )
+    suspend fun updateDarkvision(characterId: Long, mode: DarkvisionMode, manualFeet: Int, updatedAt: Long)
 
     @Query(
         """

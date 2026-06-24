@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
@@ -61,8 +62,18 @@ import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CharacterProficiencyField
+import com.dndcharacterhandler.domain.model.DarkvisionMode
+import com.dndcharacterhandler.domain.model.Feature
+import com.dndcharacterhandler.domain.model.FeatureCatalogItem
 import com.dndcharacterhandler.domain.model.Skill
 import com.dndcharacterhandler.domain.model.SpellcastingAbility
+import com.dndcharacterhandler.domain.repository.FeatureCatalogRepository
+import com.dndcharacterhandler.presentation.features.FeatureCard
+import com.dndcharacterhandler.presentation.features.FeatureCatalogRow
+import com.dndcharacterhandler.presentation.features.FeatureEditDialog
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import com.dndcharacterhandler.domain.rules.abilityModifier
 import com.dndcharacterhandler.domain.rules.calculateArmorClass
 import com.dndcharacterhandler.domain.rules.proficiencyBonusForLevel
@@ -71,6 +82,7 @@ import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
 import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
+import com.dndcharacterhandler.presentation.components.MiniStatCard
 import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
@@ -79,9 +91,55 @@ import kotlinx.coroutines.launch
 
 class AttributesViewModel(
     private val characterRepository: CharacterRepository,
+    private val featureCatalogRepository: FeatureCatalogRepository,
     getCharacterBundleUseCase: GetCharacterBundleUseCase,
     selectedCharacterHolder: SelectedCharacterHolder
 ) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
+    private val _darkvisionCatalog = MutableStateFlow<List<FeatureCatalogItem>>(emptyList())
+    val darkvisionCatalog: StateFlow<List<FeatureCatalogItem>> = _darkvisionCatalog.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _darkvisionCatalog.value = featureCatalogRepository.getItems()
+                .filter { it.name.contains("darkvision", ignoreCase = true) }
+        }
+    }
+
+    fun updateDarkvisionMode(characterBundle: CharacterBundle, mode: DarkvisionMode) {
+        val current = characterBundle.character
+        if (mode == current.darkvisionMode) return
+        viewModelScope.launch {
+            characterRepository.updateDarkvision(current.id, mode, current.darkvisionManualFeet)
+        }
+    }
+
+    fun updateDarkvisionManualFeet(characterBundle: CharacterBundle, feet: Int) {
+        val current = characterBundle.character
+        if (feet == current.darkvisionManualFeet) return
+        viewModelScope.launch {
+            characterRepository.updateDarkvision(current.id, current.darkvisionMode, feet)
+        }
+    }
+
+    fun upsertFeature(characterBundle: CharacterBundle, feature: Feature) {
+        viewModelScope.launch {
+            characterRepository.upsertFeature(
+                characterId = characterBundle.character.id,
+                feature = if (feature.id == 0L) feature.copy(id = 0) else feature
+            )
+        }
+    }
+
+    fun deleteFeature(characterBundle: CharacterBundle, feature: Feature) {
+        if (feature.id == 0L) return
+        viewModelScope.launch {
+            characterRepository.deleteFeature(
+                characterId = characterBundle.character.id,
+                featureId = feature.id
+            )
+        }
+    }
+
     fun updateAbilityScore(
         characterBundle: CharacterBundle,
         ability: AbilityType,
@@ -243,8 +301,10 @@ fun AttributesScreen(
     onOpenSettings: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val darkvisionCatalog by viewModel.darkvisionCatalog.collectAsStateWithLifecycle()
     AttributesContent(
         characterBundle = state.character,
+        darkvisionCatalogItems = darkvisionCatalog,
         onUpdatePassivePerceptionBonus = viewModel::updatePassivePerceptionBonus,
         onUpdateAbilityScore = viewModel::updateAbilityScore,
         onUpdateSkillTraining = viewModel::updateSkillTraining,
@@ -252,6 +312,10 @@ fun AttributesScreen(
         onUpdateWeaponProficiencies = viewModel::updateWeaponProficiencies,
         onUpdateToolProficiencies = viewModel::updateToolProficiencies,
         onUpdateLanguageProficiencies = viewModel::updateLanguageProficiencies,
+        onUpdateDarkvisionMode = viewModel::updateDarkvisionMode,
+        onUpdateDarkvisionManualFeet = viewModel::updateDarkvisionManualFeet,
+        onUpsertFeature = viewModel::upsertFeature,
+        onDeleteFeature = viewModel::deleteFeature,
         onOpenDrawer = onOpenDrawer,
         onOpenSettings = onOpenSettings
     )
@@ -260,6 +324,7 @@ fun AttributesScreen(
 @Composable
 fun AttributesContent(
     characterBundle: CharacterBundle?,
+    darkvisionCatalogItems: List<FeatureCatalogItem> = emptyList(),
     onUpdatePassivePerceptionBonus: (CharacterBundle, Int) -> Unit,
     onUpdateAbilityScore: (CharacterBundle, AbilityType, Int, Boolean) -> Unit = { _, _, _, _ -> },
     onUpdateSkillTraining: (CharacterBundle, String, Boolean, Boolean, Boolean) -> Unit = { _, _, _, _, _ -> },
@@ -267,6 +332,10 @@ fun AttributesContent(
     onUpdateWeaponProficiencies: (CharacterBundle, Set<String>) -> Unit = { _, _ -> },
     onUpdateToolProficiencies: (CharacterBundle, Set<String>) -> Unit = { _, _ -> },
     onUpdateLanguageProficiencies: (CharacterBundle, Set<String>) -> Unit = { _, _ -> },
+    onUpdateDarkvisionMode: (CharacterBundle, DarkvisionMode) -> Unit = { _, _ -> },
+    onUpdateDarkvisionManualFeet: (CharacterBundle, Int) -> Unit = { _, _ -> },
+    onUpsertFeature: (CharacterBundle, Feature) -> Unit = { _, _ -> },
+    onDeleteFeature: (CharacterBundle, Feature) -> Unit = { _, _ -> },
     onOpenDrawer: () -> Unit = {},
     onOpenSettings: () -> Unit = {}
 ) {
@@ -276,6 +345,14 @@ fun AttributesContent(
     val proficiencyBonus = proficiencyBonusForLevel(character.level)
     val perceptionSkill = characterBundle?.skills?.firstOrNull { it.name == "skill_perception" }
     val passivePerception = passivePerceptionValue(character, proficiencyBonus, perceptionSkill)
+    val darkvisionFeatures = remember(characterBundle?.features) {
+        characterBundle?.features.orEmpty().filter { it.isDarkvisionFeature() }
+    }
+    val darkvisionFeet = when (character.darkvisionMode) {
+        DarkvisionMode.AUTO -> darkvisionFeatures.mapNotNull { it.darkvisionFeet() }.maxOrNull() ?: 0
+        DarkvisionMode.MANUAL -> character.darkvisionManualFeet
+    }
+    val darkvisionValue = if (darkvisionFeet > 0) "$darkvisionFeet ${text("inventory_unit_feet")}" else "—"
     val skillRows = remember(characterBundle?.skills, abilityScores, proficiencyBonus) {
         buildSkillRows(characterBundle?.skills.orEmpty(), abilityScores, proficiencyBonus)
     }
@@ -304,6 +381,12 @@ fun AttributesContent(
     var passiveDraft by remember(character.passivePerceptionBonus) {
         mutableStateOf(character.passivePerceptionBonus.toString())
     }
+    var isDarkvisionDialogOpen by remember { mutableStateOf(false) }
+    var isDarkvisionCatalogOpen by remember { mutableStateOf(false) }
+    var editingFeature by remember { mutableStateOf<Feature?>(null) }
+    var darkvisionManualDraft by remember(character.darkvisionManualFeet) {
+        mutableStateOf(character.darkvisionManualFeet.takeIf { it > 0 }?.toString().orEmpty())
+    }
 
     ScreenBackground {
         LazyColumn(
@@ -322,20 +405,27 @@ fun AttributesContent(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    AttributeSummaryButton(
+                    MiniStatCard(
+                        modifier = Modifier.weight(1f),
                         label = text("attributes_proficiency_bonus"),
                         value = signed(proficiencyBonus),
-                        icon = Icons.Outlined.AutoAwesome,
-                        modifier = Modifier.weight(1f)
+                        icon = Icons.Outlined.AutoAwesome
                     )
-                    AttributeSummaryButton(
+                    MiniStatCard(
+                        modifier = Modifier.weight(1f),
                         label = text("attributes_passive_perception"),
                         value = passivePerception.toString(),
                         icon = Icons.Outlined.Visibility,
-                        modifier = Modifier.weight(1f),
                         onClick = { if (characterBundle != null) isPassiveDialogOpen = true }
+                    )
+                    MiniStatCard(
+                        modifier = Modifier.weight(1f),
+                        label = text("attributes_darkvision"),
+                        value = darkvisionValue,
+                        icon = Icons.Outlined.DarkMode,
+                        onClick = { if (characterBundle != null) isDarkvisionDialogOpen = true }
                     )
                 }
             }
@@ -492,6 +582,130 @@ fun AttributesContent(
                 }
             }
         )
+    }
+
+    if (isDarkvisionDialogOpen && characterBundle != null) {
+        val closeDarkvisionDialog = {
+            if (character.darkvisionMode == DarkvisionMode.MANUAL) {
+                onUpdateDarkvisionManualFeet(characterBundle, darkvisionManualDraft.toIntOrNull() ?: 0)
+            }
+            isDarkvisionDialogOpen = false
+        }
+        AlertDialog(
+            onDismissRequest = closeDarkvisionDialog,
+            title = { Text(text("attributes_darkvision_title")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DarkvisionModeChip(
+                            label = text("attributes_darkvision_mode_auto"),
+                            selected = character.darkvisionMode == DarkvisionMode.AUTO,
+                            onClick = { onUpdateDarkvisionMode(characterBundle, DarkvisionMode.AUTO) }
+                        )
+                        DarkvisionModeChip(
+                            label = text("attributes_darkvision_mode_manual"),
+                            selected = character.darkvisionMode == DarkvisionMode.MANUAL,
+                            onClick = { onUpdateDarkvisionMode(characterBundle, DarkvisionMode.MANUAL) }
+                        )
+                    }
+                    when (character.darkvisionMode) {
+                        DarkvisionMode.AUTO -> {
+                            if (darkvisionFeatures.isEmpty()) {
+                                Text(
+                                    text = text("attributes_darkvision_none"),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFD2CAC2)
+                                )
+                                TextButton(onClick = { isDarkvisionCatalogOpen = true }) {
+                                    Text(text("attributes_darkvision_add"))
+                                }
+                            } else {
+                                darkvisionFeatures.forEach { feature ->
+                                    FeatureCard(
+                                        feature = feature,
+                                        onClick = { editingFeature = feature }
+                                    )
+                                }
+                            }
+                        }
+                        DarkvisionMode.MANUAL -> {
+                            Text(
+                                text = text("attributes_darkvision_manual_hint"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFD2CAC2)
+                            )
+                            OutlinedTextField(
+                                value = darkvisionManualDraft,
+                                onValueChange = { darkvisionManualDraft = it.filter(Char::isDigit) },
+                                label = { Text(text("attributes_darkvision_feet")) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = closeDarkvisionDialog) {
+                    Text(text("common_save"))
+                }
+            }
+        )
+    }
+
+    if (isDarkvisionCatalogOpen && characterBundle != null) {
+        AlertDialog(
+            onDismissRequest = { isDarkvisionCatalogOpen = false },
+            title = { Text(text("attributes_darkvision_add")) },
+            text = {
+                if (darkvisionCatalogItems.isEmpty()) {
+                    Text(
+                        text = text("features_catalog_empty"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFD2CAC2)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        darkvisionCatalogItems.forEach { item ->
+                            FeatureCatalogRow(
+                                item = item,
+                                onAdd = {
+                                    onUpsertFeature(characterBundle, item.toFeature())
+                                    isDarkvisionCatalogOpen = false
+                                }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { isDarkvisionCatalogOpen = false }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
+
+    editingFeature?.let { feature ->
+        if (characterBundle != null) {
+            FeatureEditDialog(
+                feature = feature,
+                onDismiss = { editingFeature = null },
+                onSave = { updated ->
+                    onUpsertFeature(characterBundle, updated)
+                    editingFeature = null
+                },
+                onDelete = if (feature.id != 0L) {
+                    {
+                        onDeleteFeature(characterBundle, feature)
+                        editingFeature = null
+                    }
+                } else {
+                    null
+                }
+            )
+        }
     }
 
     val currentEditingAbility = editingAbility
@@ -892,51 +1106,36 @@ fun AttributesContent(
 }
 
 @Composable
-private fun AttributeSummaryButton(
+private fun DarkvisionModeChip(
     label: String,
-    value: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .height(52.dp)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = Color(0xFF17141B).copy(alpha = 0.72f),
-        border = BorderStroke(1.dp, Color(0x42FFFFFF))
+        color = if (selected) Color(0xFF3A3244) else Color(0xFF17141B).copy(alpha = 0.62f),
+        border = BorderStroke(1.dp, if (selected) Color(0x66FFF6EA) else Color(0x30FFFFFF))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color(0xFFC2BBB3),
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = label,
-                modifier = Modifier
-                    .padding(start = 10.dp)
-                    .weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFF1ECE5),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                color = Color(0xFFF7F2EA)
-            )
-        }
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color(0xFFF7F2EA)
+        )
     }
 }
+
+private fun Feature.isDarkvisionFeature(): Boolean {
+    val haystack = "$name $description".lowercase()
+    return "darkvision" in haystack || "тёмное зрение" in haystack || "темное зрение" in haystack
+}
+
+private fun Feature.darkvisionFeet(): Int? =
+    Regex("""(\d+)\s*(?:ft|feet|фт|фут)""")
+        .find("$name $description".lowercase())
+        ?.groupValues?.get(1)?.toIntOrNull()
 
 @Composable
 private fun AttributesSectionTitle(title: String) {

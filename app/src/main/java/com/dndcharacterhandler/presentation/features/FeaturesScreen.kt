@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -20,7 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -41,16 +44,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.dndcharacterhandler.domain.model.CharacterBundle
+import com.dndcharacterhandler.domain.model.CharacterTextField
 import com.dndcharacterhandler.domain.model.Feature
+import com.dndcharacterhandler.domain.model.FeatureCatalogItem
 import com.dndcharacterhandler.domain.model.FeatureSource
 import com.dndcharacterhandler.domain.repository.CharacterRepository
+import com.dndcharacterhandler.domain.repository.FeatureCatalogRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
 import com.dndcharacterhandler.presentation.BaseCharacterViewModel
 import com.dndcharacterhandler.presentation.SelectedCharacterHolder
@@ -60,13 +68,75 @@ import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.components.ScreenTopActions
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class FeatureCatalogUiState(
+    val items: List<FeatureCatalogItem> = emptyList(),
+    val isLoading: Boolean = true
+)
 
 class FeaturesViewModel(
     private val characterRepository: CharacterRepository,
+    private val featureCatalogRepository: FeatureCatalogRepository,
     getCharacterBundleUseCase: GetCharacterBundleUseCase,
     selectedCharacterHolder: SelectedCharacterHolder
 ) : BaseCharacterViewModel(getCharacterBundleUseCase, selectedCharacterHolder) {
+    private val _catalogUiState = MutableStateFlow(FeatureCatalogUiState())
+    val catalogUiState: StateFlow<FeatureCatalogUiState> = _catalogUiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val items = featureCatalogRepository.getItems()
+            _catalogUiState.value = FeatureCatalogUiState(items = items, isLoading = false)
+        }
+    }
+
+    fun updateClass(characterBundle: CharacterBundle, value: String) {
+        val current = characterBundle.character
+        val sanitized = value.trim()
+        if (sanitized == current.characterClass) return
+        viewModelScope.launch {
+            characterRepository.updateIdentity(
+                characterId = current.id,
+                name = current.name,
+                race = current.race,
+                characterClass = sanitized,
+                level = current.level
+            )
+        }
+    }
+
+    fun updateRace(characterBundle: CharacterBundle, value: String) {
+        val current = characterBundle.character
+        val sanitized = value.trim()
+        if (sanitized == current.race) return
+        viewModelScope.launch {
+            characterRepository.updateIdentity(
+                characterId = current.id,
+                name = current.name,
+                race = sanitized,
+                characterClass = current.characterClass,
+                level = current.level
+            )
+        }
+    }
+
+    fun updateBackground(characterBundle: CharacterBundle, value: String) {
+        val current = characterBundle.character
+        val sanitized = value.trim()
+        if (sanitized == current.background) return
+        viewModelScope.launch {
+            characterRepository.updateTextField(
+                characterId = current.id,
+                field = CharacterTextField.BACKGROUND,
+                value = sanitized
+            )
+        }
+    }
+
     fun updateFeature(characterBundle: CharacterBundle, feature: Feature) {
         viewModelScope.launch {
             characterRepository.upsertFeature(
@@ -94,26 +164,40 @@ fun FeaturesScreen(
     onOpenSettings: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val catalogState by viewModel.catalogUiState.collectAsStateWithLifecycle()
     FeaturesContent(
         characterBundle = state.character,
+        catalogItems = catalogState.items,
+        isCatalogLoading = catalogState.isLoading,
         onOpenDrawer = onOpenDrawer,
         onOpenSettings = onOpenSettings,
         onUpdateFeature = viewModel::updateFeature,
-        onDeleteFeature = viewModel::deleteFeature
+        onDeleteFeature = viewModel::deleteFeature,
+        onUpdateClass = viewModel::updateClass,
+        onUpdateRace = viewModel::updateRace,
+        onUpdateBackground = viewModel::updateBackground
     )
 }
 
 @Composable
 internal fun FeaturesContent(
     characterBundle: CharacterBundle?,
+    catalogItems: List<FeatureCatalogItem> = emptyList(),
+    isCatalogLoading: Boolean = false,
     onOpenDrawer: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onUpdateFeature: (CharacterBundle, Feature) -> Unit = { _, _ -> },
-    onDeleteFeature: (CharacterBundle, Feature) -> Unit = { _, _ -> }
+    onDeleteFeature: (CharacterBundle, Feature) -> Unit = { _, _ -> },
+    onUpdateClass: (CharacterBundle, String) -> Unit = { _, _ -> },
+    onUpdateRace: (CharacterBundle, String) -> Unit = { _, _ -> },
+    onUpdateBackground: (CharacterBundle, String) -> Unit = { _, _ -> }
 ) {
     val character = characterBundle?.character
     var query by remember { mutableStateOf("") }
     var editingFeature by remember { mutableStateOf<Feature?>(null) }
+    var isAddEntryDialogOpen by remember { mutableStateOf(false) }
+    var editingSummaryField by remember { mutableStateOf<FeatureSummaryField?>(null) }
+    var summaryDraft by remember { mutableStateOf("") }
 
     if (character == null) {
         ScreenBackground {
@@ -172,6 +256,44 @@ internal fun FeaturesContent(
                 }
 
                 item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        FeatureSummaryCard(
+                            modifier = Modifier.weight(1f),
+                            label = text("placeholder_class"),
+                            value = character.characterClass,
+                            icon = Icons.Outlined.Shield,
+                            onClick = {
+                                summaryDraft = character.characterClass
+                                editingSummaryField = FeatureSummaryField.CLASS
+                            }
+                        )
+                        FeatureSummaryCard(
+                            modifier = Modifier.weight(1f),
+                            label = text("placeholder_race"),
+                            value = character.race,
+                            icon = Icons.Outlined.Person,
+                            onClick = {
+                                summaryDraft = character.race
+                                editingSummaryField = FeatureSummaryField.RACE
+                            }
+                        )
+                        FeatureSummaryCard(
+                            modifier = Modifier.weight(1f),
+                            label = text("biography_background"),
+                            value = character.background,
+                            icon = Icons.Outlined.AutoStories,
+                            onClick = {
+                                summaryDraft = character.background
+                                editingSummaryField = FeatureSummaryField.BACKGROUND
+                            }
+                        )
+                    }
+                }
+
+                item {
                     FeaturesSearchField(
                         value = query,
                         onValueChange = { query = it }
@@ -193,12 +315,28 @@ internal fun FeaturesContent(
             }
 
             FloatingAddButton(
-                onClick = { editingFeature = newDraftFeature() },
+                onClick = { isAddEntryDialogOpen = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 24.dp, bottom = 15.dp)
             )
         }
+    }
+
+    if (isAddEntryDialogOpen) {
+        FeaturesAddEntryDialog(
+            catalogItems = catalogItems,
+            isLoading = isCatalogLoading,
+            onDismiss = { isAddEntryDialogOpen = false },
+            onCreateFeature = {
+                isAddEntryDialogOpen = false
+                editingFeature = newDraftFeature()
+            },
+            onSelectCatalogItem = { item ->
+                onUpdateFeature(resolvedBundle, item.toFeature())
+                isAddEntryDialogOpen = false
+            }
+        )
     }
 
     editingFeature?.let { feature ->
@@ -218,6 +356,106 @@ internal fun FeaturesContent(
                 null
             }
         )
+    }
+
+    editingSummaryField?.let { field ->
+        val titleKey = when (field) {
+            FeatureSummaryField.CLASS -> "overview_edit_class_title"
+            FeatureSummaryField.RACE -> "overview_edit_race_title"
+            FeatureSummaryField.BACKGROUND -> "biography_background"
+        }
+        val labelKey = when (field) {
+            FeatureSummaryField.CLASS -> "placeholder_class"
+            FeatureSummaryField.RACE -> "placeholder_race"
+            FeatureSummaryField.BACKGROUND -> "biography_background"
+        }
+        AlertDialog(
+            onDismissRequest = { editingSummaryField = null },
+            title = { Text(text(titleKey)) },
+            text = {
+                OutlinedTextField(
+                    value = summaryDraft,
+                    onValueChange = { summaryDraft = it },
+                    label = { Text(text(labelKey)) },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        when (field) {
+                            FeatureSummaryField.CLASS -> onUpdateClass(resolvedBundle, summaryDraft)
+                            FeatureSummaryField.RACE -> onUpdateRace(resolvedBundle, summaryDraft)
+                            FeatureSummaryField.BACKGROUND -> onUpdateBackground(resolvedBundle, summaryDraft)
+                        }
+                        editingSummaryField = null
+                    }
+                ) {
+                    Text(text("common_save"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingSummaryField = null }) {
+                    Text(text("common_cancel"))
+                }
+            }
+        )
+    }
+}
+
+private enum class FeatureSummaryField { CLASS, RACE, BACKGROUND }
+
+@Composable
+private fun FeatureSummaryCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    val tokens = LocalDesignTokens.current.typography
+    Surface(
+        modifier = modifier
+            .height(92.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, Color(0x42FFFFFF)),
+        color = Color(0xFF17141B).copy(alpha = 0.62f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color(0xFFC2BBB3),
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = tokens.miniStatLabel.fontSizeSp.sp),
+                    color = Color(0xFFBEB6AE),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                text = value.ifBlank { "—" },
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFFF7F2EA),
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -298,7 +536,7 @@ private fun FeaturesSectionTitle(title: String) {
 }
 
 @Composable
-private fun FeatureCard(
+internal fun FeatureCard(
     feature: Feature,
     onClick: () -> Unit
 ) {
@@ -341,7 +579,140 @@ private fun FeatureCard(
 }
 
 @Composable
-private fun FeatureEditDialog(
+private fun FeaturesAddEntryDialog(
+    catalogItems: List<FeatureCatalogItem>,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onCreateFeature: () -> Unit,
+    onSelectCatalogItem: (FeatureCatalogItem) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    val filteredItems = remember(catalogItems, query) {
+        val needle = query.trim()
+        catalogItems.filter { item ->
+            needle.isBlank() ||
+                item.name.contains(needle, ignoreCase = true) ||
+                item.category.contains(needle, ignoreCase = true) ||
+                item.description.contains(needle, ignoreCase = true)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text("features_add_feature")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FeaturesDialogSection(text("features_add_create_section"))
+                    TextButton(onClick = onCreateFeature) {
+                        Text(text("features_create_action"))
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FeaturesDialogSection(text("features_add_catalog_section"))
+                    FeaturesSearchField(
+                        value = query,
+                        onValueChange = { query = it }
+                    )
+                    when {
+                        isLoading -> {
+                            Text(
+                                text = text("features_catalog_loading"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFD2CAC2)
+                            )
+                        }
+                        filteredItems.isEmpty() -> {
+                            Text(
+                                text = text("features_catalog_empty"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFD2CAC2)
+                            )
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 280.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(filteredItems, key = { it.id }) { item ->
+                                    FeatureCatalogRow(
+                                        item = item,
+                                        onAdd = { onSelectCatalogItem(item) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text("common_cancel"))
+            }
+        }
+    )
+}
+
+@Composable
+private fun FeaturesDialogSection(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        color = Color(0xFFF7F2EA)
+    )
+}
+
+@Composable
+internal fun FeatureCatalogRow(
+    item: FeatureCatalogItem,
+    onAdd: () -> Unit
+) {
+    val subtitle = buildList {
+        item.category.takeIf { it.isNotBlank() }?.let(::add)
+        item.level?.let { add("${text("features_level")} $it") }
+    }.joinToString(" • ")
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF1A171D),
+        border = BorderStroke(1.dp, Color(0x30FFFFFF))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFF7F2EA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        modifier = Modifier.padding(top = 4.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFD2CAC2),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            TextButton(onClick = onAdd) {
+                Text(text("common_add"))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun FeatureEditDialog(
     feature: Feature,
     onDismiss: () -> Unit,
     onSave: (Feature) -> Unit,

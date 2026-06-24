@@ -3,6 +3,7 @@ package com.dndcharacterhandler.data.repository
 import androidx.core.net.toUri
 import com.dndcharacterhandler.domain.model.Attack
 import com.dndcharacterhandler.domain.model.AttackCalculationMode
+import com.dndcharacterhandler.domain.model.DarkvisionMode
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
@@ -79,6 +80,8 @@ fun CharacterBundle.toArchiveManifest(
         put("wisdomSaveProficient", character.wisdomSaveProficient)
         put("charismaSaveProficient", character.charismaSaveProficient)
         put("passivePerceptionBonus", character.passivePerceptionBonus)
+        put("darkvisionMode", character.darkvisionMode.name)
+        put("darkvisionManualFeet", character.darkvisionManualFeet)
         put("armorProficiencies", character.armorProficiencies)
         put("weaponProficiencies", character.weaponProficiencies)
         put("toolProficiencies", character.toolProficiencies)
@@ -312,6 +315,11 @@ fun archiveManifestToCharacterBundle(
         wisdomSaveProficient = characterJson.optBoolean("wisdomSaveProficient"),
         charismaSaveProficient = characterJson.optBoolean("charismaSaveProficient"),
         passivePerceptionBonus = characterJson.optInt("passivePerceptionBonus"),
+        darkvisionMode = characterJson.optString("darkvisionMode")
+            .takeIf(String::isNotBlank)
+            ?.let { runCatching { DarkvisionMode.valueOf(it) }.getOrDefault(DarkvisionMode.AUTO) }
+            ?: DarkvisionMode.AUTO,
+        darkvisionManualFeet = characterJson.optInt("darkvisionManualFeet"),
         armorProficiencies = characterJson.optString("armorProficiencies"),
         weaponProficiencies = characterJson.optString("weaponProficiencies"),
         toolProficiencies = characterJson.optString("toolProficiencies"),

@@ -8,6 +8,7 @@ import androidx.room.Relation
 import androidx.room.Embedded
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.AttackCalculationMode
+import com.dndcharacterhandler.domain.model.DarkvisionMode
 import com.dndcharacterhandler.domain.model.FeatureSource
 import com.dndcharacterhandler.domain.model.InventoryArmorType
 import com.dndcharacterhandler.domain.model.InventoryCategory
@@ -58,6 +59,8 @@ data class CharacterEntity(
     val wisdomSaveProficient: Boolean,
     val charismaSaveProficient: Boolean,
     val passivePerceptionBonus: Int,
+    val darkvisionMode: DarkvisionMode = DarkvisionMode.AUTO,
+    val darkvisionManualFeet: Int = 0,
     val armorProficiencies: String,
     val weaponProficiencies: String,
     val toolProficiencies: String,

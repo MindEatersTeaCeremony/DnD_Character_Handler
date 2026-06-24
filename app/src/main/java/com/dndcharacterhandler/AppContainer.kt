@@ -4,12 +4,14 @@ import android.content.Context
 import com.dndcharacterhandler.data.local.AppDatabase
 import com.dndcharacterhandler.data.localization.LocalizationRepository
 import com.dndcharacterhandler.data.preferences.LanguagePreferencesRepository
+import com.dndcharacterhandler.data.repository.AssetFeatureCatalogRepository
 import com.dndcharacterhandler.data.repository.AssetInventoryCatalogRepository
 import com.dndcharacterhandler.data.repository.AssetSpellCatalogRepository
 import com.dndcharacterhandler.data.repository.CharacterFileRepositoryImpl
 import com.dndcharacterhandler.data.repository.CharacterRepositoryImpl
 import com.dndcharacterhandler.domain.repository.CharacterFileRepository
 import com.dndcharacterhandler.domain.repository.CharacterRepository
+import com.dndcharacterhandler.domain.repository.FeatureCatalogRepository
 import com.dndcharacterhandler.domain.repository.InventoryCatalogRepository
 import com.dndcharacterhandler.domain.repository.SpellCatalogRepository
 import com.dndcharacterhandler.domain.usecase.GetCharacterBundleUseCase
@@ -46,6 +48,8 @@ class AppContainer(context: Context) {
         AssetInventoryCatalogRepository(appContext)
 
     val spellCatalogRepository: SpellCatalogRepository = AssetSpellCatalogRepository(appContext)
+
+    val featureCatalogRepository: FeatureCatalogRepository = AssetFeatureCatalogRepository(appContext)
 
     val getCharacterBundleUseCase: GetCharacterBundleUseCase =
         GetCharacterBundleUseCase(characterRepository)

@@ -5,6 +5,7 @@ import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.InventoryItem
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Attack
+import com.dndcharacterhandler.domain.model.DarkvisionMode
 import com.dndcharacterhandler.domain.model.CharacterProficiencyField
 import com.dndcharacterhandler.domain.model.CharacterTextField
 import com.dndcharacterhandler.domain.model.Spell
@@ -29,6 +30,7 @@ interface CharacterRepository {
     suspend fun updateHitDice(characterId: Long, hitDieSides: Int, spentHitDice: Int)
     suspend fun updateInspiration(characterId: Long, hasInspiration: Boolean)
     suspend fun updatePassivePerceptionBonus(characterId: Long, bonus: Int)
+    suspend fun updateDarkvision(characterId: Long, mode: DarkvisionMode, manualFeet: Int)
     suspend fun updateAbilityScore(
         characterId: Long,
         ability: SpellcastingAbility,

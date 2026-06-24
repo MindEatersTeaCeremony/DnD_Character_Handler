@@ -427,6 +427,38 @@
     "en": "Passive Perception",
     "ru": "Пассивная внимательность"
   },
+  "attributes_darkvision": {
+    "en": "Darkvision",
+    "ru": "Тёмное зрение"
+  },
+  "attributes_darkvision_title": {
+    "en": "Darkvision",
+    "ru": "Тёмное зрение"
+  },
+  "attributes_darkvision_mode_auto": {
+    "en": "Auto",
+    "ru": "Авто"
+  },
+  "attributes_darkvision_mode_manual": {
+    "en": "Manual",
+    "ru": "Вручную"
+  },
+  "attributes_darkvision_none": {
+    "en": "You don't have Darkvision right now.",
+    "ru": "Сейчас у вас нет Тёмного зрения."
+  },
+  "attributes_darkvision_add": {
+    "en": "Add Darkvision",
+    "ru": "Добавить Тёмное зрение"
+  },
+  "attributes_darkvision_manual_hint": {
+    "en": "You're entering Darkvision manually.",
+    "ru": "Вы вводите Тёмное зрение вручную."
+  },
+  "attributes_darkvision_feet": {
+    "en": "Feet",
+    "ru": "Футы"
+  },
   "attributes_ability_scores": {
     "en": "Ability Scores",
     "ru": "Характеристики"
@@ -1553,6 +1585,48 @@
     "de": "Merkmal bearbeiten",
     "fr": "Modifier le trait",
     "es": "Editar rasgo"
+  },
+  "features_add_feature": {
+    "en": "Add Feature",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u0438",
+    "de": "Merkmal hinzufuegen",
+    "fr": "Ajouter un trait",
+    "es": "Agregar rasgo"
+  },
+  "features_add_create_section": {
+    "en": "Create Feature",
+    "ru": "\u0421\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u043e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u0438",
+    "de": "Merkmal erstellen",
+    "fr": "Creer un trait",
+    "es": "Crear rasgo"
+  },
+  "features_create_action": {
+    "en": "Create Feature",
+    "ru": "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u044c",
+    "de": "Merkmal erstellen",
+    "fr": "Creer un trait",
+    "es": "Crear rasgo"
+  },
+  "features_add_catalog_section": {
+    "en": "Add From Catalog",
+    "ru": "\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u0437 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0430",
+    "de": "Aus Katalog hinzufuegen",
+    "fr": "Ajouter depuis le catalogue",
+    "es": "Agregar desde el catalogo"
+  },
+  "features_catalog_loading": {
+    "en": "Loading features from catalog...",
+    "ru": "\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u043e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u0435\u0439 \u0438\u0437 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0430...",
+    "de": "Merkmale werden geladen...",
+    "fr": "Chargement des traits...",
+    "es": "Cargando rasgos..."
+  },
+  "features_catalog_empty": {
+    "en": "No features found.",
+    "ru": "\u041e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u0438 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u044b.",
+    "de": "Keine Merkmale gefunden.",
+    "fr": "Aucun trait trouve.",
+    "es": "No se encontraron rasgos."
   },
   "features_name": {
     "en": "Name",

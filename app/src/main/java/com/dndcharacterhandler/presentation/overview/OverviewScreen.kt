@@ -325,6 +325,38 @@ class OverviewViewModel(
                 hitDieSides = current.hitDieSides,
                 spentHitDice = 0
             )
+            if (current.spellSlotsRestoreOnLongRest || current.spellSlotsRestoreOnShortRest) {
+                characterRepository.updateSpellSlotRemaining(current.id, current.spellSlotMaximums)
+            }
+            restoreCombatResources(characterBundle, longRest = true)
+        }
+    }
+
+    fun shortRest(characterBundle: CharacterBundle) {
+        val current = characterBundle.character
+        viewModelScope.launch {
+            if (current.spellSlotsRestoreOnShortRest) {
+                characterRepository.updateSpellSlotRemaining(current.id, current.spellSlotMaximums)
+            }
+            restoreCombatResources(characterBundle, longRest = false)
+        }
+    }
+
+    private suspend fun restoreCombatResources(characterBundle: CharacterBundle, longRest: Boolean) {
+        val characterId = characterBundle.character.id
+        characterBundle.combatResources.forEach { resource ->
+            val restores = if (longRest) {
+                resource.restoresOnLongRest || resource.restoresOnShortRest
+            } else {
+                resource.restoresOnShortRest
+            }
+            if (restores && resource.maximumUses > 0 && resource.currentUses < resource.maximumUses) {
+                characterRepository.updateCombatResourceUses(
+                    characterId = characterId,
+                    resourceId = resource.id,
+                    delta = resource.maximumUses - resource.currentUses
+                )
+            }
         }
     }
 
@@ -405,6 +437,7 @@ fun OverviewScreen(
         onUpdateHitDieSides = viewModel::updateHitDieSides,
         onSpendHitDice = viewModel::spendHitDice,
         onToggleInspiration = viewModel::toggleInspiration,
+        onShortRest = viewModel::shortRest,
         onLongRest = viewModel::longRest
     )
 }
@@ -427,6 +460,7 @@ private fun OverviewContent(
     onUpdateHitDieSides: (CharacterBundle, Int) -> Unit,
     onSpendHitDice: (CharacterBundle, Int) -> Unit,
     onToggleInspiration: (CharacterBundle) -> Unit,
+    onShortRest: (CharacterBundle) -> Unit,
     onLongRest: (CharacterBundle) -> Unit
 ) {
     val character = characterBundle?.character
@@ -1227,12 +1261,15 @@ private fun OverviewContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onSpendHitDice(characterBundle, spendCount)
+                        if (spendCount > 0) {
+                            onSpendHitDice(characterBundle, spendCount)
+                        }
+                        onShortRest(characterBundle)
                         hitDiceSpendCount = 0
-                    },
-                    enabled = spendCount > 0
+                        isShortRestDialogOpen = false
+                    }
                 ) {
-                    Text(text("overview_hit_dice_spend"))
+                    Text(text("overview_short_rest"))
                 }
             },
             dismissButton = {
@@ -2124,6 +2161,7 @@ private fun OverviewScreenPreview() {
                 onUpdateHitDieSides = { _, _ -> },
                 onSpendHitDice = { _, _ -> },
                 onToggleInspiration = {},
+                onShortRest = {},
                 onLongRest = {}
             )
         }

@@ -7,6 +7,7 @@ import com.dndcharacterhandler.domain.model.Attack
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CharacterProficiencyField
 import com.dndcharacterhandler.domain.model.CharacterTextField
+import com.dndcharacterhandler.domain.model.DarkvisionMode
 import com.dndcharacterhandler.domain.model.CombatResource
 import com.dndcharacterhandler.domain.model.Feature
 import com.dndcharacterhandler.domain.model.InventoryItem
@@ -154,6 +155,12 @@ class CharacterRepositoryImpl(
     override suspend fun updatePassivePerceptionBonus(characterId: Long, bonus: Int) {
         writeMutex.withLock {
             characterDao.updatePassivePerceptionBonus(characterId, bonus, System.currentTimeMillis())
+        }
+    }
+
+    override suspend fun updateDarkvision(characterId: Long, mode: DarkvisionMode, manualFeet: Int) {
+        writeMutex.withLock {
+            characterDao.updateDarkvision(characterId, mode, manualFeet, System.currentTimeMillis())
         }
     }
 

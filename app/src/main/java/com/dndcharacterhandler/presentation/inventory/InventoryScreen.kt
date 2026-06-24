@@ -76,6 +76,7 @@ import com.dndcharacterhandler.presentation.SelectedCharacterHolder
 import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
 import com.dndcharacterhandler.presentation.components.FloatingAddButton
 import com.dndcharacterhandler.presentation.components.ScreenBackground
+import com.dndcharacterhandler.presentation.components.SelectableDot
 import com.dndcharacterhandler.presentation.components.ScreenTopActions
 import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
@@ -1023,7 +1024,7 @@ private fun InventoryItemRow(
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color(0xFFD2CAC2)
             )
-            EquippedDot(
+            SelectableDot(
                 selected = item.isEquipped,
                 onClick = onToggleEquipped
             )
@@ -2029,28 +2030,6 @@ private fun <T> EnumSelectorRow(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun EquippedDot(
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Canvas(
-        modifier = Modifier
-            .size(22.dp)
-            .clickable(onClick = onClick)
-    ) {
-        drawCircle(
-            color = if (selected) Color(0xFFF7F2EA) else Color.Transparent,
-            radius = size.minDimension * 0.32f
-        )
-        drawCircle(
-            color = Color(0xFFC2BBB3),
-            radius = size.minDimension * 0.42f,
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
-        )
     }
 }
 
