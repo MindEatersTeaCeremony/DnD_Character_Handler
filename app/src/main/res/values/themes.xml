@@ -1,6 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.App.Starting" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowBackground">#120E18</item>
+        <!-- Android 12+ system splash: uniform background + matching icon-circle color
+             so the adaptive launcher icon shows on a flat background, no white ring. -->
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">#120E18</item>
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">#120E18</item>
         <item name="android:statusBarColor">#120E18</item>
         <item name="android:navigationBarColor">#120E18</item>
         <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>

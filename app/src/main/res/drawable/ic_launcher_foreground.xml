@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon foreground: the existing square art inset into the safe zone
+     so the circular mask (launcher + Android 12 splash) doesn't clip the emblem. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/icon_app"
+    android:inset="16%" />
