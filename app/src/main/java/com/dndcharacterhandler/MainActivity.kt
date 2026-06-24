@@ -3,11 +3,16 @@ package com.dndcharacterhandler
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.dndcharacterhandler.presentation.DndCharacterApp
 import com.dndcharacterhandler.presentation.DndCharacterAppState
+import com.dndcharacterhandler.presentation.SplashScreen
 import com.dndcharacterhandler.presentation.attributes.AttributesViewModel
 import com.dndcharacterhandler.presentation.biography.BiographyViewModel
 import com.dndcharacterhandler.presentation.combat.CombatViewModel
@@ -32,6 +37,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DnDTheme {
+                var showSplash by remember { mutableStateOf(true) }
+                if (showSplash) {
+                    SplashScreen(onTimeout = { showSplash = false })
+                } else {
                 DndCharacterApp(
                     appState = DndCharacterAppState(
                         overviewViewModel = viewModelProvider.get(OverviewViewModel::class.java),
@@ -46,6 +55,7 @@ class MainActivity : ComponentActivity() {
                         localizationRepository = container.localizationRepository
                     )
                 )
+                }
             }
         }
     }
