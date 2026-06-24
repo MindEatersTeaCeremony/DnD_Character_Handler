@@ -11,3 +11,8 @@ Rules:
 - **Fonts & font sizes** — use the `MaterialTheme.typography.*` styles, which map to the sizes defined under `typography.materialTheme` (`headlineMedium` 28sp, `titleLarge` 22sp, `titleMedium` 18sp, `bodyLarge` 16sp, `bodyMedium` 14sp, `labelMedium` 12sp). Do not hardcode arbitrary `fontSize` values.
 - **Never add new colors or font sizes (кегли) on your own.** If a new color or size seems necessary, you must first request it from the project owner and get explicit approval before adding it. No new value goes into the code without that approval.
 - When touching older code that uses non-token hex values, align it to the tokens.
+
+## Git workflow
+
+- **Do not create separate branches.** Commit directly to `main` and push immediately.
+- This overrides the default "branch first on the default branch" behavior — for this project, work straight on `main`.
