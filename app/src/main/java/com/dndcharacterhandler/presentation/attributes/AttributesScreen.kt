@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.dndcharacterhandler.domain.model.AppLanguage
 import com.dndcharacterhandler.domain.model.ArmorClassMode
 import com.dndcharacterhandler.domain.model.Character
 import com.dndcharacterhandler.domain.model.CharacterBundle
@@ -666,11 +667,13 @@ fun AttributesContent(
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val russian = LocalStrings.current.language == AppLanguage.RUSSIAN
                         darkvisionCatalogItems.forEach { item ->
                             FeatureCatalogRow(
                                 item = item,
+                                russian = russian,
                                 onAdd = {
-                                    onUpsertFeature(characterBundle, item.toFeature())
+                                    onUpsertFeature(characterBundle, item.toFeature(russian))
                                     isDarkvisionCatalogOpen = false
                                 }
                             )

@@ -1642,6 +1642,13 @@
     "fr": "Description",
     "es": "Descripcion"
   },
+  "features_category": {
+    "en": "Category",
+    "ru": "\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f",
+    "de": "Kategorie",
+    "fr": "Categorie",
+    "es": "Categoria"
+  },
   "features_level": {
     "en": "Level",
     "ru": "\u0423\u0440\u043e\u0432\u0435\u043d\u044c",

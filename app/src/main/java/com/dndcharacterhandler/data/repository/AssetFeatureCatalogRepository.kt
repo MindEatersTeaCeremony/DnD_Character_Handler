@@ -13,6 +13,41 @@ class AssetFeatureCatalogRepository(
     @Volatile
     private var cachedItems: List<FeatureCatalogItem>? = null
 
+    @Volatile
+    private var ruTextCache: JSONObject? = null
+
+    @Volatile
+    private var categoryRuCache: JSONObject? = null
+
+    private fun ruText(): JSONObject {
+        ruTextCache?.let { return it }
+        val raw = runCatching {
+            context.assets.open("feature_text_ru.json").bufferedReader().use { it.readText() }
+        }.getOrNull()
+        val obj = if (raw != null) runCatching { JSONObject(raw) }.getOrNull() ?: JSONObject() else JSONObject()
+        ruTextCache = obj
+        return obj
+    }
+
+    private fun categoryRu(): JSONObject {
+        categoryRuCache?.let { return it }
+        val raw = runCatching {
+            context.assets.open("category_text_ru.json").bufferedReader().use { it.readText() }
+        }.getOrNull()
+        val obj = if (raw != null) runCatching { JSONObject(raw) }.getOrNull() ?: JSONObject() else JSONObject()
+        categoryRuCache = obj
+        return obj
+    }
+
+    /** Localizes an English category, mapping each comma-separated part (handles multi-species traits). */
+    private fun localizeCategory(category: String): String {
+        if (category.isBlank()) return ""
+        val map = categoryRu()
+        return category.split(", ").joinToString(", ") { part ->
+            map.optString(part).ifBlank { part }
+        }
+    }
+
     override suspend fun getItems(): List<FeatureCatalogItem> {
         cachedItems?.let { return it }
         val classFeatures = readArray("5e-SRD-Features.json")
@@ -21,9 +56,31 @@ class AssetFeatureCatalogRepository(
             .mapNotNull { parseFeature(it, FeatureSource.RACE) }
         val originFeats = readArray("5e-SRD-Feats.json")
             .mapNotNull { parseOriginFeat(it) }
-        val items = (classFeatures + racialTraits + originFeats).sortedBy { it.name }
+        val extras = readArray("feature_catalog_extra.json")
+            .mapNotNull { parseExtra(it) }
+        val items = (classFeatures + racialTraits + originFeats + extras).sortedBy { it.name }
         cachedItems = items
         return items
+    }
+
+    /** Parses a fully-formed catalog entry from the supplementary PHB asset (non-SRD content). */
+    private fun parseExtra(json: JSONObject): FeatureCatalogItem? {
+        val id = json.optString("id").ifBlank { return null }
+        val name = json.optString("name").ifBlank { return null }
+        val source = runCatching { FeatureSource.valueOf(json.optString("source")) }
+            .getOrDefault(FeatureSource.OTHER)
+        val level = if (json.isNull("level")) null else json.optInt("level").takeIf { it > 0 }
+        return FeatureCatalogItem(
+            id = id,
+            name = name,
+            description = json.optString("description"),
+            level = level,
+            source = source,
+            category = json.optString("category"),
+            ruName = json.optString("ruName"),
+            ruDescription = json.optString("ruDescription"),
+            ruCategory = localizeCategory(json.optString("category"))
+        )
     }
 
     private fun readArray(assetName: String): JSONArray {
@@ -53,13 +110,17 @@ class AssetFeatureCatalogRepository(
             FeatureSource.RACE -> json.optJSONArray("species").joinNames()
             else -> ""
         }
+        val ru = ruText().optJSONObject(index)
         return FeatureCatalogItem(
             id = "${source.name}:$index",
             name = name,
             description = description,
             level = level,
             source = source,
-            category = category
+            category = category,
+            ruName = ru?.optString("name").orEmpty(),
+            ruDescription = ru?.optString("description").orEmpty(),
+            ruCategory = localizeCategory(category)
         )
     }
 
@@ -70,13 +131,17 @@ class AssetFeatureCatalogRepository(
         val description = json.optString("description").ifBlank {
             json.optJSONArray("desc").joinParagraphs()
         }
+        val ru = ruText().optJSONObject(index)
         return FeatureCatalogItem(
             id = "FEAT:$index",
             name = name,
             description = description,
             level = null,
             source = FeatureSource.BACKGROUND,
-            category = "Origin Feat"
+            category = "Origin Feat",
+            ruName = ru?.optString("name").orEmpty(),
+            ruDescription = ru?.optString("description").orEmpty(),
+            ruCategory = localizeCategory("Origin Feat")
         )
     }
 

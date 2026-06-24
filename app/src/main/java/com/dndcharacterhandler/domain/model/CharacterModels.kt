@@ -219,7 +219,8 @@ data class Feature(
     val name: String,
     val description: String,
     val level: Int? = null,
-    val source: FeatureSource = FeatureSource.OTHER
+    val source: FeatureSource = FeatureSource.OTHER,
+    val category: String = ""
 )
 data class Note(
     val id: Long = 0,

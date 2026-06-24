@@ -30,7 +30,7 @@ import com.dndcharacterhandler.data.local.entity.SpellEntity
         FeatureEntity::class,
         NoteEntity::class
     ],
-    version = 42,
+    version = 43,
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)
@@ -88,7 +88,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_38_39,
                     MIGRATION_39_40,
                     MIGRATION_40_41,
-                    MIGRATION_41_42
+                    MIGRATION_41_42,
+                    MIGRATION_42_43
                 ).build().also { INSTANCE = it }
             }
         }
@@ -509,6 +510,12 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE characters ADD COLUMN darkvisionMode TEXT NOT NULL DEFAULT 'AUTO'")
                 db.execSQL("ALTER TABLE characters ADD COLUMN darkvisionManualFeet INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE features ADD COLUMN category TEXT NOT NULL DEFAULT ''")
             }
         }
     }

@@ -101,7 +101,7 @@ fun CharacterWithDetails.toDomain(): CharacterBundle =
             )
         },
         spellAttacks = spellAttacks.map { it.toDomain() },
-        features = features.map { Feature(it.id, it.name, it.description, it.level, it.source) },
+        features = features.map { Feature(it.id, it.name, it.description, it.level, it.source, it.category) },
         notes = notes.map { Note(it.id, it.title, it.createdDate, it.updatedDate, it.content, it.isPinned) }
     )
 
@@ -513,7 +513,8 @@ fun Feature.toEntity(characterId: Long): FeatureEntity =
         name = name,
         description = description,
         level = level,
-        source = source
+        source = source,
+        category = category
     )
 
 fun Note.toEntity(characterId: Long): NoteEntity =

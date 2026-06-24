@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.dndcharacterhandler.domain.model.AppLanguage
 import com.dndcharacterhandler.domain.model.CharacterBundle
 import com.dndcharacterhandler.domain.model.CharacterTextField
 import com.dndcharacterhandler.domain.model.Feature
@@ -66,6 +67,7 @@ import com.dndcharacterhandler.presentation.components.CharacterScreenHeader
 import com.dndcharacterhandler.presentation.components.FloatingAddButton
 import com.dndcharacterhandler.presentation.components.ScreenBackground
 import com.dndcharacterhandler.presentation.components.ScreenTopActions
+import com.dndcharacterhandler.presentation.localization.LocalStrings
 import com.dndcharacterhandler.presentation.localization.text
 import com.dndcharacterhandler.presentation.theme.LocalDesignTokens
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -193,6 +195,7 @@ internal fun FeaturesContent(
     onUpdateBackground: (CharacterBundle, String) -> Unit = { _, _ -> }
 ) {
     val character = characterBundle?.character
+    val russian = LocalStrings.current.language == AppLanguage.RUSSIAN
     var query by remember { mutableStateOf("") }
     var editingFeature by remember { mutableStateOf<Feature?>(null) }
     var isAddEntryDialogOpen by remember { mutableStateOf(false) }
@@ -327,13 +330,14 @@ internal fun FeaturesContent(
         FeaturesAddEntryDialog(
             catalogItems = catalogItems,
             isLoading = isCatalogLoading,
+            russian = russian,
             onDismiss = { isAddEntryDialogOpen = false },
             onCreateFeature = {
                 isAddEntryDialogOpen = false
                 editingFeature = newDraftFeature()
             },
             onSelectCatalogItem = { item ->
-                onUpdateFeature(resolvedBundle, item.toFeature())
+                onUpdateFeature(resolvedBundle, item.toFeature(russian))
                 isAddEntryDialogOpen = false
             }
         )
@@ -582,18 +586,21 @@ internal fun FeatureCard(
 private fun FeaturesAddEntryDialog(
     catalogItems: List<FeatureCatalogItem>,
     isLoading: Boolean,
+    russian: Boolean,
     onDismiss: () -> Unit,
     onCreateFeature: () -> Unit,
     onSelectCatalogItem: (FeatureCatalogItem) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
-    val filteredItems = remember(catalogItems, query) {
+    val filteredItems = remember(catalogItems, query, russian) {
         val needle = query.trim()
         catalogItems.filter { item ->
             needle.isBlank() ||
                 item.name.contains(needle, ignoreCase = true) ||
+                item.ruName.contains(needle, ignoreCase = true) ||
                 item.category.contains(needle, ignoreCase = true) ||
-                item.description.contains(needle, ignoreCase = true)
+                item.description.contains(needle, ignoreCase = true) ||
+                item.ruDescription.contains(needle, ignoreCase = true)
         }
     }
 
@@ -639,6 +646,7 @@ private fun FeaturesAddEntryDialog(
                                 items(filteredItems, key = { it.id }) { item ->
                                     FeatureCatalogRow(
                                         item = item,
+                                        russian = russian,
                                         onAdd = { onSelectCatalogItem(item) }
                                     )
                                 }
@@ -669,10 +677,11 @@ private fun FeaturesDialogSection(title: String) {
 @Composable
 internal fun FeatureCatalogRow(
     item: FeatureCatalogItem,
+    russian: Boolean,
     onAdd: () -> Unit
 ) {
     val subtitle = buildList {
-        item.category.takeIf { it.isNotBlank() }?.let(::add)
+        item.displayCategory(russian).takeIf { it.isNotBlank() }?.let(::add)
         item.level?.let { add("${text("features_level")} $it") }
     }.joinToString(" • ")
     Surface(
@@ -687,7 +696,7 @@ internal fun FeatureCatalogRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.name,
+                    text = item.displayName(russian),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFFF7F2EA),
                     maxLines = 1,
@@ -722,6 +731,7 @@ internal fun FeatureEditDialog(
     var description by remember(feature) { mutableStateOf(feature.description) }
     var level by remember(feature) { mutableStateOf(feature.level?.toString().orEmpty()) }
     var source by remember(feature) { mutableStateOf(feature.source) }
+    var category by remember(feature) { mutableStateOf(feature.category) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -737,6 +747,12 @@ internal fun FeatureEditDialog(
                 FeatureSourceField(
                     value = source,
                     onValueChange = { source = it }
+                )
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text(text("features_category")) },
+                    singleLine = true
                 )
                 OutlinedTextField(
                     value = level,
@@ -761,7 +777,8 @@ internal fun FeatureEditDialog(
                             name = name.trim(),
                             description = description.trim(),
                             level = level.toIntOrNull(),
-                            source = source
+                            source = source,
+                            category = category.trim()
                         )
                     )
                 }
