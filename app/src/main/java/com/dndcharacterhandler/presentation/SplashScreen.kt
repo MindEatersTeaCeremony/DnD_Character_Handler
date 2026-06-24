@@ -1,5 +1,6 @@
 package com.dndcharacterhandler.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +35,8 @@ private const val SRD_ATTRIBUTION =
  */
 @Composable
 fun SplashScreen(onTimeout: () -> Unit) {
+    // Swallow Back while the splash is shown so it can't reach the app composed underneath.
+    BackHandler {}
     LaunchedEffect(Unit) {
         delay(2000)
         onTimeout()
@@ -46,6 +50,14 @@ private fun SplashContent() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF120E18)) // colors.materialTheme.background
+            .pointerInput(Unit) {
+                // Consume all gestures so the app composed beneath the splash isn't interactive.
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent().changes.forEach { it.consume() }
+                    }
+                }
+            }
     ) {
         Image(
             painter = painterResource(R.drawable.studio_logo),
