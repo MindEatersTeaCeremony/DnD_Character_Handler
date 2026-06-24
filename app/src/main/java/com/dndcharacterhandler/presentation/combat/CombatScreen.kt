@@ -1863,10 +1863,10 @@ private fun spellSaveAbilityShortKey(raw: String): String? = when (raw.trim().up
 private fun Spell.combatAmountDiceLabel(spellModifier: Int): String {
     val isHeal = parseResolutionKind(this) == SpellResolutionKind.HEAL
     val base = (if (isHeal) healBase else damageBase).trim()
-    if (base.isBlank()) return ""
     val bonusIsModifier = if (isHeal) healBonusIsModifier else damageBonusIsModifier
     val bonusValue = if (isHeal) healBonusValue else damageBonusValue
     val bonus = if (bonusIsModifier) spellModifier else bonusValue
+    if (base.isBlank() && bonus == 0) return ""
     val builder = StringBuilder(formatSpellDiceLabel(base, bonus))
     if (!isHeal) {
         val alternate = altDamageBase.trim()
@@ -1906,8 +1906,8 @@ private fun Spell.combatDamageLabel(
     spellModifier: Int
 ): String {
     val primary = damageBase.trim()
-    if (primary.isBlank()) return ""
     val primaryBonus = if (damageBonusIsModifier) spellModifier else damageBonusValue
+    if (primary.isBlank() && primaryBonus == 0) return ""
     val builder = StringBuilder(formatSpellDiceLabel(primary, primaryBonus))
     if (damageType.isNotBlank()) {
         builder.append(" ").append(strings[damageTypeLocalizationKeyForCombat(damageType)])
@@ -1924,9 +1924,14 @@ private fun Spell.combatDamageLabel(
 }
 
 private fun formatSpellDiceLabel(dice: String, bonus: Int): String = buildString {
-    append(dice)
-    if (bonus > 0) append(" + $bonus")
-    if (bonus < 0) append(" - ${kotlin.math.abs(bonus)}")
+    val trimmed = dice.trim()
+    append(trimmed)
+    when {
+        // No dice (pure flat amount, e.g. a fixed heal): show just the number.
+        trimmed.isBlank() && bonus != 0 -> append(bonus.toString())
+        bonus > 0 -> append(" + $bonus")
+        bonus < 0 -> append(" - ${kotlin.math.abs(bonus)}")
+    }
 }
 
 private fun spellLevelLabel(
