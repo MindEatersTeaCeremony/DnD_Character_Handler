@@ -3,10 +3,13 @@ package com.dndcharacterhandler
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -54,10 +57,13 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 var showSplash by remember { mutableStateOf(true) }
-                if (showSplash) {
-                    SplashScreen(onTimeout = { showSplash = false })
-                } else {
+                // Compose the app underneath the splash so it lays out (and the drawer
+                // settles closed) while the splash is shown — then reveal it with no flash.
+                Box(modifier = Modifier.fillMaxSize()) {
                     DndCharacterApp(appState = appState)
+                    if (showSplash) {
+                        SplashScreen(onTimeout = { showSplash = false })
+                    }
                 }
             }
         }
