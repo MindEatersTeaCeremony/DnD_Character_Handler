@@ -17,8 +17,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dndcharacterhandler.R
+import com.dndcharacterhandler.presentation.theme.DnDTheme
 import kotlinx.coroutines.delay
 
 /** Required CC-BY-4.0 attribution for the SRD 5.2 content bundled in the catalog. */
@@ -35,6 +37,11 @@ fun SplashScreen(onTimeout: () -> Unit) {
         delay(2000)
         onTimeout()
     }
+    SplashContent()
+}
+
+@Composable
+private fun SplashContent() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -58,5 +65,13 @@ fun SplashScreen(onTimeout: () -> Unit) {
                 .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 20.dp)
         )
+    }
+}
+
+@Preview(name = "Splash", showSystemUi = true)
+@Composable
+private fun SplashScreenPreview() {
+    DnDTheme {
+        SplashContent()
     }
 }
