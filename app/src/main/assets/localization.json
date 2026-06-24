@@ -511,6 +511,10 @@
     "en": "Proficient in %s saving throw",
     "ru": "Владение спасброском %s"
   },
+  "attributes_saving_throw_short": {
+    "en": "Save",
+    "ru": "Спас."
+  },
   "ability_str_short": {
     "en": "STR",
     "ru": "СИЛ"

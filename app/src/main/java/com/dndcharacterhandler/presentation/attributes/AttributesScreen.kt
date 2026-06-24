@@ -574,7 +574,7 @@ fun AttributesContent(
                         isPassiveDialogOpen = false
                     }
                 ) {
-                    Text("Save")
+                    Text(text("common_save"))
                 }
             },
             dismissButton = {
@@ -753,7 +753,7 @@ fun AttributesContent(
                         editingAbility = null
                     }
                 ) {
-                    Text("Save")
+                    Text(text("common_save"))
                 }
             },
             dismissButton = {
@@ -813,7 +813,7 @@ fun AttributesContent(
                         editingSkill = null
                     }
                 ) {
-                    Text("Save")
+                    Text(text("common_save"))
                 }
             },
             dismissButton = {
@@ -1235,19 +1235,19 @@ private fun AbilityScoreCard(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Canvas(modifier = Modifier.size(10.dp)) {
+                        Canvas(modifier = Modifier.size(12.dp)) {
                             drawCircle(
                                 color = if (score.saveProficient) Color(0xFFF7F2EA) else Color.Transparent,
-                                radius = 4.dp.toPx()
+                                radius = 5.dp.toPx()
                             )
                             drawCircle(
                                 color = Color(0xFFC2BBB3),
-                                radius = 4.dp.toPx(),
+                                radius = 5.dp.toPx(),
                                 style = Stroke(width = 1.dp.toPx())
                             )
                         }
                         Text(
-                            text = "Save",
+                            text = text("attributes_saving_throw_short"),
                             modifier = Modifier.padding(start = 4.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = Color(0xFFD2CAC2)
