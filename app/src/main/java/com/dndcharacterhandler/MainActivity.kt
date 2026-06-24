@@ -37,12 +37,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DnDTheme {
-                var showSplash by remember { mutableStateOf(true) }
-                if (showSplash) {
-                    SplashScreen(onTimeout = { showSplash = false })
-                } else {
-                DndCharacterApp(
-                    appState = DndCharacterAppState(
+                // Build the app state (and instantiate the ViewModels) eagerly so their
+                // data loads start while the splash is showing, not after it closes.
+                val appState = remember {
+                    DndCharacterAppState(
                         overviewViewModel = viewModelProvider.get(OverviewViewModel::class.java),
                         attributesViewModel = viewModelProvider.get(AttributesViewModel::class.java),
                         combatViewModel = viewModelProvider.get(CombatViewModel::class.java),
@@ -54,7 +52,12 @@ class MainActivity : ComponentActivity() {
                         characterManagerViewModel = viewModelProvider.get(CharacterManagerViewModel::class.java),
                         localizationRepository = container.localizationRepository
                     )
-                )
+                }
+                var showSplash by remember { mutableStateOf(true) }
+                if (showSplash) {
+                    SplashScreen(onTimeout = { showSplash = false })
+                } else {
+                    DndCharacterApp(appState = appState)
                 }
             }
         }
